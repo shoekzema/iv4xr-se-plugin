@@ -6,7 +6,7 @@
   <SpectatorPosition>
     <Position x="18.779428348906464" y="-3.0129752447234392" z="56.906262603949017" />
     <Forward x="0.5187069" y="-0.20716396" z="-0.8294735" />
-    <Up x="-0.0033244635" y="0.969702661" z="-0.244265631" />
+    <Up x="-0.00332447141" y="0.969702661" z="-0.244265616" />
     <Orientation>
       <X>-0.118077867</X>
       <Y>-0.267059684</Y>
@@ -107,7 +107,7 @@
     <RealisticSound>false</RealisticSound>
     <HackSpeedMultiplier>0.33</HackSpeedMultiplier>
     <PermanentDeath>false</PermanentDeath>
-    <AutoSaveInMinutes>5</AutoSaveInMinutes>
+    <AutoSaveInMinutes>0</AutoSaveInMinutes>
     <EnableSaving>true</EnableSaving>
     <InfiniteAmmo>false</InfiniteAmmo>
     <EnableContainerDrops>true</EnableContainerDrops>
@@ -178,7 +178,7 @@
     <EnableEconomy>false</EnableEconomy>
     <DepositsCountCoefficient>2</DepositsCountCoefficient>
     <DepositSizeDenominator>30</DepositSizeDenominator>
-    <WeatherSystem>true</WeatherSystem>
+    <WeatherSystem>false</WeatherSystem>
     <HarvestRatioMultiplier>1</HarvestRatioMultiplier>
     <TradeFactionsCount>15</TradeFactionsCount>
     <StationsDistanceInnerRadius>10000000</StationsDistanceInnerRadius>
@@ -272,6 +272,7 @@
     </PlayerToFactionsVis>
   </Factions>
   <Mods />
+  <CreativeTools />
   <Scenario Type="MyObjectBuilder_ScenarioDefinition" Subtype="LoneSurvivor" />
   <RespawnCooldowns />
   <Identities>
@@ -444,6 +445,8 @@
       </item>
     </dictionary>
   </AllPlayersData>
+  <ChatHistory />
+  <FactionChatHistory />
   <NonPlayerIdentities>
     <long>144115188075855876</long>
   </NonPlayerIdentities>
@@ -6852,4 +6855,7 @@
     <string>Stone_03</string>
   </VicinityVoxelCache>
   <WorldId>00000000-0000-0000-0000-000000000000</WorldId>
+  <RemoteAdminSettings>
+    <dictionary />
+  </RemoteAdminSettings>
 </MyObjectBuilder_Checkpoint>
