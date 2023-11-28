@@ -13,13 +13,12 @@ import static uuspaceagent.TestUtils.console;
 import static uuspaceagent.TestUtils.loadSE;
 
 public class Test_Navigate3D {
-    public Pair<TestAgent, UUSeAgentState> deployAgent() throws InterruptedException {
-        var agentAndState = loadSE("myworld-3 3D-nav");
+    public Pair<TestAgent, UUSeAgentState> deployAgent(String worldname) throws InterruptedException {
+        var agentAndState = loadSE(worldname);
         TestAgent agent = agentAndState.fst;
         UUSeAgentState state = agentAndState.snd;
         Thread.sleep(1000);
         state.updateState(state.agentId);
-        // agent start location = <9, -5, 55>
         console(showWOMAgent(state.wom));
         return new Pair<TestAgent, UUSeAgentState>(agent,state);
     }
@@ -40,14 +39,38 @@ public class Test_Navigate3D {
     @Test
     public void test_navigate3DTo() throws InterruptedException {
         console("*** start test...");
-        var agentAndState = deployAgent();
+        var agentAndState = deployAgent("myworld-3 3D-nav");
+        // agent start location = <9, -5, 55>
         TestAgent agent = agentAndState.fst;
         UUSeAgentState state = agentAndState.snd;
         state.navgrid.enableFlying = true;
 
         // agent halfway goal location = <34, 17.5, 75>
         // agent end goal location =     <51, 17.5, 75>
-        Vec3 dest = new Vec3(34,17.5f,75);
+        // faraway asteroid location =   <-2133, 1773, -170>
+        // below platform =              <9, -15, 55>
+        // behind wall =                 <9, -5, 45>
+        Vec3 dest = new Vec3(9,-15,55);
+        GoalStructure G = DEPLOYonce(agent, UUGoalLib.closeTo(dest));
+        test_Goal(agentAndState.fst, agentAndState.snd, G);
+        G.printGoalStructureStatus();
+        assertTrue(G.getStatus().success());
+    }
+
+    @Test
+    public void test_navigate3DMaze() throws InterruptedException {
+        console("*** start test...");
+        var agentAndState = deployAgent("3D maze -glass");
+        // agent start location = <9, -5, 55>
+        //Thread.sleep(5000);
+        TestAgent agent = agentAndState.fst;
+        UUSeAgentState state = agentAndState.snd;
+        state.navgrid.enableFlying = true;
+
+        // maze center location =       <80, 80, 80>
+        // button in maze location =    <19, 70, 23>, look towards ~(0.4, -0.1, -1), up = (-1, 0, 0)
+        // door location =              <-10, -1.3, 5>, look towards (-1, 0, 0), up = (0, -1, 0)
+        Vec3 dest = new Vec3(80,80,80);
         GoalStructure G = DEPLOYonce(agent, UUGoalLib.closeTo(dest));
         test_Goal(agentAndState.fst, agentAndState.snd, G);
         G.printGoalStructureStatus();
