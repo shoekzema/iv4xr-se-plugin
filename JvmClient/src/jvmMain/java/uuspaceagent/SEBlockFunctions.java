@@ -204,6 +204,26 @@ public class SEBlockFunctions {
     }
 
     /**
+     * Return all blocks with the specified property (the selector), sorted on distance.
+     */
+    public static List<WorldEntity> findBlocksOfType(WorldModel wom, Predicate<WorldEntity> selector) {
+        var candidates =  SEBlockFunctions.getAllBlocks(wom)
+                .stream()
+                .filter(e -> selector.test(e))
+                .collect(Collectors.toList());
+        if(candidates.isEmpty()) return null ;
+
+        if(candidates.size() == 1) return candidates ;
+
+        // if there are more than one, sort them
+        candidates.sort((e1,e2) -> Float.compare(
+                Vec3.sub(e1.position,wom.position).lengthSq(),
+                Vec3.sub(e2.position,wom.position).lengthSq())) ;
+
+        return candidates ;
+    }
+
+    /**
      * HACK: this will replace grids and blocks packaged in this world model with the same
      * entity but marked as dynamic. SE send them as non-dynamic, which causes them to
      * be ignored when merhing woms.

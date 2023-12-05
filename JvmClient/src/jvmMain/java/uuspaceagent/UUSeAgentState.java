@@ -155,6 +155,10 @@ public class UUSeAgentState extends State {
         return (Vec3) wom.elements.get(agentId).properties.get("orientationForward") ;
     }
 
+    Vec3 orientationUp() {
+        return (Vec3) wom.elements.get(agentId).properties.get("orientationUp") ;
+    }
+
     WorldEntity targetBlock() {
         var targetId = wom.elements.get(agentId).getStringProperty ("targetBlock") ;
         if (targetId == null) return null ;
