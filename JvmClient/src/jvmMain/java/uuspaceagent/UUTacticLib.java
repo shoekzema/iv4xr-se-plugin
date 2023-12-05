@@ -19,6 +19,11 @@ public class UUTacticLib {
     public static float TURNING_SPEED = 10f ;
 
     /**
+     * The default speed with which the agent turns.
+     */
+    public static float ROLL_SPEED = 1f ;
+
+    /**
      * The default walking speed. Set as 0.3f, as defined by SE (at this speed the agent
      * will walk, not running).
      */
@@ -39,7 +44,7 @@ public class UUTacticLib {
     public static float THRESHOLD_ANGLE_TO_SLOW_TURNING = (float) Math.cos(Math.toRadians(10f));
     /**
      * When the agent's distance to a square's center is less or equal to this threshold, the
-     * square is considered as visited. This distance is a about the square size, so the agent
+     * square is considered as visited. This distance is an about the square size, so the agent
      * might actually in the neighboring square. This threshold is introduced to avoid the
      * agent from getting stuck because it keeps overshooting the center of a target square.
      *
@@ -55,7 +60,7 @@ public class UUTacticLib {
      * it faces to. Note that as a unit-vector it does not take speed into account; you need
      * to multiply it with the speed that you want.
      */
-    static Vec3 FORWARDV3= new Vec3(0,0,1) ;
+    static Vec3 FORWARDV3 = new Vec3(0,0,1) ;
 
     /**
      * Just the vector (0,0,0).
@@ -108,7 +113,7 @@ public class UUTacticLib {
         else {
             forwardRun = Rotation.rotate(forwardRun, agentState.orientationForward(), destinationRelativeLocation) ;
             forwardWalk = Rotation.rotate(forwardWalk, agentState.orientationForward(), destinationRelativeLocation) ;
-            // applly correction on the y-component, taking advantage that we know
+            // apply correction on the y-component, taking advantage that we know
             // the agent's forward orientation has its y-component 0.
             forwardRun.y = Math.abs(forwardRun.y) ;
             forwardWalk.y = Math.abs(forwardWalk.y) ;
@@ -129,7 +134,7 @@ public class UUTacticLib {
             obs = agentState.env().getController().getCharacter().moveAndRotate(
                     SEBlockFunctions.toSEVec3(running ? seFixPolarityMoveVector(forwardRun) : seFixPolarityMoveVector(forwardWalk))
                     , ZEROV2,
-                    0, 1) ; // "roll" and "tick" ... using default vals;
+                    0, 1) ; // "roll" and "tick" ... using default values;
             sqDistance = Vec3.sub(SEBlockFunctions.fromSEVec3(obs.getPosition()),destination).lengthSq() ;
             if(sqDistance <= threshold) {
                 break ;
@@ -189,14 +194,14 @@ public class UUTacticLib {
         if(cos_alpha >= THRESHOLD_ANGLE_TO_SLOW_TURNING) {
             // the angle between the agent's own direction and target direction is less than 10-degree
             // we reduce the turning-speed:
-            turningSpeed = TURNING_SPEED*0.25f ;
+            turningSpeed = TURNING_SPEED * 0.25f ;
             fastturning = false ;
         }
         // check if we have to turn clockwise or counter-clockwise
         if (normalVector.y > 0) {
             // The agent should then turn clock-wise; for SE this means giving
             // a negative turning speed. Else positive turning speed.
-            turningSpeed = - turningSpeed ;
+            turningSpeed = -turningSpeed ;
         }
         if(!fastturning || duration == null) {
             duration = 1 ;
@@ -209,7 +214,7 @@ public class UUTacticLib {
             obs = agentState.env().getController().getCharacter().moveAndRotate(
                     SEBlockFunctions.toSEVec3(ZEROV3),
                     turningVector,
-                    0, 1) ; // "roll" and "tick" ... using default vals;
+                    0, 1) ; // "roll" and "tick" ... using default values;
             dirToGo = Vec3.sub(destination,SEBlockFunctions.fromSEVec3(obs.getPosition())) ;
             agentHdir = SEBlockFunctions.fromSEVec3(obs.getOrientationForward()) ;
             // for calculating 2D rotation we ignore the y-value:
@@ -230,6 +235,81 @@ public class UUTacticLib {
             if(cos_alpha > cosAlphaThreshold) {
                 // the angle is already quite aligned to the direction of where we have to go, no turning.
                break ;
+            }
+        }
+
+        return obs ;
+    }
+
+    public static CharacterObservation jetpackRoll(UUSeAgentState agentState, Vec3 destination, float cosAlphaThreshold, Integer duration) {
+        // direction vector to the next node:
+        Vec3 dirToGo = destination ;
+        Vec3 agentVdir = agentState.orientationUp() ;
+        // for rolling in 3D rotation we ignore the x-value:
+        dirToGo.z = 0 ;
+        agentVdir.z = 0 ;
+
+        if(dirToGo.lengthSq() < 1) {
+            // the destination is too close within the agent's y-cylinder;
+            // don't bother to rotate then
+            return  null ;
+        }
+
+        dirToGo = dirToGo.normalized() ;
+        agentVdir = agentVdir.normalized() ;
+        // angle between the dir-to-go and the agent's own direction (expressed as cos(angle)):
+        var cos_alpha = Vec3.dot(agentVdir, dirToGo) ;
+        //if(1 - cos_alpha < 0.01) {
+        if(cos_alpha > cosAlphaThreshold) {
+            // the angle is already quite aligned to the direction of where we have to go, no turning.
+            return null ;
+        }
+
+        float rollSpeed = ROLL_SPEED * 100 ;
+        boolean fastrolling = true ;
+
+        Vec3 normalVector = Vec3.cross(agentVdir, dirToGo) ;
+
+        if(cos_alpha >= THRESHOLD_ANGLE_TO_SLOW_TURNING) {
+            // the angle between the agent's own direction and target direction is less than 10-degree
+            // we reduce the turning-speed:
+            rollSpeed = TURNING_SPEED * 0.25f ;
+            fastrolling = false ;
+        }
+        // check if we have to turn clockwise or counter-clockwise
+        if (normalVector.z > 0) {
+            // The agent should then turn clock-wise; for SE this means giving
+            // a negative turning speed. Else positive turning speed.
+            rollSpeed = -rollSpeed ;
+        }
+        if(!fastrolling || duration == null) {
+            duration = 1 ;
+        }
+
+        // now send the turning commands:
+        CharacterObservation obs = null ;
+        for (int k=0; k<duration; k++) {
+            obs = agentState.env().getController().getCharacter().moveAndRotate(
+                    SEBlockFunctions.toSEVec3(ZEROV3),
+                    ZEROV2,
+                    1, 1) ; // "roll" and "tick" ... using default values;
+            agentVdir = SEBlockFunctions.fromSEVec3(obs.getOrientationUp()) ;
+            // for calculating 3D roll rotation we ignore the z-value:
+            agentVdir.z = 0 ;
+
+            if(dirToGo.lengthSq() < 1) {
+                // the destination is too close within the agent's z-cylinder;
+                // don't bother to rotate then
+                break ;
+            }
+
+            agentVdir = agentVdir.normalized() ;
+            // angle between the dir-to-go and the agent's own direction (expressed as cos(angle)):
+            cos_alpha = Vec3.dot(agentVdir, dirToGo) ;
+            //if(1 - cos_alpha < 0.01) {
+            if(cos_alpha > cosAlphaThreshold) {
+                // the angle is already quite aligned to the direction of where we have to go, no turning.
+                break ;
             }
         }
 
@@ -284,7 +364,7 @@ public class UUTacticLib {
                     return cos_alpha ;
                 })
                 .do2((UUSeAgentState state) -> (Float cos_alpha) -> {
-                    CharacterObservation obs = yTurnTowardACT(state,destination,cosAlphaThreshold_,10) ;
+                    CharacterObservation obs = yTurnTowardACT(state, destination, cosAlphaThreshold_, 10) ;
                     if(obs == null) {
                         return cos_alpha ;
                     }
@@ -299,10 +379,44 @@ public class UUTacticLib {
                 }) ;
     }
 
+    public static Action jetpackRoll(Vec3 rot) {
+        float cosAlphaThreshold  = 0.99f ;
+        float cosAlphaThreshold_ = 0.99f ;
+
+        return action("rolling " + rot)
+                .on((UUSeAgentState state) -> {
+                    Vec3 dirToGo = rot ;
+                    Vec3 upOrientation = state.orientationUp() ;
+                    dirToGo.z = 0 ;
+                    upOrientation.z = 0 ;
+                    dirToGo = dirToGo.normalized() ;
+                    upOrientation = upOrientation.normalized() ;
+                    var cos_alpha = Vec3.dot(upOrientation, dirToGo) ;
+                    if(cos_alpha >= cosAlphaThreshold) { // the angle is quite aligned, the action is disabled
+                        return null ;
+                    }
+                    return cos_alpha ;
+                })
+                .do2((UUSeAgentState state) -> (Float cos_alpha) -> {
+                    CharacterObservation obs = jetpackRoll(state, rot, cosAlphaThreshold_, 10) ;
+                    if(obs == null) {
+                        return cos_alpha ;
+                    }
+                    Vec3 dirToGo = rot ;
+                    Vec3 upOrientation = SEBlockFunctions.fromSEVec3(obs.getOrientationUp()) ;
+                    dirToGo.z = 0 ;
+                    upOrientation.z = 0 ;
+                    dirToGo = dirToGo.normalized() ;
+                    upOrientation = upOrientation.normalized() ;
+                    cos_alpha = Vec3.dot(upOrientation, dirToGo) ;
+                    return cos_alpha ;
+                }) ;
+    }
+
     /**
      * When invoked repeatedly, this action drives the agent to move in the straight-line towards the given
      * destination. The destination is assumed to be on the same XZ plane as the agent. The space between
-     * the agent and the destination is assumed to be clear, and the XZ-plane along the travel is walkable.
+     * the agent and the destination are assumed to be clear, and the XZ-plane along the travel is walkable.
      *
      * The action is no longer enabled if the agent is already at the destination (or very very close to it).
      *
@@ -452,4 +566,89 @@ public class UUTacticLib {
         }
         return path ;
     }
+
+    /**
+     * Construct an action that would explore the world, in the direction of the given location.
+     *
+    Action exploreAction(Pair<Integer, Vec3> heuristicLocation) {
+
+        List[] memorized = { null } ;
+        final int memoryDuration = 10 ;
+        int[] memoryCountdown = {0} ;
+
+        Action alpha = action("explore")
+                .do2((UUSeAgentState state) ->  (Vec3 nextLoc) -> {
+                    WorldModel newwom = navigateToTAC(nextLoc) ;
+                    return new Pair<>(state, newwom) ;
+                })
+                .on((UUSeAgentState state) -> {
+                    //if (!state.agentIsAlive()) return null ;
+                    var a = state.wom.getElement(state.wom.agentId) ;
+                    Sparse2DTiledSurface_NavGraph.Tile agentPos = Utils.toTile(state.wom.position) ;
+                    //System.out.println(">>> agent is " + S.worldmodel().agentId) ;
+
+                    //System.out.println("### explore is invoked agent @" + agentPos) ;
+
+                    List<Pair<Integer, DPos3>> path = null ;
+                    if (delayPathReplan) {
+                        if (memoryCountdown[0] <= 0) {
+                            memoryCountdown[0] = memoryDuration ;
+                        }
+                        else {
+                            path = memorized[0] ;
+                            //System.out.println("### about to use memorized path: " + path) ;
+                            if (path.size()<=1) {
+                                //System.out.println("### memorized path is singleton or empty, dropping it") ;
+                                path = null ;
+                                memoryCountdown[0] = memoryDuration ;
+                            }
+                            else {
+                                path.remove(0) ;
+                                memoryCountdown[0] -- ;
+                                DPos3 next = path.get(0).snd ;
+                                if(!graph.neighbours(agentPos).contains(next)) {
+                                    //System.out.println("### next node in memorized path is not adjacent; dropping it") ;
+                                    path = null ;
+                                    memoryCountdown[0] = memoryDuration ;
+                                }
+                            }
+                            //if (path!=null) System.out.println("### using memorized path->" + path.get(0)) ;
+
+                        }
+                    }
+                    if (path == null) {
+                        if (heuristicLocation == null) {
+                            //System.out.println(">>> @maze " + Utils.mazeId(a) + ", tile: " + agentPos) ;
+                            path = state.multiLayerNav.explore(Utils.loc3(Utils.mazeId(a),agentPos.x, agentPos.y)) ;
+                        }
+                        else
+                            path = state.multiLayerNav.explore(Utils.loc3(Utils.mazeId(a),agentPos.x, agentPos.y), heuristicLocation) ;
+
+                        if (path == null || path.isEmpty()) {
+                            //System.out.println(">>>> can't find an explore path!") ;
+                            return null ;
+                        }
+                        path.remove(0) ;
+                        memorized[0] = path ;
+                        //System.out.println("### calculated new path-> " + path.get(0)) ;
+                    }
+
+                    try {
+                        return path.get(0).snd ;
+                    }
+                    catch(Exception e) {
+                        System.out.println(">>> agent @" + agentPos + ", path: " + path) ;
+                        throw e ;
+                    }
+                    //return path.get(1).snd ;
+                })
+                ;
+        return alpha ;
+    }
+
+
+    public Tactic explore(Pair<Integer, DPos3> heuristicLocation) {
+        return exploreAction(heuristicLocation).lift() ;
+    }
+     */
 }

@@ -45,12 +45,12 @@ public class Test_Navigate3D {
         UUSeAgentState state = agentAndState.snd;
         state.navgrid.enableFlying = true;
 
-        // agent halfway goal location = <34, 17.5, 75>
-        // agent end goal location =     <51, 17.5, 75>
+        // agent halfway goal location = <34, 17.5f, 75>
+        // agent end goal location =     <51, 17.5f, 75>
         // faraway asteroid location =   <-2133, 1773, -170>
         // below platform =              <9, -15, 55>
         // behind wall =                 <9, -5, 45>
-        Vec3 dest = new Vec3(9,-15,55);
+        Vec3 dest = new Vec3(58,17.5f,75);
         GoalStructure G = DEPLOYonce(agent, UUGoalLib.closeTo(dest));
         test_Goal(agentAndState.fst, agentAndState.snd, G);
         G.printGoalStructureStatus();
@@ -72,6 +72,25 @@ public class Test_Navigate3D {
         // door location =              <-10, -1.3, 5>, look towards (-1, 0, 0), up = (0, -1, 0)
         Vec3 dest = new Vec3(80,80,80);
         GoalStructure G = DEPLOYonce(agent, UUGoalLib.closeTo(dest));
+        test_Goal(agentAndState.fst, agentAndState.snd, G);
+        G.printGoalStructureStatus();
+        assertTrue(G.getStatus().success());
+    }
+
+    @Test
+    public void test_navigate3DToDoor() throws InterruptedException {
+        console("*** start test...");
+        var agentAndState = deployAgent("myworld-3 3D-nav");
+        // agent start location = <9, -5, 55>
+        TestAgent agent = agentAndState.fst;
+        UUSeAgentState state = agentAndState.snd;
+        state.navgrid.enableFlying = true;
+
+        GoalStructure G = DEPLOYonce(agent, UUGoalLib.closeTo(agent,
+                "LargeBlockSlideDoor",
+                SEBlockFunctions.BlockSides.FRONT,
+                50f,
+                0.5f));
         test_Goal(agentAndState.fst, agentAndState.snd, G);
         G.printGoalStructureStatus();
         assertTrue(G.getStatus().success());

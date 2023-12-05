@@ -7,6 +7,7 @@ import nl.uu.cs.aplib.utils.Pair;
 import org.junit.jupiter.api.Test;
 
 import static nl.uu.cs.aplib.AplibEDSL.DEPLOYonce;
+import static nl.uu.cs.aplib.AplibEDSL.SEQ;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static uuspaceagent.PrintInfos.showWOMAgent;
 import static uuspaceagent.TestUtils.console;
@@ -55,6 +56,24 @@ public class Test_Flying {
         test_Goal(agentAndState.fst, agentAndState.snd, G) ;
         G.printGoalStructureStatus();
         console(("#### Remaining PATH to follow: " + PrintInfos.showPath(state,state.currentPathToFollow)));
+        assertTrue(G.getStatus().success());
+    }
+
+    @Test
+    public void test_rolling() throws InterruptedException {
+        console("*** start test...") ;
+        //Thread.sleep(5000);
+        Vec3 dest = new Vec3(10,0,54) ;
+        var agentAndState = deployAgent();
+        var agent = agentAndState.fst ;
+        var state = agentAndState.snd ;
+        state.navgrid.enableFlying = true ;
+        GoalStructure G = SEQ(
+                DEPLOYonce(agent, UUGoalLib.closeTo(dest)),
+                UUGoalLib.jetpackRoll(null, new Vec3(1, 0, 0))
+        ) ;
+        test_Goal(agentAndState.fst, agentAndState.snd, G) ;
+        G.printGoalStructureStatus();
         assertTrue(G.getStatus().success());
     }
 }
