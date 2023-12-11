@@ -6,10 +6,12 @@ import nl.uu.cs.aplib.mainConcepts.Tactic;
 import nl.uu.cs.aplib.utils.Pair;
 import spaceEngineers.model.CharacterObservation;
 import spaceEngineers.model.Vec2F;
+import spaceEngineers.model.Vec3F;
 
 import java.util.List;
 
 import static nl.uu.cs.aplib.AplibEDSL.action;
+import static spaceEngineers.controller.Character.DISTANCE_CENTER_CAMERA;
 
 public class UUTacticLib {
 
@@ -241,6 +243,111 @@ public class UUTacticLib {
         return obs ;
     }
 
+    /**
+     * A primitive method that sends a burst of successive turn-angle commands to SE. This
+     * method rotates the agent's up-facing vector around the agent's z-axis.
+     * (so, it is like moving the agent's head vertically, but not horizontally).
+     *
+     * The number of the turn-commands bursted is specified by the parameter duration. The agent
+     * will turn on its place so that it would face the given destination. The parameter
+     * "cosAlphaThreshold" specifies how far the agent should turn. It would turn until the angle
+     * alpha between its forward direction and the straight line between itself and destination
+     * is alpha. The cosAlphaThreshold expresses this alpha in terms of cos(alpha).
+     *
+     * The method will burst the turning, if the remaining angle towards alpha is still large,
+     * after which it will not burst (so it will just send one turn-command and return).
+     *
+     * If at the beginning the angle to destination is less than alpha this method returns null,
+     * and else it returns an observation at the end of the turns.
+     */
+    public static CharacterObservation zTurnTowardACT(UUSeAgentState agentState, Vec3 destination, float cosAlphaThreshold, Integer duration) {
+        // direction vector to the next node:
+        //Vec3 dirToGo = Vec3.sub(destination,
+        //        SEBlockFunctions.fromSEVec3(agentState.env().getController().getObserver().observe().getCamera().getPosition())) ;
+        Vec3 pos = agentState.wom.position;
+        pos.y += DISTANCE_CENTER_CAMERA;
+        Vec3 dirToGo = Vec3.sub(destination, pos) ;
+        Vec3 agentVdir = SEBlockFunctions.fromSEVec3(
+                agentState.env().getController().getObserver().observe().getCamera().getOrientationForward()) ;
+
+        // for calculating 2D rotation we ignore the z-value:
+        dirToGo.z = 0 ;
+        agentVdir.z = 0 ;
+
+        if(dirToGo.lengthSq() < 1) {
+            // the destination is too close within the agent's z-cylinder;
+            // don't bother to rotate then
+            return  null ;
+        }
+
+        dirToGo = dirToGo.normalized() ;
+        agentVdir = agentVdir.normalized() ;
+        // angle between the dir-to-go and the agent's own direction (expressed as cos(angle)):
+        var cos_alpha = Vec3.dot(agentVdir, dirToGo) ;
+        //if(1 - cos_alpha < 0.01) {
+        if(cos_alpha > cosAlphaThreshold) {
+            // the angle is already quite aligned to the direction of where we have to go, no turning.
+            return null ;
+        }
+
+        float turningSpeed = TURNING_SPEED ;
+        boolean fastturning = true ;
+
+        Vec3 normalVector = Vec3.cross(agentVdir, dirToGo) ;
+
+        if(cos_alpha >= THRESHOLD_ANGLE_TO_SLOW_TURNING) {
+            // the angle between the agent's own direction and target direction is less than 10-degree
+            // we reduce the turning-speed:
+            turningSpeed = TURNING_SPEED * 0.25f ;
+            fastturning = false ;
+        }
+        // check if we have to turn clockwise or counter-clockwise
+        if (normalVector.z < 0) {
+            // The agent should then turn counter-clockwise; for SE this means giving
+            // a positive turning speed. Else negative turning speed.
+            turningSpeed = -turningSpeed ;
+        }
+        if(!fastturning || duration == null) {
+            duration = 1 ;
+        }
+        Vec2F turningVector = new Vec2F(turningSpeed,0) ;
+
+        // now send the turning commands:
+        CharacterObservation obs = null ;
+        for (int k=0; k<duration; k++) {
+            obs = agentState.env().getController().getCharacter().moveAndRotate(
+                    SEBlockFunctions.toSEVec3(ZEROV3),
+                    turningVector,
+                    0, 1) ; // "roll" and "tick" ... using default values;
+            //dirToGo = Vec3.sub(destination,SEBlockFunctions.fromSEVec3(obs.getCamera().getPosition())) ;
+            pos = SEBlockFunctions.fromSEVec3(obs.getPosition()) ;
+            pos.y += DISTANCE_CENTER_CAMERA ;
+            dirToGo = Vec3.sub(destination, pos) ;
+            agentVdir = SEBlockFunctions.fromSEVec3(obs.getCamera().getOrientationForward()) ;
+            // for calculating 2D rotation we ignore the Z-value:
+            dirToGo.z = 0 ;
+            agentVdir.z = 0 ;
+
+            if(dirToGo.lengthSq() < 1) {
+                // the destination is too close within the agent's z-cylinder;
+                // don't bother to rotate then
+                break ;
+            }
+
+            dirToGo = dirToGo.normalized() ;
+            agentVdir = agentVdir.normalized() ;
+            // angle between the dir-to-go and the agent's own direction (expressed as cos(angle)):
+            cos_alpha = Vec3.dot(agentVdir, dirToGo) ;
+            //if(1 - cos_alpha < 0.01) {
+            if(cos_alpha > cosAlphaThreshold) {
+                // the angle is already quite aligned to the direction of where we have to go, no turning.
+                break ;
+            }
+        }
+
+        return obs ;
+    }
+
     public static CharacterObservation jetpackRoll(UUSeAgentState agentState, Vec3 destination, float cosAlphaThreshold, Integer duration) {
         // direction vector to the next node:
         Vec3 dirToGo = destination ;
@@ -375,6 +482,57 @@ public class UUTacticLib {
                     dirToGo = dirToGo.normalized() ;
                     forwardOrientation = forwardOrientation.normalized() ;
                     cos_alpha = Vec3.dot(forwardOrientation,dirToGo) ;
+                    return cos_alpha ;
+                }) ;
+    }
+
+    /**
+     * When invoked repeatedly, this action turns the camera until it vertically faces towards the
+     * given destination. The turning is around the z-axis (so, on the XY plane; the z coordinates on all
+     * points in the agent would stay the same). When the agent faces towards the destination
+     * (with some epsilon), the action is no longer enabled.
+     *
+     * The action returns the resulting angle (expressed in cos-alpha) between the agent's
+     * up-orientation and the direction-vector towards the given destination.
+     */
+    public static Action zTurnTowardACT(Vec3 destination) {
+
+        float cosAlphaThreshold  = 0.995f ;
+        float cosAlphaThreshold_ = 0.995f ;
+
+        return action("turning towards " + destination)
+                .on((UUSeAgentState state) -> {
+                    //Vec3 dirToGo = Vec3.sub(destination,
+                    //        SEBlockFunctions.fromSEVec3(state.env().getController().getObserver().observe().getCamera().getPosition())) ;
+                    Vec3 pos = state.wom.position;
+                    pos.y += DISTANCE_CENTER_CAMERA;
+                    Vec3 dirToGo = Vec3.sub(destination, pos) ;
+                    Vec3 forwardOrientation = SEBlockFunctions.fromSEVec3(
+                            state.env().getController().getObserver().observe().getCamera().getOrientationForward()) ;
+                    dirToGo.z = 0 ;
+                    forwardOrientation.z = 0 ;
+                    dirToGo = dirToGo.normalized() ;
+                    forwardOrientation = forwardOrientation.normalized() ;
+                    var cos_alpha = Vec3.dot(forwardOrientation, dirToGo) ;
+                    if(cos_alpha >= cosAlphaThreshold) { // the angle is quite aligned, the action is disabled
+                        return null ;
+                    }
+                    return cos_alpha ;
+                })
+                .do2((UUSeAgentState state) -> (Float cos_alpha) -> {
+                    CharacterObservation obs = zTurnTowardACT(state, destination, cosAlphaThreshold_, 10) ;
+                    if(obs == null) {
+                        return cos_alpha ;
+                    }
+                    Vec3 pos = SEBlockFunctions.fromSEVec3(obs.getPosition()) ;
+                    pos.y += DISTANCE_CENTER_CAMERA ;
+                    Vec3 dirToGo = Vec3.sub(destination, pos) ;
+                    Vec3 forwardOrientation = SEBlockFunctions.fromSEVec3(obs.getCamera().getOrientationForward()) ;
+                    dirToGo.z = 0 ;
+                    forwardOrientation.z = 0 ;
+                    dirToGo = dirToGo.normalized() ;
+                    forwardOrientation = forwardOrientation.normalized() ;
+                    cos_alpha = Vec3.dot(forwardOrientation, dirToGo) ;
                     return cos_alpha ;
                 }) ;
     }

@@ -144,6 +144,10 @@ public class UUSeAgentState extends State {
             if (isOpen != null) {
                 navgrid.setObstacleBlockingState(block,! isOpen);
             }
+            // check if it is a button panel, and make it not blocking
+            if(block.type.equals("block"))
+                if (block.getStringProperty("blockType").contains("ButtonPanel"))
+                    navgrid.setObstacleBlockingState(block, false);
         }
         // updating dynamic blocking-state: (e.g. handling doors)
         // TODO!

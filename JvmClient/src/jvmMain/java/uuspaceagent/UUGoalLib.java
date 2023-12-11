@@ -79,6 +79,33 @@ public class UUGoalLib {
     }
 
     /**
+     * A goal that is solved when the agent manage to get close (the distance is specified by delta) to the center of
+     * the nearest block of the specified button-panel-type, within the given radius, and is facing towards the panel
+     * using the specified face (front/back/ left/right) it is at.
+     * The goal fails if there is no such block in the given radius, or if the agent cannot find a path
+     * to the closest one.
+     *
+     * NOTE: for now the button-panel should be upright.
+     */
+    public static Function<UUSeAgentState,GoalStructure> closeToButton(TestAgent agent,
+                                                                       String blockType,
+                                                                       SEBlockFunctions.BlockSides side,
+                                                                       float radius,
+                                                                       float delta) {
+        float sqradius = radius * radius ;
+
+        return closeToButton(agent,
+                "type " + blockType,
+                (UUSeAgentState state) -> (WorldEntity e)
+                        ->
+                        blockType.equals(e.getStringProperty("blockType"))
+                                && Vec3.sub(e.position, state.wom.position).lengthSq() <= sqradius,
+                side,
+                delta
+        ) ;
+    }
+
+    /**
      * Use this to target a block using a generic selector function.
      */
     public static Function<UUSeAgentState,GoalStructure> closeTo(TestAgent agent,
@@ -117,6 +144,75 @@ public class UUGoalLib {
                               + block.position
                               + " ," + side, blockCenter)
                     ) ;
+        } ;
+    }
+
+    /**
+     * Use this to target a button panel using a generic selector function.
+     */
+    public static Function<UUSeAgentState,GoalStructure> closeToButton(TestAgent agent,
+                                                                       String selectorDesc,
+                                                                       Function<UUSeAgentState, Predicate<WorldEntity>> selector,
+                                                                       SEBlockFunctions.BlockSides side,
+                                                                       float delta) {
+
+
+        return  (UUSeAgentState state) -> {
+
+            WorldEntity block = SEBlockFunctions.findClosestBlock(state.wom, selector.apply(state)) ;
+            if (block == null)
+                return FAIL("Navigating autofail; no block can be found: " + selectorDesc) ;
+            if(!block.type.equals("block"))
+                return FAIL("Navigating autofail; block not of type block: " + selectorDesc) ;
+            if(!block.getStringProperty("blockType").contains("ButtonPanel"))
+                return FAIL("Navigating autofail; block not of type ButtonPanel: " + selectorDesc) ;
+
+            Vec3 blockCenter = (Vec3) block.getProperty("centerPosition") ;
+            Vec3 goalPosition = blockCenter.copy() ;
+            Vec3 intermediatePosition = blockCenter.copy() ;
+
+            // move the center of button panels
+            switch (side) {
+                case FRONT  : intermediatePosition.x -=  delta ; break ;
+                case BACK   : intermediatePosition.x +=  delta ; break ;
+                case RIGHT  : intermediatePosition.z -=  delta ; break ;
+                case LEFT   : intermediatePosition.z +=  delta ; break ;
+                case TOP    : intermediatePosition.y -=  delta ; break ;
+                case BOTTOM : intermediatePosition.y +=  delta ; break ;
+            }
+
+            switch (side) {
+                case FRONT : blockCenter.x  -=  1 ; blockCenter.y  -=  0.5f ; break ;
+                case BACK  : blockCenter.x  +=  1 ; blockCenter.y  -=  0.5f ; break ;
+                case RIGHT : blockCenter.z  -=  1 ; blockCenter.y  -=  0.5f ; break ;
+                case LEFT  : blockCenter.z  +=  1 ; blockCenter.y  -=  0.5f ; break ;
+                //case TOP    : blockCenter.y +=  getActualSize(block).y * 0.5f + delta ; break ;
+                //case BOTTOM : blockCenter.y -=  getActualSize(block).y * 0.5f + delta ; break ;
+            }
+
+            // because the agent's position is actually its feet position, we take the corresponding
+            // positions at the base of the block as goals. So we project goalPosition and intermediatePosition
+            // above to positions at the base of the block.
+            Vec3 size = SEBlockFunctions.getActualSize(block) ;
+            intermediatePosition.y -= size.y * 0.5 ;
+            goalPosition.y -= size.y * 0.5 ;
+
+            return SEQ(DEPLOYonce(agent,
+                            closeTo("close to a block of property " + selectorDesc + " @"
+                                            + block.position
+                                            + " ," + side + ", targeting " + intermediatePosition,
+                                    intermediatePosition)),
+                    veryclose2DTo("very close to a block of property " + selectorDesc + " @"
+                                    + block.position
+                                    + " ," + side + ", targeting " + goalPosition,
+                            goalPosition),
+                    face2DToward("facing towards a block of property " + selectorDesc + " @"
+                            + block.position
+                            + " ," + side, blockCenter),
+                    face2DTowardUpDown("facing* towards a block of property " + selectorDesc + " @"
+                            + block.position
+                            + " ," + side, blockCenter)
+            ) ;
         } ;
     }
 
@@ -243,6 +339,16 @@ public class UUGoalLib {
         return goal(goalname)
                 .toSolve((Float cos_alpha) -> 1 - cos_alpha <= 0.01)
                 .withTactic(FIRSTof(UUTacticLib.yTurnTowardACT(p).lift() , ABORT()))
+                .lift() ;
+    }
+
+    public static GoalStructure face2DTowardUpDown(String goalname, Vec3 p) {
+        if (goalname == null) {
+            goalname = "face towards " + p ;
+        }
+        return goal(goalname)
+                .toSolve((Float cos_alpha) -> 1 - cos_alpha <= 0.01)
+                .withTactic(FIRSTof(UUTacticLib.zTurnTowardACT(p).lift() , ABORT()))
                 .lift() ;
     }
 
