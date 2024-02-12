@@ -74,7 +74,7 @@ public class PrintInfos {
      * For printing the obstacles that block a given unit-cube on the nav-grid maintained by
      * the given agent-state.
      */
-    public static String showObstacle(UUSeAgentState state, DPos3 cube) {
+    public static String showObstacle(UUSeAgentState2D state, DPos3 cube) {
         StringBuffer z = new StringBuffer() ;
         z.append(">> Obstacles on " + cube + ", center:" + state.navgrid.getSquareCenterLocation(cube)) ;
         var obstacles = state.navgrid.knownObstacles.get(cube) ;
@@ -93,7 +93,7 @@ public class PrintInfos {
         return z.toString() ;
     }
 
-    public static String showPath(UUSeAgentState state, List<DPos3> path) {
+    public static String showPath(UUSeAgentState2D state, List<DPos3> path) {
         StringBuffer z = new StringBuffer() ;
         if (path == null) {
             z.append("the path is null") ;
@@ -129,4 +129,28 @@ public class PrintInfos {
         return z.toString() ;
     }
 
+    public static String showPath(UUSeAgentState3D state, List<DPos3> path) {
+        StringBuffer z = new StringBuffer() ;
+        if (path == null) {
+            z.append("the path is null") ;
+            return z.toString() ;
+        }
+        if (path.isEmpty()) {
+            z.append("path is empty") ;
+            return z.toString() ;
+        }
+        z.append("path.size: " + path.size()) ;
+        int k = 0 ;
+        for(var cube : path) {
+            z.append("\n" + "> Node " + k + ":" + cube + ", center:" + state.grid.getCubeCenterLocation(cube));
+            if (state.grid.grid.get(cube.x).get(cube.y).get(cube.z).label != Label.BLOCKED) {
+                z.append(", no-obstacles") ;
+            }
+            else {
+                z.append(", has-obstacles") ;
+            }
+            k++ ;
+        }
+        return z.toString() ;
+    }
 }

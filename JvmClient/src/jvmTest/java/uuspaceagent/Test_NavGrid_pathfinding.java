@@ -32,7 +32,7 @@ public class Test_NavGrid_pathfinding {
         console("*** start test...") ;
         var agentAndState = loadSE("myworld-3")  ;
         TestAgent agent = agentAndState.fst ;
-        UUSeAgentState state = agentAndState.snd ;
+        UUSeAgentState2D state = agentAndState.snd ;
         Thread.sleep(1000);
         // do a single update, and check that we if we have the structures:
         state.updateState(state.agentId);
@@ -68,7 +68,7 @@ public class Test_NavGrid_pathfinding {
      * If the given state is null, a gameworld will be loaded and a single update is done to
      * produce a state.
      */
-    Pair<UUSeAgentState,List<DPos3>> test_pathfinder(UUSeAgentState state, Vec3 destination, boolean enable3D) throws InterruptedException {
+    Pair<UUSeAgentState2D,List<DPos3>> test_pathfinder(UUSeAgentState2D state, Vec3 destination, boolean enable3D) throws InterruptedException {
         if(state == null) {
             var agentAndState = loadSE("myworld-3")  ;
             TestAgent agent = agentAndState.fst ;

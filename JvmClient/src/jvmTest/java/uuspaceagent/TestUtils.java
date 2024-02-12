@@ -18,7 +18,7 @@ public class TestUtils {
      * For creating an SE-env, loading a gameworld into SE, then creating a test-agent bound to
      * the gameworld through the SE-env.
      */
-    public static Pair<TestAgent, UUSeAgentState> loadSE(String worldName) {
+    public static Pair<TestAgent, UUSeAgentState2D> loadSE(String worldName) {
         var agentId = "se0" ; // ""agentId" ;
         var blockType = "LargeHeavyBlockArmorBlock" ;
         var context = new SpaceEngineersTestContext() ;
@@ -42,7 +42,7 @@ public class TestUtils {
         ) ;
         theEnv.loadWorld() ;
 
-        var myAgentState = new UUSeAgentState(agentId) ;
+        var myAgentState = new UUSeAgentState2D(agentId) ;
 
         console("** Creating a test-agent");
         var testAgent = new TestAgent(agentId, "some role name, else nothing")
@@ -59,5 +59,40 @@ public class TestUtils {
         catch (Exception e) {
             // swallow...
         }
+    }
+
+
+    public static Pair<TestAgent, UUSeAgentState3D> loadSE3D(String worldName) {
+        var agentId = "se0" ; // ""agentId" ;
+        var blockType = "LargeHeavyBlockArmorBlock" ;
+        var context = new SpaceEngineersTestContext() ;
+        context.getBlockTypeToToolbarLocation().put(blockType, new ToolbarLocation(1, 0))  ;
+
+        var controllerWrapper = new ContextControllerWrapper(
+                //JsonRpcCharacterController.Companion.localhost(agentId),
+                //JsonRpcSpaceEngineersBuilder.Companion.localhost(agentId),
+                // WP: it should be this:
+                //   JvmSpaceEngineersBuilder.Companion.default().localhost(agentId)
+                // but rejected ... i think this is Intellij issue
+                new SpaceEngineersJavaProxyBuilder().localhost(agentId),
+                context
+        ) ;
+
+        console("** Loading the world " + worldName) ;
+        var theEnv = new SeEnvironment( worldName,
+                controllerWrapper,
+                //context
+                SeEnvironment.Companion.getDEFAULT_SCENARIO_DIR()
+        ) ;
+        theEnv.loadWorld() ;
+
+        var myAgentState = new UUSeAgentState3D(agentId) ;
+
+        console("** Creating a test-agent");
+        var testAgent = new TestAgent(agentId, "some role name, else nothing")
+                .attachState(myAgentState)
+                .attachEnvironment(theEnv) ;
+
+        return new Pair<>(testAgent,myAgentState) ;
     }
 }

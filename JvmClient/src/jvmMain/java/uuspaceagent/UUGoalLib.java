@@ -34,7 +34,7 @@ public class UUGoalLib {
         String goalname_ = goalname ;
 
         return (UUSeAgentState state) -> {
-            Vec3 targetSquareCenter = state.navgrid.getSquareCenterLocation(state.navgrid.gridProjectedLocation(targetLocation));
+            Vec3 targetSquareCenter = state.getBlockCenter(targetLocation); //state.navgrid.getSquareCenterLocation(state.navgrid.gridProjectedLocation(targetLocation));
             GoalStructure G = goal(goalname_)
                     .toSolve((Pair<Vec3,Vec3> posAndOrientation) -> {
                         var agentPosition = posAndOrientation.fst ;
