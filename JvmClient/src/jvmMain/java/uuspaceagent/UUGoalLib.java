@@ -77,6 +77,26 @@ public class UUGoalLib {
                 delta
                 ) ;
     }
+    /**
+     * 3D version of closeTo
+     */
+    public static Function<UUSeAgentState3D, GoalStructure> close3DTo(TestAgent agent,
+                                                                      String blockType,
+                                                                      SEBlockFunctions.BlockSides side,
+                                                                      float radius,
+                                                                      float delta) {
+        float sqradius = radius * radius ;
+
+        return close3DTo(agent,
+                "type " + blockType,
+                (UUSeAgentState state) -> (WorldEntity e)
+                        ->
+                        blockType.equals(e.getStringProperty("blockType"))
+                                && Vec3.sub(e.position, state.wom.position).lengthSq() <= sqradius,
+                side,
+                delta
+        ) ;
+    }
 
     /**
      * A goal that is solved when the agent manage to get close (the distance is specified by delta) to the center of
@@ -106,7 +126,7 @@ public class UUGoalLib {
     }
 
     /**
-     * Use this to target a block using a generic selector function.
+     * Use this to target a block in 2D using a generic selector function.
      */
     public static Function<UUSeAgentState,GoalStructure> closeTo(TestAgent agent,
                                                                  String selectorDesc,
@@ -144,6 +164,40 @@ public class UUGoalLib {
                               + block.position
                               + " ," + side, blockCenter)
                     ) ;
+        } ;
+    }
+    /**
+     * Use this to target a block in 3D using a generic selector function.
+     */
+    public static Function<UUSeAgentState3D, GoalStructure> close3DTo(TestAgent agent,
+                                                                      String selectorDesc,
+                                                                      Function<UUSeAgentState, Predicate<WorldEntity>> selector,
+                                                                      SEBlockFunctions.BlockSides side,
+                                                                      float delta) {
+
+
+        return  (UUSeAgentState3D state) -> {
+
+            WorldEntity block = SEBlockFunctions.findClosestBlock(state.wom, selector.apply(state)) ;
+            if (block == null) return FAIL("Navigating autofail; no block can be found: " + selectorDesc);
+
+            Vec3 intermediatePosition = SEBlockFunctions.getSideCenterPoint(block, side, delta + 1.5f);
+            Vec3 goalPosition = SEBlockFunctions.getSideCenterPoint(block, side, delta);
+            Vec3 blockCenter = (Vec3) block.getProperty("centerPosition");
+
+            return SEQ(DEPLOYonce(agent,
+                            closeTo("close to a block of property " + selectorDesc + " @"
+                                            + block.position
+                                            + " ," + side + ", targeting " + intermediatePosition,
+                                    intermediatePosition)),
+                    veryclose2DTo("very close to a block of property " + selectorDesc + " @"
+                                    + block.position
+                                    + " ," + side + ", targeting " + goalPosition,
+                            goalPosition),
+                    face2DToward("facing towards a block of property " + selectorDesc + " @"
+                            + block.position
+                            + " ," + side, blockCenter)
+            ) ;
         } ;
     }
 

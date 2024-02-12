@@ -81,9 +81,9 @@ public class Test_Navigate3D {
         var agentAndState = deployAgent("Almost Empty"); //myworld-3 3D-nav
         // agent start location = <9, -5, 55>
         TestAgent agent = agentAndState.fst;
-        var state = agentAndState.snd;
+        // var state = agentAndState.snd;
 
-        GoalStructure G = DEPLOYonce(agent, UUGoalLib.closeTo(agent,
+        GoalStructure G = DEPLOYonce(agent, UUGoalLib.close3DTo(agent,
                 "LargeBlockSlideDoor",
                 SEBlockFunctions.BlockSides.FRONT,
                 50f,

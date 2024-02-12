@@ -628,6 +628,10 @@ public class UUTacticLib {
                                 //state.env().getController().getAdmin().getCharacter().use();
                             }
                         }
+                    } else if (state instanceof UUSeAgentState3D) {
+                        // turn on jetpack if not already on
+                        if (!state.jetpackRunning())
+                            state.env().getController().getCharacter().turnOnJetpack();
                     }
 
                     if (arrivedAtDestination) {
