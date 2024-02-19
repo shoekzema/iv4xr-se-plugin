@@ -153,10 +153,10 @@ public class UUSeAgentState3D extends UUSeAgentState {
                 System.out.println(System.getProperty("user.dir"));
                 FileWriter fileWriter = new FileWriter("3D_Internal_WOM.txt");
                 PrintWriter printWriter = new PrintWriter(fileWriter);
-                DPos3 player_pos = grid.get(grid.gridProjectedLocation(new Vec3(wom.position.x, wom.position.y + grid.AGENT_HEIGHT * 0.5f, wom.position.z))).pos;
-                DPos3 door_pos = grid.get(grid.gridProjectedLocation(doorpos)).pos;
-                printWriter.printf("player: %d %d %d %n", player_pos.x, player_pos.y, player_pos.z);
-                printWriter.printf("door: %d %d %d %n", door_pos.x, door_pos.y, door_pos.z);
+                Vec3 player_pos = grid.getCubeCenterLocation(grid.gridProjectedLocation(new Vec3(wom.position.x, wom.position.y + grid.AGENT_HEIGHT * 0.5f, wom.position.z)));
+                Vec3 door_pos = grid.getCubeCenterLocation(grid.gridProjectedLocation(doorpos));
+                printWriter.printf("player: %f %f %f %n", player_pos.x, player_pos.y, player_pos.z);
+                printWriter.printf("door: %f %f %f %n", door_pos.x, door_pos.y, door_pos.z);
                 for (int x = 0; x < grid.grid.size(); x++) {
                     for (int y = 0; y < grid.grid.get(x).size(); y++) {
                         for (int z = 0; z < grid.grid.get(x).get(y).size(); z++) {

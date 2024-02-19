@@ -44,14 +44,11 @@ public class VoxelGrid implements Navigatable<DPos3> {
         int initialSize = (int) ((boundary.upperBounds.x - boundary.lowerBounds.x) / voxelSize);
         grid = new ArrayList<>(initialSize);
         for (int x = 0; x < initialSize; x++) {
-            int xpos = (int) (boundary.lowerBounds.x + x * voxelSize);
             grid.add(x, new ArrayList<>(initialSize));
             for (int y = 0; y < initialSize; y++) {
-                int ypos = (int) (boundary.lowerBounds.y + y * voxelSize);
                 grid.get(x).add(y, new ArrayList<>(initialSize));
                 for (int z = 0; z < initialSize; z++) {
-                    int zpos = (int) (boundary.lowerBounds.z + z * voxelSize);
-                    grid.get(x).get(y).add(z, new Voxel(new DPos3(xpos, ypos, zpos)));
+                    grid.get(x).get(y).add(z, new Voxel());
                 }
             }
         }
