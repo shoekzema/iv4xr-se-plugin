@@ -16,11 +16,17 @@ public class VoxelGrid implements Navigatable<DPos3> {
      */
     public static float AGENT_HEIGHT = 2f ;
     public static float AGENT_WIDTH  = 1f ;
-    public static float CUBE_SIZE = 0.5f ;
 
     public Boundary boundary;
     public float voxelSize;
     ArrayList<ArrayList<ArrayList<Voxel>>> grid;
+
+    public Voxel get(int x, int y, int z) {
+        return grid.get(x).get(y).get(z);
+    }
+    public Voxel get(DPos3 pos) {
+        return grid.get(pos.x).get(pos.y).get(pos.z);
+    }
 
     public VoxelGrid(Boundary boundary, float voxelSize) {
 //        grid = new ArrayList<>(Collections.nCopies(initialSize,
@@ -57,9 +63,9 @@ public class VoxelGrid implements Navigatable<DPos3> {
         int y = (int) (Math.floor(p.y / CUBE_SIZE)) ;
         int z = (int) (Math.floor(p.z / CUBE_SIZE)) ;
         */
-        int x = myFloor(p.x / CUBE_SIZE) ;
-        int y = myFloor(p.y / CUBE_SIZE) ;
-        int z = myFloor(p.z / CUBE_SIZE) ;
+        int x = myFloor(p.x / voxelSize) ;
+        int y = myFloor(p.y / voxelSize) ;
+        int z = myFloor(p.z / voxelSize) ;
 
         return new DPos3(x,y,z) ;
     }
@@ -69,9 +75,9 @@ public class VoxelGrid implements Navigatable<DPos3> {
      * as a 3D position in the space.
      */
     public Vec3 getCubeCenterLocation(DPos3 cube) {
-        float x = (((float) cube.x) + 0.5f) * CUBE_SIZE + boundary.lowerBounds.x ;
-        float y = (((float) cube.y) + 0.5f) * CUBE_SIZE + boundary.lowerBounds.y ;
-        float z = (((float) cube.z) + 0.5f) * CUBE_SIZE + boundary.lowerBounds.z ;
+        float x = (((float) cube.x) + 0.5f) * voxelSize + boundary.lowerBounds.x ;
+        float y = (((float) cube.y) + 0.5f) * voxelSize + boundary.lowerBounds.y ;
+        float z = (((float) cube.z) + 0.5f) * voxelSize + boundary.lowerBounds.z ;
         return new Vec3(x,y,z) ;
     }
 
@@ -86,6 +92,8 @@ public class VoxelGrid implements Navigatable<DPos3> {
         Vec3 maxCorner = SEBlockFunctions.getBaseMaxCorner(block) ; // should add rotation if it is not a cube. TODO.
         Vec3 minCorner = SEBlockFunctions.getBaseMinCorner(block) ; // should add rotation if it is not a cube. TODO.
 
+
+        // TODO: a more general approach for agent body and ground surface for 3D. So not assuming y is the up-axis
         // Check if the block is below the ground surface. If it is, it can obstruct movement on or above
         // the surface.
 
@@ -99,13 +107,12 @@ public class VoxelGrid implements Navigatable<DPos3> {
             return obstructed ;
         }
 
-        // TODO: a more general approach.
         // add some padding due to agent's body width:
-        Vec3 hpadding = Vec3.mul(new Vec3(AGENT_WIDTH,0,AGENT_WIDTH), 0.6f) ;
-        Vec3 vpadding = new Vec3(0, AGENT_HEIGHT, 0) ;
-        minCorner = Vec3.sub(minCorner,hpadding) ;
-        minCorner = Vec3.sub(minCorner, vpadding) ;
-        maxCorner = Vec3.add(maxCorner,hpadding) ;
+//        Vec3 hpadding = Vec3.mul(new Vec3(AGENT_WIDTH, 0, AGENT_WIDTH), 0.6f) ;
+//        Vec3 vpadding = new Vec3(0, AGENT_HEIGHT, 0) ;
+//        minCorner = Vec3.sub(minCorner, hpadding) ;
+//        minCorner = Vec3.sub(minCorner, vpadding) ;
+//        maxCorner = Vec3.add(maxCorner, hpadding) ;
         var corner1 = gridProjectedLocation(minCorner) ;
         var corner2 = gridProjectedLocation(maxCorner) ;
         // all squares between these two corners are blocked:
@@ -126,7 +133,7 @@ public class VoxelGrid implements Navigatable<DPos3> {
 
         var obstructedCubes = getObstructedCubes(block) ;
         for(var voxel : obstructedCubes) {
-            grid.get(voxel.x).get(voxel.y).get(voxel.z).label = Label.BLOCKED;
+            get(voxel).label = Label.BLOCKED;
         }
     }
 
@@ -138,19 +145,19 @@ public class VoxelGrid implements Navigatable<DPos3> {
 //            int yi = (int) ((p.y - boundary.lowerBounds.y) / voxelSize);
 //            int zi = (int) ((p.z - boundary.lowerBounds.z) / voxelSize);
 
-        if (grid.get(p.x-1).get(p.y).get(p.z).label != Label.BLOCKED)
+        if (get(p.x-1, p.y, p.z).label != Label.BLOCKED)
             candidates.add(new DPos3(p.x-1, p.y, p.z));
-        if (grid.get(p.x+1).get(p.y).get(p.z).label != Label.BLOCKED)
+        if (get(p.x+1, p.y, p.z).label != Label.BLOCKED)
             candidates.add(new DPos3(p.x+1, p.y, p.z));
 
-        if (grid.get(p.x).get(p.y-1).get(p.z).label != Label.BLOCKED)
+        if (get(p.x, p.y-1, p.z).label != Label.BLOCKED)
             candidates.add(new DPos3(p.x, p.y-1, p.z));
-        if (grid.get(p.x).get(p.y+1).get(p.z).label != Label.BLOCKED)
+        if (get(p.x, p.y+1, p.z).label != Label.BLOCKED)
             candidates.add(new DPos3(p.x, p.y+1, p.z));
 
-        if (grid.get(p.x).get(p.y).get(p.z-1).label != Label.BLOCKED)
+        if (get(p.x, p.y, p.z-1).label != Label.BLOCKED)
             candidates.add(new DPos3(p.x, p.y, p.z-1));
-        if (grid.get(p.x).get(p.y).get(p.z+1).label != Label.BLOCKED)
+        if (get(p.x, p.y, p.z+1).label != Label.BLOCKED)
             candidates.add(new DPos3(p.x, p.y, p.z+1));
 
         return candidates ;
@@ -159,11 +166,11 @@ public class VoxelGrid implements Navigatable<DPos3> {
     @Override
     public float heuristic(DPos3 from, DPos3 to) {
         // using Manhattan distance...
-        return CUBE_SIZE * (float) (Math.abs(to.x - from.x) + Math.abs(to.y - from.y) + Math.abs(to.z - from.z)) ;
+        return voxelSize * (float) (Math.abs(to.x - from.x) + Math.abs(to.y - from.y) + Math.abs(to.z - from.z)) ;
     }
 
     @Override
     public float distance(DPos3 from, DPos3 to) {
-        return CUBE_SIZE;
+        return voxelSize;
     }
 }

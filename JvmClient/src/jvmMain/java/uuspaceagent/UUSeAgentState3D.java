@@ -7,14 +7,17 @@ import eu.iv4xr.framework.spatial.Vec3;
 import spaceEngineers.model.CharacterObservation;
 import spaceEngineers.model.Observation;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class UUSeAgentState3D extends UUSeAgentState {
 
-    public VoxelGrid grid = new VoxelGrid(new Boundary(new Vec3(-50), 100), 0.5f) ;
+    public VoxelGrid grid = new VoxelGrid(new Boundary(new Vec3(-50), 100), 1) ;
+    private boolean printed = false;
 
     public UUSeAgentState3D(String agentId) {
         super(agentId);
@@ -62,7 +65,7 @@ public class UUSeAgentState3D extends UUSeAgentState {
         for (var e : origElements.entrySet()) newWom.elements.put(e.getKey(),e.getValue()) ;
         CharacterObservation agentObs = env().getController().getObserver().observe() ;
         newWom.elements.put(this.agentId, agentAdditionalInfo(agentObs)) ;
-        assignTimeStamp(newWom,updateCount) ;
+        assignTimeStamp(newWom, updateCount) ;
 
         // The obtained wom also does not include blocks observed. So we get them explicitly here:
         // Well, we will get ALL blocks. Note that S=some blocks may change state or disappear,
@@ -78,13 +81,13 @@ public class UUSeAgentState3D extends UUSeAgentState {
             newWom.elements.put(e.getKey(), e.getValue()) ;
         }
 
-        newWom.elements.forEach((k, v) -> {
-            if (!Objects.equals(k, "se0")) {
-                v.elements.forEach((k2, v2) -> {
-                    System.out.println((String) v2.properties.get("blockType") + ": " + (int)(v2.position.x) + " " + (int)(v2.position.y) + " " + (int)(v2.position.z));
-                });
-            }
-        });
+//        newWom.elements.forEach((k, v) -> {
+//            if (!Objects.equals(k, "se0")) {
+//                v.elements.forEach((k2, v2) -> {
+//                    System.out.println((String) v2.properties.get("blockType") + ": " + (int)(v2.position.x) + " " + (int)(v2.position.y) + " " + (int)(v2.position.z));
+//                });
+//            }
+//        });
 
         // updating the count:
         updateCount++ ;
@@ -99,18 +102,8 @@ public class UUSeAgentState3D extends UUSeAgentState {
             // merges the woms, but cannot easily be used for exploration because everything outside the viewing distance
             // is thrown away out of the wom
 
-//            wom.elements.forEach((key, value) -> {
-//                System.out.println(value.elements.size());
-//                value.elements.forEach((key2, value2) -> {
-//                    System.out.println(value2.type + ": " + value2.position);
-//                });
-//            });
             System.out.println("========================================================");
 
-            // HOWEVER, some blocks and grids-of-blocks may have been destroyed, hence
-            // do not exist anymore. We need to remove them from state.wom. This is handled
-            // below.
-            // First, remove disappearing "cube-grids" (composition of blocks)
             List<String> tobeRemoved = wom.elements.keySet().stream()
                     .filter(id -> ! newWom.elements.keySet().contains(id))
                     .collect(Collectors.toList());
@@ -124,20 +117,14 @@ public class UUSeAgentState3D extends UUSeAgentState {
                         .collect(Collectors.toList());
                 for(var blockId : tobeRemoved) cubegridOld.elements.remove(blockId) ;
             }
-
-//            // updating the "navigational-2DGrid:
-//            var blocksInWom =  SEBlockFunctions.getAllBlockIDs(wom) ;
-//            List<String> toBeRemoved = navgrid.allObstacleIDs.stream()
-//                    .filter(id -> !blocksInWom.contains(id))
-//                    .collect(Collectors.toList());
-//            // first, removing obstacles that no longer exist:
-//            for(var id : toBeRemoved) {
-//                navgrid.removeObstacle(id);
-//            }
         }
 
+        Vec3 doorpos = new Vec3(0);
         for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
             grid.addObstacle(block);
+            if (SEBlockFunctions.geSlideDoorState(block) != null) {
+                doorpos = block.position;
+            }
         }
 
 //        // then, there may also be new blocks ... we add them to the nav-grid:
@@ -157,5 +144,37 @@ public class UUSeAgentState3D extends UUSeAgentState {
 //        }
 //        // updating dynamic blocking-state: (e.g. handling doors)
 //        // TODO!
+
+        if (!printed) {
+            try {
+                System.out.println(System.getProperty("user.dir"));
+                FileWriter fileWriter = new FileWriter("3D_Internal_WOM.txt");
+                PrintWriter printWriter = new PrintWriter(fileWriter);
+                DPos3 player_pos = grid.get(grid.gridProjectedLocation(new Vec3(wom.position.x, wom.position.y + grid.AGENT_HEIGHT * 0.5f, wom.position.z))).pos;
+                DPos3 door_pos = grid.get(grid.gridProjectedLocation(doorpos)).pos;
+                printWriter.printf("player: %d %d %d %n", player_pos.x, player_pos.y, player_pos.z);
+                printWriter.printf("door: %d %d %d %n", door_pos.x, door_pos.y, door_pos.z);
+                for (int x = 0; x < grid.grid.size(); x++) {
+                    for (int y = 0; y < grid.grid.get(x).size(); y++) {
+                        for (int z = 0; z < grid.grid.get(x).get(y).size(); z++) {
+                            if (grid.get(x, y, z).label == 1) {
+                                Vec3 block_pos = grid.getCubeCenterLocation(new DPos3(x, y, z));
+                                printWriter.printf("%f %f %f %n", block_pos.x, block_pos.y, block_pos.z);
+                            }
+                        }
+                    }
+                }
+//                grid.grid.forEach(x -> x.forEach(y -> y.forEach(z -> {
+//                    if (z.label == 1) {
+//                        Vec3 block_pos = grid.invGridProjectedLocation(new DPos3(x, y, z));
+//                        printWriter.printf("%d %d %d %n", z.pos.x, z.pos.y, z.pos.z);
+//                    }
+//                })));
+                printWriter.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            printed = true;
+        }
     }
 }
