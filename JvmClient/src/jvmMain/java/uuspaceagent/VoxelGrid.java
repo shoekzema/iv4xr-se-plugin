@@ -28,16 +28,20 @@ public class VoxelGrid implements Navigatable<DPos3> {
         return grid.get(pos.x).get(pos.y).get(pos.z);
     }
 
-    public VoxelGrid(Boundary boundary, float voxelSize) {
-//        grid = new ArrayList<>(Collections.nCopies(initialSize,
-//                    new ArrayList<>(Collections.nCopies(initialSize,
-//                        new ArrayList<>(Collections.nCopies(initialSize, (byte)0)))
-//                    )
-//               ));
-        this.boundary = boundary;
+    public VoxelGrid(float voxelSize) {
         this.voxelSize = voxelSize;
-        int initialSize = (int) ((boundary.upperBounds.x - boundary.lowerBounds.x) / voxelSize);
+    }
 
+    /**
+     *  Initializes the starting grid based on the first observed position and the observation radius
+     *  Call in UUSeAgenstate3D on first observation.
+     */
+    public void initializeGrid(Vec3 pos, float observation_radius) {
+        // radius +10   so that the agent can move a little before having to rebuild the whole grid (expand)
+        Vec3 lowerB = Vec3.sub(pos, new Vec3(observation_radius + 10));
+        boundary = new Boundary(lowerB, 2 * (observation_radius + 10));
+
+        int initialSize = (int) ((boundary.upperBounds.x - boundary.lowerBounds.x) / voxelSize);
         grid = new ArrayList<>(initialSize);
         for (int x = 0; x < initialSize; x++) {
             int xpos = (int) (boundary.lowerBounds.x + x * voxelSize);
@@ -51,6 +55,11 @@ public class VoxelGrid implements Navigatable<DPos3> {
                 }
             }
         }
+//        grid = new ArrayList<>(Collections.nCopies(initialSize,
+//                    new ArrayList<>(Collections.nCopies(initialSize,
+//                        new ArrayList<>(Collections.nCopies(initialSize, (byte)0)))
+//                    )
+//               ));
     }
 
     /**
@@ -93,20 +102,7 @@ public class VoxelGrid implements Navigatable<DPos3> {
         Vec3 minCorner = SEBlockFunctions.getBaseMinCorner(block) ; // should add rotation if it is not a cube. TODO.
 
 
-        // TODO: a more general approach for agent body and ground surface for 3D. So not assuming y is the up-axis
-        // Check if the block is below the ground surface. If it is, it can obstruct movement on or above
-        // the surface.
-
-        // Adding 0.1 offset for some bit of seemingly inaccuracy in the sampling of the agent's
-        // ground position, which is used as the base of the origin position of this grid.
-        // Without this offset, blocks that are just below the grid surface, and touching it to form
-        // the grid's solid floor will appear as obstructing.
-        float correction_offset = 0.1f ;
-        if(maxCorner.y <= boundary.lowerBounds.y + correction_offset) {
-            // the block is UNDER the ground-surface. So, it won't obstruct either.
-            return obstructed ;
-        }
-
+        // TODO: a more general approach for 3D. So not assuming y is the up-axis
         // add some padding due to agent's body width:
 //        Vec3 hpadding = Vec3.mul(new Vec3(AGENT_WIDTH, 0, AGENT_WIDTH), 0.6f) ;
 //        Vec3 vpadding = new Vec3(0, AGENT_HEIGHT, 0) ;

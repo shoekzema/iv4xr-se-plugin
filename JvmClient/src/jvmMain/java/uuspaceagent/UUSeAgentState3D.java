@@ -16,7 +16,9 @@ import java.util.stream.Collectors;
 
 public class UUSeAgentState3D extends UUSeAgentState {
 
-    public VoxelGrid grid = new VoxelGrid(new Boundary(new Vec3(-50), 100), 1) ;
+    float OBSERVATION_RADIUS = 50.0f;
+
+    public VoxelGrid grid = new VoxelGrid(1) ;
     private boolean printed = false;
 
     public UUSeAgentState3D(String agentId) {
@@ -76,7 +78,7 @@ public class UUSeAgentState3D extends UUSeAgentState {
         // that will cause them to be ignored by mergeObservation.
         SEBlockFunctions.hackForceDynamicFlag(gridsAndBlocksStates) ;
         // assign a fresh timestamp too:
-        assignTimeStamp(gridsAndBlocksStates,updateCount) ;
+        assignTimeStamp(gridsAndBlocksStates, updateCount) ;
         for(var e : gridsAndBlocksStates.elements.entrySet()) {
             newWom.elements.put(e.getKey(), e.getValue()) ;
         }
@@ -95,6 +97,7 @@ public class UUSeAgentState3D extends UUSeAgentState {
         if(wom == null) {
             // this is the first observation
             wom = newWom ;
+            grid.initializeGrid(wom.position, OBSERVATION_RADIUS);
         }
         else {
             // MERGING the two woms:

@@ -78,7 +78,7 @@ public class Test_Navigate3D {
     @Test
     public void test_navigate3DToDoor() throws InterruptedException {
         console("*** start test...");
-        var agentAndState = deployAgent("Almost Empty v2"); //myworld-3 3D-nav
+        var agentAndState = deployAgent("myworld-3 3D-nav"); //myworld-3 3D-nav //Almost Empty v2
         // agent start location = <9, -5, 55>
         TestAgent agent = agentAndState.fst;
         // var state = agentAndState.snd;
