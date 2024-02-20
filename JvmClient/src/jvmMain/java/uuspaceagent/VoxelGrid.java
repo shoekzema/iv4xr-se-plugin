@@ -125,9 +125,85 @@ public class VoxelGrid implements Navigatable<DPos3> {
     public void addObstacle(WorldEntity block) {
 
         var obstructedCubes = getObstructedCubes(block) ;
+        DPos3 min = new DPos3(0, 0, 0);
+
         for(var voxel : obstructedCubes) {
-            get(voxel).label = Label.BLOCKED;
+            DPos3 newMin = checkAndExpand(DPos3.add(voxel, min));
+            min.x = Math.max(min.x, newMin.x);
+            min.y = Math.max(min.y, newMin.y);
+            min.z = Math.max(min.z, newMin.z);
+
+            get(DPos3.add(voxel, min)).label = Label.BLOCKED;
         }
+    }
+
+    /**
+     * Checks if the voxel is outside the grid and if so, expands the grid to contain the voxel
+     * @param voxel
+     */
+    public DPos3 checkAndExpand(DPos3 voxel) {
+        var retVal = new DPos3(0, 0, 0);
+        while (voxel.x < 0) {
+            grid.add(0, new ArrayList<>(grid.get(0).size()));
+            for (int y = 0; y < grid.get(1).size(); y++) {
+                grid.get(0).add(y, new ArrayList<>(grid.get(1).get(0).size()));
+                for (int z = 0; z < grid.get(1).get(0).size(); z++) {
+                    grid.get(0).get(y).add(z, new Voxel());
+                }
+            }
+            voxel.x++;
+            boundary.lowerBounds.x -= voxelSize;
+            retVal.x++;
+        }
+        while (voxel.x >= grid.size()) {
+            grid.add(new ArrayList<>(grid.get(0).size()));
+            for (int y = 0; y < grid.get(0).size(); y++) {
+                grid.get(grid.size()-1).add(y, new ArrayList<>(grid.get(0).get(0).size()));
+                for (int z = 0; z < grid.get(0).get(0).size(); z++) {
+                    grid.get(grid.size()-1).get(y).add(z, new Voxel());
+                }
+            }
+            boundary.upperBounds.x += voxelSize;
+        }
+        while (voxel.y < 0) {
+            for (int x = 0; x < grid.size(); x++) {
+                grid.get(x).add(0, new ArrayList<>(grid.get(0).get(0).size()));
+                for (int z = 0; z < grid.get(0).get(1).size(); z++) {
+                    grid.get(x).get(0).add(z, new Voxel());
+                }
+            }
+            voxel.y++;
+            boundary.lowerBounds.y -= voxelSize;
+            retVal.y++;
+        }
+        while (voxel.y >= grid.get(0).size()) {
+            for (int x = 0; x < grid.size(); x++) {
+                grid.get(x).add(new ArrayList<>(grid.get(0).get(0).size()));
+                for (int z = 0; z < grid.get(0).get(0).size(); z++) {
+                    grid.get(x).get(grid.get(0).size()-1).add(z, new Voxel());
+                }
+            }
+            boundary.upperBounds.z += voxelSize;
+        }
+        while (voxel.z < 0) {
+            for (int x = 0; x < grid.size(); x++) {
+                for (int y = 0; y < grid.get(0).size(); y++) {
+                    grid.get(x).get(y).add(0, new Voxel());
+                }
+            }
+            voxel.z++;
+            boundary.lowerBounds.z -= voxelSize;
+            retVal.z++;
+        }
+        while (voxel.z >= grid.get(0).get(0).size()) {
+            for (int x = 0; x < grid.size(); x++) {
+                for (int y = 0; y < grid.get(0).size(); y++) {
+                    grid.get(x).get(y).add(new Voxel());
+                }
+            }
+            boundary.upperBounds.z += voxelSize;
+        }
+        return retVal;
     }
 
     @Override
