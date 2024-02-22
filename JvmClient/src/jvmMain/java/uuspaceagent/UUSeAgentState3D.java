@@ -2,6 +2,7 @@ package uuspaceagent;
 
 import environments.SeEnvironmentKt;
 import eu.iv4xr.framework.extensions.pathfinding.Navigatable;
+import eu.iv4xr.framework.mainConcepts.WorldEntity;
 import eu.iv4xr.framework.mainConcepts.WorldModel;
 import eu.iv4xr.framework.spatial.Vec3;
 import spaceEngineers.model.CharacterObservation;
@@ -11,7 +12,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class UUSeAgentState3D extends UUSeAgentState {
@@ -19,7 +22,6 @@ public class UUSeAgentState3D extends UUSeAgentState {
     float OBSERVATION_RADIUS = 50.0f;
 
     public VoxelGrid grid = new VoxelGrid(1) ;
-    private boolean printed = false;
 
     public UUSeAgentState3D(String agentId) {
         super(agentId);
@@ -122,12 +124,8 @@ public class UUSeAgentState3D extends UUSeAgentState {
             }
         }
 
-        Vec3 doorpos = new Vec3(0);
         for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
             grid.addObstacle(block);
-            if (SEBlockFunctions.geSlideDoorState(block) != null) {
-                doorpos = block.position;
-            }
         }
 
 //        // then, there may also be new blocks ... we add them to the nav-grid:
@@ -147,37 +145,74 @@ public class UUSeAgentState3D extends UUSeAgentState {
 //        }
 //        // updating dynamic blocking-state: (e.g. handling doors)
 //        // TODO!
+    }
 
-        if (!printed) {
-            try {
-                System.out.println(System.getProperty("user.dir"));
-                FileWriter fileWriter = new FileWriter("3D_Internal_WOM.txt");
-                PrintWriter printWriter = new PrintWriter(fileWriter);
-                Vec3 player_pos = grid.getCubeCenterLocation(grid.gridProjectedLocation(new Vec3(wom.position.x, wom.position.y + grid.AGENT_HEIGHT * 0.5f, wom.position.z)));
-                Vec3 door_pos = grid.getCubeCenterLocation(grid.gridProjectedLocation(doorpos));
-                printWriter.printf("player: %f %f %f %n", player_pos.x, player_pos.y, player_pos.z);
-                printWriter.printf("door: %f %f %f %n", door_pos.x, door_pos.y, door_pos.z);
-                for (int x = 0; x < grid.grid.size(); x++) {
-                    for (int y = 0; y < grid.grid.get(x).size(); y++) {
-                        for (int z = 0; z < grid.grid.get(x).get(y).size(); z++) {
-                            if (grid.get(x, y, z).label == 1) {
-                                Vec3 block_pos = grid.getCubeCenterLocation(new DPos3(x, y, z));
-                                printWriter.printf("%f %f %f %n", block_pos.x, block_pos.y, block_pos.z);
-                            }
+    public void exportManualProfileShit() {
+
+        DPos3 size = grid.size();
+        int gridMemSize = size.x * size.y * size.z; // in bytes
+
+        int womMemSize = 0;
+        for (Map.Entry<String, WorldEntity> entry : wom.elements.entrySet()) {
+            womMemSize += entry.getValue().elements.size() * 325; // 325 is a calculated estimation of amount of bytes used per SE block
+        }
+
+        System.out.println("Memory Usage:");
+        if (gridMemSize > 1000000)
+            System.out.printf("Grid: %d GB %n", (gridMemSize) / 1000000);
+        else if (gridMemSize > 1000)
+            System.out.printf("Grid: %d MB %n", (gridMemSize) / 1000);
+        else
+            System.out.printf("Grid: %d B %n", gridMemSize);
+
+        if (womMemSize > 1000000)
+            System.out.printf("WOM: %d GB %n", (womMemSize / 1000000));
+        else if (womMemSize > 1000)
+            System.out.printf("WOM: %d MB %n", (womMemSize / 1000));
+        else
+            System.out.printf("WOM: %d B %n", (womMemSize));
+    }
+
+    public void exportGrid() {
+
+        Observation rawGridsAndBlocksStates = env().getController().getObserver().observeBlocks() ;
+        WorldModel gridsAndBlocksStates = SeEnvironmentKt.toWorldModel(rawGridsAndBlocksStates) ;
+
+        Vec3 doorpos = new Vec3(0);
+        for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
+            grid.addObstacle(block);
+            if (SEBlockFunctions.geSlideDoorState(block) != null) {
+                doorpos = block.position;
+            }
+        }
+
+        try {
+            System.out.println(System.getProperty("user.dir"));
+            FileWriter fileWriter = new FileWriter("3D_Internal_WOM.txt");
+            PrintWriter printWriter = new PrintWriter(fileWriter);
+            Vec3 player_pos = grid.getCubeCenterLocation(grid.gridProjectedLocation(new Vec3(wom.position.x, wom.position.y + grid.AGENT_HEIGHT * 0.5f, wom.position.z)));
+            Vec3 door_pos = grid.getCubeCenterLocation(grid.gridProjectedLocation(doorpos));
+            printWriter.printf("player: %f %f %f %n", player_pos.x, player_pos.y, player_pos.z);
+            printWriter.printf("door: %f %f %f %n", door_pos.x, door_pos.y, door_pos.z);
+            for (int x = 0; x < grid.grid.size(); x++) {
+                for (int y = 0; y < grid.grid.get(x).size(); y++) {
+                    for (int z = 0; z < grid.grid.get(x).get(y).size(); z++) {
+                        if (grid.get(x, y, z).label == 1) {
+                            Vec3 block_pos = grid.getCubeCenterLocation(new DPos3(x, y, z));
+                            printWriter.printf("%f %f %f %n", block_pos.x, block_pos.y, block_pos.z);
                         }
                     }
                 }
+            }
 //                grid.grid.forEach(x -> x.forEach(y -> y.forEach(z -> {
 //                    if (z.label == 1) {
 //                        Vec3 block_pos = grid.invGridProjectedLocation(new DPos3(x, y, z));
 //                        printWriter.printf("%d %d %d %n", z.pos.x, z.pos.y, z.pos.z);
 //                    }
 //                })));
-                printWriter.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            printed = true;
+            printWriter.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

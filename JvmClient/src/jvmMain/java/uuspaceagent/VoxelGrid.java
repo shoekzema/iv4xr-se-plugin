@@ -27,6 +27,7 @@ public class VoxelGrid implements Navigatable<DPos3> {
     public Voxel get(DPos3 pos) {
         return grid.get(pos.x).get(pos.y).get(pos.z);
     }
+    public DPos3 size() { return new DPos3(grid.size(), grid.get(0).size(), grid.get(0).get(0).size()); }
 
     public VoxelGrid(float voxelSize) {
         this.voxelSize = voxelSize;
@@ -143,11 +144,13 @@ public class VoxelGrid implements Navigatable<DPos3> {
      */
     public DPos3 checkAndExpand(DPos3 voxel) {
         var retVal = new DPos3(0, 0, 0);
+        DPos3 gridSize = size();
+
         while (voxel.x < 0) {
-            grid.add(0, new ArrayList<>(grid.get(0).size()));
-            for (int y = 0; y < grid.get(1).size(); y++) {
-                grid.get(0).add(y, new ArrayList<>(grid.get(1).get(0).size()));
-                for (int z = 0; z < grid.get(1).get(0).size(); z++) {
+            grid.add(0, new ArrayList<>(gridSize.y));
+            for (int y = 0; y < gridSize.y; y++) {
+                grid.get(0).add(y, new ArrayList<>(gridSize.z));
+                for (int z = 0; z < gridSize.z; z++) {
                     grid.get(0).get(y).add(z, new Voxel());
                 }
             }
@@ -155,20 +158,20 @@ public class VoxelGrid implements Navigatable<DPos3> {
             boundary.lowerBounds.x -= voxelSize;
             retVal.x++;
         }
-        while (voxel.x >= grid.size()) {
-            grid.add(new ArrayList<>(grid.get(0).size()));
-            for (int y = 0; y < grid.get(0).size(); y++) {
-                grid.get(grid.size()-1).add(y, new ArrayList<>(grid.get(0).get(0).size()));
-                for (int z = 0; z < grid.get(0).get(0).size(); z++) {
-                    grid.get(grid.size()-1).get(y).add(z, new Voxel());
+        while (voxel.x >= gridSize.x) {
+            grid.add(new ArrayList<>(gridSize.y));
+            for (int y = 0; y < gridSize.y; y++) {
+                grid.get(grid.size()-1).add(y, new ArrayList<>(gridSize.z));
+                for (int z = 0; z < gridSize.z; z++) {
+                    grid.get(gridSize.x-1).get(y).add(z, new Voxel());
                 }
             }
             boundary.upperBounds.x += voxelSize;
         }
         while (voxel.y < 0) {
-            for (int x = 0; x < grid.size(); x++) {
-                grid.get(x).add(0, new ArrayList<>(grid.get(0).get(0).size()));
-                for (int z = 0; z < grid.get(0).get(1).size(); z++) {
+            for (int x = 0; x < gridSize.x; x++) {
+                grid.get(x).add(0, new ArrayList<>(gridSize.z));
+                for (int z = 0; z < gridSize.z; z++) {
                     grid.get(x).get(0).add(z, new Voxel());
                 }
             }
@@ -176,18 +179,18 @@ public class VoxelGrid implements Navigatable<DPos3> {
             boundary.lowerBounds.y -= voxelSize;
             retVal.y++;
         }
-        while (voxel.y >= grid.get(0).size()) {
-            for (int x = 0; x < grid.size(); x++) {
-                grid.get(x).add(new ArrayList<>(grid.get(0).get(0).size()));
-                for (int z = 0; z < grid.get(0).get(0).size(); z++) {
-                    grid.get(x).get(grid.get(0).size()-1).add(z, new Voxel());
+        while (voxel.y >= gridSize.y) {
+            for (int x = 0; x < gridSize.x; x++) {
+                grid.get(x).add(new ArrayList<>(gridSize.z));
+                for (int z = 0; z < gridSize.z; z++) {
+                    grid.get(x).get(gridSize.y-1).add(z, new Voxel());
                 }
             }
             boundary.upperBounds.z += voxelSize;
         }
         while (voxel.z < 0) {
-            for (int x = 0; x < grid.size(); x++) {
-                for (int y = 0; y < grid.get(0).size(); y++) {
+            for (int x = 0; x < gridSize.x; x++) {
+                for (int y = 0; y < gridSize.y; y++) {
                     grid.get(x).get(y).add(0, new Voxel());
                 }
             }
@@ -195,9 +198,9 @@ public class VoxelGrid implements Navigatable<DPos3> {
             boundary.lowerBounds.z -= voxelSize;
             retVal.z++;
         }
-        while (voxel.z >= grid.get(0).get(0).size()) {
-            for (int x = 0; x < grid.size(); x++) {
-                for (int y = 0; y < grid.get(0).size(); y++) {
+        while (voxel.z >= gridSize.z) {
+            for (int x = 0; x < gridSize.x; x++) {
+                for (int y = 0; y < gridSize.y; y++) {
                     grid.get(x).get(y).add(new Voxel());
                 }
             }
