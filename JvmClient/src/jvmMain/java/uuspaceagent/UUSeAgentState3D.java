@@ -159,16 +159,16 @@ public class UUSeAgentState3D extends UUSeAgentState {
 
         System.out.println("Memory Usage:");
         if (gridMemSize > 1000000)
-            System.out.printf("Grid: %d GB %n", (gridMemSize) / 1000000);
+            System.out.printf("Grid: %f GB %n", (float)gridMemSize / 1000000);
         else if (gridMemSize > 1000)
-            System.out.printf("Grid: %d MB %n", (gridMemSize) / 1000);
+            System.out.printf("Grid: %f MB %n", (float)gridMemSize / 1000);
         else
             System.out.printf("Grid: %d B %n", gridMemSize);
 
         if (womMemSize > 1000000)
-            System.out.printf("WOM: %d GB %n", (womMemSize / 1000000));
+            System.out.printf("WOM: %f GB %n", (float)womMemSize / 1000000);
         else if (womMemSize > 1000)
-            System.out.printf("WOM: %d MB %n", (womMemSize / 1000));
+            System.out.printf("WOM: %f MB %n", (float)womMemSize / 1000);
         else
             System.out.printf("WOM: %d B %n", (womMemSize));
     }

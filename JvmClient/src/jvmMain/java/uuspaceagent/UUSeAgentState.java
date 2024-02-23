@@ -22,7 +22,7 @@ public abstract class UUSeAgentState extends State {
 
     public String agentId ;
     public WorldModel wom ;
-    public Pathfinder<DPos3> pathfinder2D = new AStar<>(); // TODO: add and use new 3D A* method
+    public Pathfinder<DPos3> pathfinder = new AStar<>();
     public List<DPos3> currentPathToFollow = new LinkedList<>();
 
     /**

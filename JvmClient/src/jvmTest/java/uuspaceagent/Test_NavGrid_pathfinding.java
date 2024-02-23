@@ -5,8 +5,6 @@ import eu.iv4xr.framework.mainConcepts.WorldEntity;
 import eu.iv4xr.framework.spatial.Vec3;
 import nl.uu.cs.aplib.utils.Pair;
 import org.junit.jupiter.api.Test;
-import spaceEngineers.transport.Closeable;
-import spaceEngineers.transport.SocketReaderWriter;
 //import spaceEngineers.transport.SocketReaderWriterKt;
 
 import java.util.List;
@@ -88,7 +86,7 @@ public class Test_NavGrid_pathfinding {
         // Should not be reachable:
         var sqAgent = state.navgrid.gridProjectedLocation(state.wom.position) ;
         var sqDesitnation = state.navgrid.gridProjectedLocation(destination) ;
-        List<DPos3> path = state.pathfinder2D.findPath(state.navgrid,sqAgent,sqDesitnation) ;
+        List<DPos3> path = state.pathfinder.findPath(state.navgrid,sqAgent,sqDesitnation) ;
         //SocketReaderWriterKt.closeIfCloseable(state.env().getController());
         TestUtils.closeConnectionToSE(state);
 

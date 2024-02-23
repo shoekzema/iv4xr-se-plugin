@@ -6,7 +6,6 @@ import nl.uu.cs.aplib.mainConcepts.Tactic;
 import nl.uu.cs.aplib.utils.Pair;
 import spaceEngineers.model.CharacterObservation;
 import spaceEngineers.model.Vec2F;
-import spaceEngineers.model.Vec3F;
 
 import java.util.List;
 
@@ -36,6 +35,12 @@ public class UUTacticLib {
      * agent will run.
      */
     public static float RUN_SPEED = 0.4f ;
+
+    /***
+     * The flying speed. This is set the same as walking for now, but it can reach a whole
+     * 110 m/s, which is somewhere around 4.4 to 5.5.
+     */
+    public static float FLY_SPEED = 0.2f ;
 
     /**
      * If the angle between the agent's current direction and the direction-to-go is less
@@ -142,6 +147,59 @@ public class UUTacticLib {
                 break ;
             }
             if (running && sqDistance <= 1f) running = false ;
+        }
+        return obs ;
+    }
+
+    /**
+     * A more intelligent and performant primitive "move" (than the primitive "moveAndRotate"). This
+     * method sends a burst of successive move commands to SE with little computation in between.
+     * This results in fast(er) move. The number
+     * of commands sent is specified by the parameter "duration", though the burst is stopped once
+     * the agent is very close to the destination (some threshold).
+     *
+     * Note: (1) the method will not turn the direction the agent is facing,
+     * and (2) that during the burst we will be blind to changes from SE.
+     *
+     * The method returns an observation if it did at least one move. If at the beginning the agent
+     * is already (very close to) at the destination the method will not do any move and return null.
+     */
+    public static CharacterObservation moveToward(UUSeAgentState3D agentState, Vec3 destination, int duration) {
+        Vec3 playerPos3D = Vec3.add(agentState.wom.position, Vec3.mul(agentState.orientationUp(), 0.5f));
+        Vec3 destinationRelativeLocation = Vec3.sub(destination, playerPos3D) ;
+        float sqDistance = destinationRelativeLocation.lengthSq() ;
+        if (sqDistance <= 0.01) {
+            // already very close to the destination
+            return null ;
+        }
+        System.out.println(">>> agent @ " + playerPos3D + ", dest: " + destination
+                + ", rel-direction: " + destinationRelativeLocation);
+        System.out.println("    forward-vector: " + agentState.orientationForward());
+
+        Vec3 forwardFly = Vec3.mul(FORWARDV3, FLY_SPEED) ;
+
+        // adjust the forward vector to make it angled towards the destination
+        forwardFly = Rotation.rotate(forwardFly, agentState.orientationForward(), destinationRelativeLocation) ;
+        // apply correction on the y-component, taking advantage that we know
+        // the agent's forward orientation has its y-component 0.
+        forwardFly.y = Math.abs(forwardFly.y) ;
+        if (destinationRelativeLocation.y < 0) {
+            forwardFly.y = - forwardFly.y ;
+        }
+        System.out.println(">>> forwardFly: " + forwardFly);
+
+        // now move... sustain it for the given duration:
+        CharacterObservation obs = null ;
+        float threshold = THRESHOLD_SQUARED_DISTANCE_TO_POINT - 0.15f ;
+        for(int k=0; k<duration; k++) {
+            obs = agentState.env().getController().getCharacter().moveAndRotate(
+                    SEBlockFunctions.toSEVec3(seFixPolarityMoveVector(forwardFly))
+                    , ZEROV2,
+                    0, 1) ; // "roll" and "tick" ... using default values;
+            sqDistance = Vec3.sub(SEBlockFunctions.fromSEVec3(obs.getPosition()), destination).lengthSq() ;
+            if(sqDistance <= threshold) {
+                break ;
+            }
         }
         return obs ;
     }
@@ -277,7 +335,7 @@ public class UUTacticLib {
         if(dirToGo.lengthSq() < 1) {
             // the destination is too close within the agent's z-cylinder;
             // don't bother to rotate then
-            return  null ;
+            return null;
         }
 
         dirToGo = dirToGo.normalized() ;
@@ -649,20 +707,31 @@ public class UUTacticLib {
                     var nextNodePos = state.getBlockCenter(nextNode) ;
                     //var agentSq = state.navgrid.gridProjectedLocation(state.wom.position) ;
                     //if(agentSq.equals(nextNode)) {
-                    if(Vec3.sub(nextNodePos,state.wom.position).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
+                    Vec3 playerPos3D = Vec3.add(state.wom.position, Vec3.mul(state.orientationUp(), 0.5f));
+                    if(Vec3.sub(nextNodePos, playerPos3D).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
                         // agent is already in the same square as the next-node destination-square. Mark the node
                         // as reached (so, we remove it from the plan):
                         state.currentPathToFollow.remove(0) ;
-                        return new Pair<>(state.wom.position, state.orientationForward()) ;
+                        return new Pair<>(playerPos3D, state.orientationForward()) ;
                     }
                     CharacterObservation obs = null ;
                     // disabling rotation for now
-                    obs = yTurnTowardACT(state,nextNodePos, 0.8f,10) ;
+                    obs = yTurnTowardACT(state, nextNodePos, 0.8f, 10) ;
                     if (obs != null) {
                         // we did turning, we won't move.
                         return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward())) ;
                     }
-                    obs = moveToward(state,nextNodePos,20) ;
+//                    obs = zTurnTowardACT(state, nextNodePos, 0.8f,5) ;
+//                    if (obs != null) {
+//                        // we did turning, we won't move.
+//                        return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward())) ;
+//                    }
+                    if (state instanceof UUSeAgentState3D) {
+                        obs = moveToward((UUSeAgentState3D)state, nextNodePos, 20);
+                    }
+                    else {
+                        obs = moveToward(state, nextNodePos, 20);
+                    }
                     return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward()))  ;
                 } )
                 .on((UUSeAgentState state)  -> {
@@ -683,7 +752,7 @@ public class UUTacticLib {
                     if (currentPathLength == 0
                             || ! destinationSq.equals(state.currentPathToFollow.get(currentPathLength - 1)))
                     {  // there is no path planned, or there is an ongoing path, but it goes to a different target
-                        List<DPos3> path = state.pathfinder2D.findPath(state.getGrid(), agentSq, destinationSq)  ;
+                        List<DPos3> path = state.pathfinder.findPath(state.getGrid(), agentSq, destinationSq)  ;
                         if (path == null) {
                             // the pathfinder cannot find a path. The tactic is then not enabled:
                             System.out.println("### NO path to " + destination);
