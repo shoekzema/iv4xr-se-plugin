@@ -6,8 +6,6 @@ import nl.uu.cs.aplib.utils.Pair;
 import spaceEngineers.controller.*;
 import spaceEngineers.model.ToolbarLocation;
 
-import java.io.IOException;
-
 public class TestUtils {
 
     public static void console(String str) {
@@ -62,7 +60,7 @@ public class TestUtils {
     }
 
 
-    public static Pair<TestAgent, UUSeAgentState3D> loadSE3D(String worldName) {
+    public static Pair<TestAgent, UUSeAgentState3DOctree> loadSE3D(String worldName) {
         var agentId = "se0" ; // ""agentId" ;
         var blockType = "LargeHeavyBlockArmorBlock" ;
         var context = new SpaceEngineersTestContext() ;
@@ -86,13 +84,13 @@ public class TestUtils {
         ) ;
         theEnv.loadWorld() ;
 
-        var myAgentState = new UUSeAgentState3D(agentId) ;
+        var myAgentState = new UUSeAgentState3DOctree(agentId) ;
 
         console("** Creating a test-agent");
         var testAgent = new TestAgent(agentId, "some role name, else nothing")
                 .attachState(myAgentState)
                 .attachEnvironment(theEnv) ;
 
-        return new Pair<>(testAgent,myAgentState) ;
+        return new Pair<>(testAgent, myAgentState) ;
     }
 }

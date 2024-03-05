@@ -80,11 +80,11 @@ public class UUGoalLib {
     /**
      * 3D version of closeTo
      */
-    public static Function<UUSeAgentState3D, GoalStructure> close3DTo(TestAgent agent,
-                                                                      String blockType,
-                                                                      SEBlockFunctions.BlockSides side,
-                                                                      float radius,
-                                                                      float delta) {
+    public static Function<UUSeAgentState, GoalStructure> close3DTo(TestAgent agent,
+                                                                    String blockType,
+                                                                    SEBlockFunctions.BlockSides side,
+                                                                    float radius,
+                                                                    float delta) {
         float sqradius = radius * radius ;
 
         return close3DTo(agent,
@@ -169,14 +169,14 @@ public class UUGoalLib {
     /**
      * Use this to target a block in 3D using a generic selector function.
      */
-    public static Function<UUSeAgentState3D, GoalStructure> close3DTo(TestAgent agent,
-                                                                      String selectorDesc,
-                                                                      Function<UUSeAgentState, Predicate<WorldEntity>> selector,
-                                                                      SEBlockFunctions.BlockSides side,
-                                                                      float delta) {
+    public static Function<UUSeAgentState, GoalStructure> close3DTo(TestAgent agent,
+                                                                    String selectorDesc,
+                                                                    Function<UUSeAgentState, Predicate<WorldEntity>> selector,
+                                                                    SEBlockFunctions.BlockSides side,
+                                                                    float delta) {
 
 
-        return  (UUSeAgentState3D state) -> {
+        return  (UUSeAgentState state) -> {
 
             WorldEntity block = SEBlockFunctions.findClosestBlock(state.wom, selector.apply(state)) ;
             if (block == null) return FAIL("Navigating autofail; no block can be found: " + selectorDesc);
@@ -197,6 +197,9 @@ public class UUGoalLib {
                     face2DToward("facing towards a block of property " + selectorDesc + " @"
                             + block.position
                             + " ," + side, blockCenter)
+//                    face2DTowardUpDown("facing towards a block of property " + selectorDesc + " @"
+//                            + block.position
+//                            + " ," + side, blockCenter)
             ) ;
         } ;
     }
@@ -403,6 +406,16 @@ public class UUGoalLib {
         return goal(goalname)
                 .toSolve((Float cos_alpha) -> 1 - cos_alpha <= 0.01)
                 .withTactic(FIRSTof(UUTacticLib.zTurnTowardACT(p).lift() , ABORT()))
+                .lift() ;
+    }
+
+    public static GoalStructure face3DToward(String goalname, Vec3 p) {
+        if (goalname == null) {
+            goalname = "face towards " + p ;
+        }
+        return goal(goalname)
+                .toSolve((Float cos_alpha) -> 1 - cos_alpha <= 0.01)
+                .withTactic(FIRSTof(UUTacticLib.yTurnTowardACT(p).lift() , ABORT()))
                 .lift() ;
     }
 

@@ -10,6 +10,10 @@ public class Boundary {
         upperBounds = new Vec3(pos.x + size, pos.y + size, pos.z + size);
     }
 
+    public float size() { return upperBounds.x - lowerBounds.x; } // Because a boundary is always cubic, we can just take the width
+
+    public Vec3 center() { return Vec3.mul(Vec3.add(lowerBounds, upperBounds), 0.5f); }
+
     public boolean intersects(Boundary other) {
         if (other.lowerBounds.x > this.upperBounds.x || other.upperBounds.x < this.lowerBounds.x)
             return false;

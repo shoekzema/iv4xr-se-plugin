@@ -34,8 +34,8 @@ public class VoxelGrid implements Navigatable<DPos3> {
     }
 
     /**
-     *  Initializes the starting grid based on the first observed position and the observation radius
-     *  Call in UUSeAgenstate3D on first observation.
+     *  Initializes the starting grid based on the first observed position and the observation radius.
+     *  Call in UUSeAgentstate3D on first observation.
      */
     public void initializeGrid(Vec3 pos, float observation_radius) {
         // radius +10   so that the agent can move a little before having to rebuild the whole grid (expand)

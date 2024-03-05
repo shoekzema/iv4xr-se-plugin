@@ -129,7 +129,7 @@ public class PrintInfos {
         return z.toString() ;
     }
 
-    public static String showPath(UUSeAgentState3D state, List<DPos3> path) {
+    public static String showPath(UUSeAgentState3DVoxelGrid state, List<DPos3> path) {
         StringBuffer z = new StringBuffer() ;
         if (path == null) {
             z.append("the path is null") ;
@@ -143,7 +143,32 @@ public class PrintInfos {
         int k = 0 ;
         for(var cube : path) {
             z.append("\n" + "> Node " + k + ":" + cube + ", center:" + state.grid.getCubeCenterLocation(cube));
-            if (state.grid.grid.get(cube.x).get(cube.y).get(cube.z).label != Label.BLOCKED) {
+            if (state.grid.get(cube).label != Label.BLOCKED) {
+                z.append(", no-obstacles") ;
+            }
+            else {
+                z.append(", has-obstacles") ;
+            }
+            k++ ;
+        }
+        return z.toString() ;
+    }
+
+    public static String showPath(UUSeAgentState3DOctree state, List<Octree> path) {
+        StringBuffer z = new StringBuffer() ;
+        if (path == null) {
+            z.append("the path is null") ;
+            return z.toString() ;
+        }
+        if (path.isEmpty()) {
+            z.append("path is empty") ;
+            return z.toString() ;
+        }
+        z.append("path.size: " + path.size()) ;
+        int k = 0 ;
+        for(var node : path) {
+            z.append("\n" + "> Node " + k + ":" + node + ", center:" + node.boundary.center());
+            if (node.label != Label.BLOCKED) {
                 z.append(", no-obstacles") ;
             }
             else {

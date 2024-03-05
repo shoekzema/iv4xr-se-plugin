@@ -18,12 +18,12 @@ import java.util.List;
 
 import static uuspaceagent.SEBlockFunctions.fromSEVec3;
 
-public abstract class UUSeAgentState extends State {
+public abstract class UUSeAgentState<NodeId> extends State {
 
     public String agentId ;
     public WorldModel wom ;
-    public Pathfinder<DPos3> pathfinder = new AStar<>();
-    public List<DPos3> currentPathToFollow = new LinkedList<>();
+    public Pathfinder<NodeId> pathfinder = new AStar<>();
+    public List<NodeId> currentPathToFollow = new LinkedList<>();
 
     /**
      * SE does not seem to send time-stamp, so we will keep track the number of state-updates
@@ -52,11 +52,11 @@ public abstract class UUSeAgentState extends State {
         return agentWE ;
     }
 
-    public abstract DPos3 getGridPos(Vec3 targetLocation);
+    public abstract NodeId getGridPos(Vec3 targetLocation);
     public abstract Vec3 getBlockCenter(Vec3 targetLocation);
-    public abstract Vec3 getBlockCenter(DPos3 targetLocation);
+    public abstract Vec3 getBlockCenter(NodeId targetLocation);
     public abstract Vec3 getOrigin();
-    public abstract Navigatable<DPos3> getGrid();
+    public abstract Navigatable<NodeId> getGrid();
 
     @Override
     public void updateState(String agentId) {

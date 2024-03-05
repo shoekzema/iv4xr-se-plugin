@@ -11,7 +11,7 @@ import static uuspaceagent.PrintInfos.showWOMAgent;
 import static uuspaceagent.TestUtils.*;
 
 public class Test_Navigate3D {
-    public Pair<TestAgent, UUSeAgentState3D> deployAgent(String worldname) throws InterruptedException {
+    public Pair<TestAgent, UUSeAgentState3DOctree> deployAgent(String worldname) throws InterruptedException {
         var agentAndState = loadSE3D(worldname);
         TestAgent agent = agentAndState.fst;
         var state = agentAndState.snd;
@@ -21,7 +21,7 @@ public class Test_Navigate3D {
         return new Pair<>(agent, state);
     }
 
-    public void test_Goal(TestAgent agent, UUSeAgentState3D state, GoalStructure G) throws  InterruptedException {
+    public void test_Goal(TestAgent agent, UUSeAgentState3DOctree state, GoalStructure G) throws  InterruptedException {
         agent.setGoal(G);
         int turn = 0;
         while (G.getStatus().inProgress()) {
@@ -80,7 +80,7 @@ public class Test_Navigate3D {
     @Test
     public void test_navigate3DToDoor() throws InterruptedException {
         console("*** start test...");
-        var agentAndState = deployAgent("myworld-3 with open door"); //myworld-3 3D-nav //Almost Empty v2
+        var agentAndState = deployAgent("Almost Empty v2"); //myworld-3 3D-nav //Almost Empty v2
         // agent start location = <9, -5, 55>
         TestAgent agent = agentAndState.fst;
         // var state = agentAndState.snd;

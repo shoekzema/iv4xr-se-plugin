@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class UUSeAgentState2D extends UUSeAgentState {
+public class UUSeAgentState2D extends UUSeAgentState<DPos3> {
 
     public NavGrid navgrid = new NavGrid() ;
 

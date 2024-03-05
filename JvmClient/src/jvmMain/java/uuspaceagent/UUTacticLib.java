@@ -164,7 +164,46 @@ public class UUTacticLib {
      * The method returns an observation if it did at least one move. If at the beginning the agent
      * is already (very close to) at the destination the method will not do any move and return null.
      */
-    public static CharacterObservation moveToward(UUSeAgentState3D agentState, Vec3 destination, int duration) {
+    public static CharacterObservation moveToward(UUSeAgentState3DVoxelGrid agentState, Vec3 destination, int duration) {
+        Vec3 playerPos3D = Vec3.add(agentState.wom.position, Vec3.mul(agentState.orientationUp(), 0.5f));
+        Vec3 destinationRelativeLocation = Vec3.sub(destination, playerPos3D) ;
+        float sqDistance = destinationRelativeLocation.lengthSq() ;
+        if (sqDistance <= 0.01) {
+            // already very close to the destination
+            return null ;
+        }
+        System.out.println(">>> agent @ " + playerPos3D + ", dest: " + destination
+                + ", rel-direction: " + destinationRelativeLocation);
+        System.out.println("    forward-vector: " + agentState.orientationForward());
+
+        Vec3 forwardFly = Vec3.mul(FORWARDV3, FLY_SPEED) ;
+
+        // adjust the forward vector to make it angled towards the destination
+        forwardFly = Rotation.rotate(forwardFly, agentState.orientationForward(), destinationRelativeLocation) ;
+        // apply correction on the y-component, taking advantage that we know
+        // the agent's forward orientation has its y-component 0.
+        forwardFly.y = Math.abs(forwardFly.y) ;
+        if (destinationRelativeLocation.y < 0) {
+            forwardFly.y = - forwardFly.y ;
+        }
+        System.out.println(">>> forwardFly: " + forwardFly);
+
+        // now move... sustain it for the given duration:
+        CharacterObservation obs = null ;
+        float threshold = THRESHOLD_SQUARED_DISTANCE_TO_POINT - 0.15f ;
+        for(int k=0; k<duration; k++) {
+            obs = agentState.env().getController().getCharacter().moveAndRotate(
+                    SEBlockFunctions.toSEVec3(seFixPolarityMoveVector(forwardFly))
+                    , ZEROV2,
+                    0, 1) ; // "roll" and "tick" ... using default values;
+            sqDistance = Vec3.sub(SEBlockFunctions.fromSEVec3(obs.getPosition()), destination).lengthSq() ;
+            if(sqDistance <= threshold) {
+                break ;
+            }
+        }
+        return obs ;
+    }
+    public static CharacterObservation moveToward(UUSeAgentState3DOctree agentState, Vec3 destination, int duration) {
         Vec3 playerPos3D = Vec3.add(agentState.wom.position, Vec3.mul(agentState.orientationUp(), 0.5f));
         Vec3 destinationRelativeLocation = Vec3.sub(destination, playerPos3D) ;
         float sqDistance = destinationRelativeLocation.lengthSq() ;
@@ -686,7 +725,7 @@ public class UUTacticLib {
                                 //state.env().getController().getAdmin().getCharacter().use();
                             }
                         }
-                    } else if (state instanceof UUSeAgentState3D) {
+                    } else if (state instanceof UUSeAgentState3DVoxelGrid || state instanceof UUSeAgentState3DOctree) {
                         // turn on jetpack if not already on
                         if (!state.jetpackRunning())
                             state.env().getController().getCharacter().turnOnJetpack();
@@ -726,8 +765,11 @@ public class UUTacticLib {
 //                        // we did turning, we won't move.
 //                        return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward())) ;
 //                    }
-                    if (state instanceof UUSeAgentState3D) {
-                        obs = moveToward((UUSeAgentState3D)state, nextNodePos, 20);
+                    if (state instanceof UUSeAgentState3DVoxelGrid) {
+                        obs = moveToward((UUSeAgentState3DVoxelGrid) state, nextNodePos, 20);
+                    }
+                    else if (state instanceof UUSeAgentState3DOctree) {
+                        obs = moveToward((UUSeAgentState3DOctree) state, nextNodePos, 20);
                     }
                     else {
                         obs = moveToward(state, nextNodePos, 20);
@@ -737,33 +779,47 @@ public class UUTacticLib {
                 .on((UUSeAgentState state)  -> {
                     if (state.wom==null) return null ;
                     //var agentPos = state.wom.position ;
-                    var agentSq = state.getGridPos(state.wom.position) ;
+                    Vec3 playerPos3D = Vec3.add(state.wom.position, Vec3.mul(state.orientationUp(), 0.5f));
+                    var agentSq = state.getGridPos(playerPos3D) ;
                     var destinationSq = state.getGridPos(destination) ;
                     var destinationSqCenterPos = state.getBlockCenter(destinationSq) ;
                     //if (state.grid2D.squareDistanceToSquare(agentPos,destinationSq) <= SQEPSILON_TO_NODE_IN_2D_PATH_NAVIGATION) {
                     //if(agentSq.equals(destinationSq)) {
-                    if(Vec3.sub(destinationSqCenterPos,state.wom.position).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
+                    if(Vec3.sub(destinationSqCenterPos, playerPos3D).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
 
                             // the agent is already at the destination. Just return the path, and indicate that
                         // we have arrived at the destination:
-                        return new Pair<>(state.currentPathToFollow,true) ;
+                        return new Pair<>(state.currentPathToFollow, true) ;
                     }
                     int currentPathLength = state.currentPathToFollow.size() ;
                     if (currentPathLength == 0
                             || ! destinationSq.equals(state.currentPathToFollow.get(currentPathLength - 1)))
                     {  // there is no path planned, or there is an ongoing path, but it goes to a different target
-                        List<DPos3> path = state.pathfinder.findPath(state.getGrid(), agentSq, destinationSq)  ;
-                        if (path == null) {
-                            // the pathfinder cannot find a path. The tactic is then not enabled:
-                            System.out.println("### NO path to " + destination);
-                            return null ;
+                        if (state instanceof UUSeAgentState3DOctree) {
+                            List<Octree> path = state.pathfinder.findPath(state.getGrid(), agentSq, destinationSq);
+                            if (path == null) {
+                                // the pathfinder cannot find a path. The tactic is then not enabled:
+                                System.out.println("### NO path to " + destination);
+                                return null;
+                            }
+                            path = smoothenOctreePath(path);
+                            System.out.println("### PATH: " + PrintInfos.showPath((UUSeAgentState3DOctree) state, path));
+                            return new Pair<>(path, false);
                         }
-                        path = smoothenPath(path) ;
-                        if (state instanceof UUSeAgentState2D) // cursed way to do it
-                            System.out.println("### PATH: " + PrintInfos.showPath((UUSeAgentState2D) state, path));
-                        else if (state instanceof UUSeAgentState3D)
-                            System.out.println("### PATH: " + PrintInfos.showPath((UUSeAgentState3D) state, path));
-                        return new Pair<>(path,false) ;
+                        else {
+                            List<DPos3> path = state.pathfinder.findPath(state.getGrid(), agentSq, destinationSq);
+                            if (path == null) {
+                                // the pathfinder cannot find a path. The tactic is then not enabled:
+                                System.out.println("### NO path to " + destination);
+                                return null;
+                            }
+                            path = smoothenPath(path);
+                            if (state instanceof UUSeAgentState2D) // cursed way to do it
+                                System.out.println("### PATH: " + PrintInfos.showPath((UUSeAgentState2D) state, path));
+                            else if (state instanceof UUSeAgentState3DVoxelGrid)
+                                System.out.println("### PATH: " + PrintInfos.showPath((UUSeAgentState3DVoxelGrid) state, path));
+                            return new Pair<>(path, false);
+                        }
                     }
                     else {
                         // the currently followed path leads to the specified destination, and  furthermore we are not
@@ -785,6 +841,34 @@ public class UUTacticLib {
             var v1 = path.get(k).toVec3() ;
             var v2 = path.get(k+1).toVec3() ;
             var v3 = path.get(k+2).toVec3() ;
+
+            var gradient_v1v2 = Vec3.sub(v2,v1).normalized() ;
+            var gradient_v2v3 = Vec3.sub(v3,v2).normalized() ;
+            float cos_alpha = Vec3.dot(gradient_v1v2, gradient_v2v3) ;
+            if (cos_alpha >= 0.99) {
+                // the gradients v1-->v2 and v2-->v3 are the same or almost the same,
+                // so v1--v2--v3 are on the same line, or almost at the same line.
+                // We then remove v2:
+                path.remove(k+1) ;
+            }
+            else {
+                k++ ;
+            }
+        }
+        return path ;
+    }
+
+    /**
+     * Optimize a path such that every segment v1,v2,v3 that lie on the same line, then we remove
+     * v2 from the path.
+     */
+    public static List<Octree> smoothenOctreePath(List<Octree> path) {
+        if(path.size() <= 2) return path ;
+        int k = 0 ;
+        while(k < path.size() - 2) {
+            var v1 = path.get(k).boundary.center();
+            var v2 = path.get(k+1).boundary.center();
+            var v3 = path.get(k+2).boundary.center();
 
             var gradient_v1v2 = Vec3.sub(v2,v1).normalized() ;
             var gradient_v2v3 = Vec3.sub(v3,v2).normalized() ;
