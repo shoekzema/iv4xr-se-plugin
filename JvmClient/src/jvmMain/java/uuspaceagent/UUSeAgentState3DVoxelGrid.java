@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
 
-    float OBSERVATION_RADIUS = 50.0f;
+    float OBSERVATION_RADIUS = 20.0f;
 
     public VoxelGrid grid = new VoxelGrid(1) ;
 
@@ -102,7 +102,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
         }
         else {
             // MERGING the two woms:
-            wom.mergeNewObservation(newWom) ;
+            var changes = wom.mergeNewObservation(newWom) ;
             // merges the woms, but cannot easily be used for exploration because everything outside the viewing distance
             // is thrown away out of the wom
 
@@ -112,14 +112,19 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
                     .filter(id -> ! newWom.elements.keySet().contains(id))
                     .collect(Collectors.toList());
             for(var id : tobeRemoved) wom.elements.remove(id) ;
-            // Then, we remove disappearing blocks (from grids that remain):
-            for(var cubegridOld : wom.elements.values()) {
-                var cubeGridNew = newWom.elements.get(cubegridOld.id) ;
+
+            // Then, we remove disappearing blocks (from grids that changed):
+            for(var cubeGridNew : changes) {
+                var cubegridOld = cubeGridNew.getPreviousState();
                 tobeRemoved.clear();
                 tobeRemoved = cubegridOld.elements.keySet().stream()
                         .filter(blockId -> ! cubeGridNew.elements.keySet().contains(blockId))
                         .collect(Collectors.toList());
-                for(var blockId : tobeRemoved) cubegridOld.elements.remove(blockId) ;
+                for(var blockId : tobeRemoved) {
+                    var block = cubegridOld.elements.get(blockId);
+                    if (Vec3.dist(block.position, newWom.position) < OBSERVATION_RADIUS)
+                        grid.removeObstacle(block);
+                }
             }
         }
 

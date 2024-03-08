@@ -75,6 +75,14 @@ public abstract class UUSeAgentState<NodeId> extends State {
         return (Vec3) wom.elements.get(agentId).properties.get("orientationUp") ;
     }
 
+    /**
+     * Adds half the player height to the location (the feet) in the up direction.
+     * @return Center position of the player
+     */
+    Vec3 centerPos() {
+        return Vec3.add(wom.position, Vec3.mul(orientationUp(), 0.9f)); // half of the agent height (1.8 m)
+    }
+
     WorldEntity targetBlock() {
         var targetId = wom.elements.get(agentId).getStringProperty ("targetBlock") ;
         if (targetId == null) return null ;

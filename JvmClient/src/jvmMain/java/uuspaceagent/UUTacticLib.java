@@ -746,12 +746,11 @@ public class UUTacticLib {
                     var nextNodePos = state.getBlockCenter(nextNode) ;
                     //var agentSq = state.navgrid.gridProjectedLocation(state.wom.position) ;
                     //if(agentSq.equals(nextNode)) {
-                    Vec3 playerPos3D = Vec3.add(state.wom.position, Vec3.mul(state.orientationUp(), 0.5f));
-                    if(Vec3.sub(nextNodePos, playerPos3D).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
+                    if(Vec3.sub(nextNodePos, state.centerPos()).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
                         // agent is already in the same square as the next-node destination-square. Mark the node
                         // as reached (so, we remove it from the plan):
                         state.currentPathToFollow.remove(0) ;
-                        return new Pair<>(playerPos3D, state.orientationForward()) ;
+                        return new Pair<>(state.centerPos(), state.orientationForward()) ;
                     }
                     CharacterObservation obs = null ;
                     // disabling rotation for now
@@ -779,13 +778,12 @@ public class UUTacticLib {
                 .on((UUSeAgentState state)  -> {
                     if (state.wom==null) return null ;
                     //var agentPos = state.wom.position ;
-                    Vec3 playerPos3D = Vec3.add(state.wom.position, Vec3.mul(state.orientationUp(), 0.5f));
-                    var agentSq = state.getGridPos(playerPos3D) ;
+                    var agentSq = state.getGridPos(state.centerPos()) ;
                     var destinationSq = state.getGridPos(destination) ;
                     var destinationSqCenterPos = state.getBlockCenter(destinationSq) ;
                     //if (state.grid2D.squareDistanceToSquare(agentPos,destinationSq) <= SQEPSILON_TO_NODE_IN_2D_PATH_NAVIGATION) {
                     //if(agentSq.equals(destinationSq)) {
-                    if(Vec3.sub(destinationSqCenterPos, playerPos3D).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
+                    if(Vec3.sub(destinationSqCenterPos, state.centerPos()).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
 
                             // the agent is already at the destination. Just return the path, and indicate that
                         // we have arrived at the destination:

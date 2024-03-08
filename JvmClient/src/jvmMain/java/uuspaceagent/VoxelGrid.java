@@ -138,6 +138,14 @@ public class VoxelGrid implements Navigatable<DPos3> {
         }
     }
 
+    public void removeObstacle(WorldEntity block) {
+
+        var obstructedCubes = getObstructedCubes(block) ;
+        for(var voxel : obstructedCubes) {
+            get(voxel).label = Label.OPEN;
+        }
+    }
+
     /**
      * Checks if the voxel is outside the grid and if so, expands the grid to contain the voxel
      * @param voxel
