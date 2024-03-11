@@ -99,6 +99,10 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
             // this is the first observation
             wom = newWom ;
             grid.initializeGrid(wom.position, OBSERVATION_RADIUS);
+
+            for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
+                grid.addObstacle(block);
+            }
         }
         else {
             // MERGING the two woms:
@@ -108,28 +112,42 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
 
             System.out.println("========================================================");
 
+            // Remove grids that are not in the WOM anymore
             List<String> tobeRemoved = wom.elements.keySet().stream()
-                    .filter(id -> ! newWom.elements.keySet().contains(id))
+                    .filter(id -> ! newWom.elements.containsKey(id))
                     .collect(Collectors.toList());
             for(var id : tobeRemoved) wom.elements.remove(id) ;
 
-            // Then, we remove disappearing blocks (from grids that changed):
             for(var cubeGridNew : changes) {
                 var cubegridOld = cubeGridNew.getPreviousState();
+
+                // Then, we remove disappearing blocks (from grids that changed):
                 tobeRemoved.clear();
                 tobeRemoved = cubegridOld.elements.keySet().stream()
-                        .filter(blockId -> ! cubeGridNew.elements.keySet().contains(blockId))
+                        .filter(blockId -> !cubeGridNew.elements.containsKey(blockId))
                         .collect(Collectors.toList());
+
                 for(var blockId : tobeRemoved) {
                     var block = cubegridOld.elements.get(blockId);
-                    if (Vec3.dist(block.position, newWom.position) < OBSERVATION_RADIUS)
+                    if (Vec3.dist(block.position, newWom.position) < OBSERVATION_RADIUS) {
                         grid.removeObstacle(block);
+
+                        // Removing a block makes all voxels it overlaps with empty, so go over all blocks to check
+                        // if some voxels overlapped with multiple blocks.
+                        for(var block2 : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
+                            grid.addObstacle(block2);
+                        }
+                    }
+                }
+
+                // We add new blocks (from grids that changed):
+                List<String> tobeAdded = cubeGridNew.elements.keySet().stream()
+                        .filter(id -> !cubegridOld.elements.containsKey(id))
+                        .collect(Collectors.toList());
+                for(var blockId : tobeAdded) {
+                    grid.addObstacle(cubeGridNew.elements.get(blockId));
                 }
             }
-        }
-
-        for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-            grid.addObstacle(block);
         }
 
 //        // then, there may also be new blocks ... we add them to the nav-grid:
