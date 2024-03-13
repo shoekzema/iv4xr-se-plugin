@@ -101,7 +101,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
             grid.initializeGrid(wom.position, OBSERVATION_RADIUS);
 
             for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-                grid.addObstacle(block);
+                addToGrid(block);
             }
         }
         else {
@@ -137,7 +137,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
                         // Removing a block makes all voxels it overlaps with empty, so go over all blocks to check
                         // if some voxels overlapped with multiple blocks.
                         for(var block2 : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-                            grid.addObstacle(block2);
+                            addToGrid(block2);
                         }
                     }
                 }
@@ -147,29 +147,25 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
                             .filter(id -> !cubegridOld.elements.containsKey(id))
                             .collect(Collectors.toList());
                     for (var blockId : tobeAdded) {
-                        grid.addObstacle(cubeGridNew.elements.get(blockId));
+                        addToGrid(cubeGridNew.elements.get(blockId));
                     }
                 }
             }
         }
+    }
 
-//        // then, there may also be new blocks ... we add them to the nav-grid:
-//        // TODO: this assumes doors are initially closed. Calculating blocked squares
-//        // for open-doors is more complicated. TODO.
-//        for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-//            navgrid.addObstacle(block);
-//            // check if it is a door, and get its open/close state:
-//            Boolean isOpen = SEBlockFunctions.geSlideDoorState(block) ;
-//            if (isOpen != null) {
-//                navgrid.setObstacleBlockingState(block, !isOpen);
-//            }
-//            // check if it is a button panel, and make it not blocking
-//            if(block.type.equals("block"))
-//                if (block.getStringProperty("blockType").contains("ButtonPanel"))
-//                    navgrid.setObstacleBlockingState(block, false);
-//        }
-//        // updating dynamic blocking-state: (e.g. handling doors)
-//        // TODO!
+    public void addToGrid(WorldEntity block) {
+        Boolean isOpen = SEBlockFunctions.geSlideDoorState(block) ;
+        // open-doors are more complicated. TODO.
+        if (isOpen != null) {
+            if (!isOpen)
+                grid.addObstacle(block);
+        }
+        else if(block.getStringProperty("blockType").contains("ButtonPanel")) {
+            var test = 1;
+        }
+        else
+            grid.addObstacle(block);
     }
 
     public void exportManualProfileShit() {

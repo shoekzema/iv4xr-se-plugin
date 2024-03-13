@@ -101,11 +101,8 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
             wom = newWom ;
             grid.initializeGrid(wom.position, OBSERVATION_RADIUS);
 
-            //Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS)), 2 * OBSERVATION_RADIUS);
-            //grid.update(SEBlockFunctions.getAllBlocks(gridsAndBlocksStates), observation_radius);
-
             for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-                grid.addObstacle(block);
+                addToOctree(block);
             }
         }
         else {
@@ -147,7 +144,7 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
                         // Removing a block makes all voxels it overlaps with empty, so go over all blocks to check
                         // if some voxels overlapped with multiple blocks.
                         for (var block2 : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-                            grid.addObstacle(block2);
+                            addToOctree(block2);
                         }
                     }
                 }
@@ -157,31 +154,27 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
                             .filter(id -> !cubegridOld.elements.containsKey(id))
                             .collect(Collectors.toList());
                     for (var blockId : tobeAdded) {
-                        grid.addObstacle(cubeGridNew.elements.get(blockId));
+                        addToOctree(cubeGridNew.elements.get(blockId));
                     }
                 }
             }
         }
 
-//        // then, there may also be new blocks ... we add them to the nav-grid:
-//        // TODO: this assumes doors are initially closed. Calculating blocked squares
-//        // for open-doors is more complicated. TODO.
-//        for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-//            navgrid.addObstacle(block);
-//            // check if it is a door, and get its open/close state:
-//            Boolean isOpen = SEBlockFunctions.geSlideDoorState(block) ;
-//            if (isOpen != null) {
-//                navgrid.setObstacleBlockingState(block, !isOpen);
-//            }
-//            // check if it is a button panel, and make it not blocking
-//            if(block.type.equals("block"))
-//                if (block.getStringProperty("blockType").contains("ButtonPanel"))
-//                    navgrid.setObstacleBlockingState(block, false);
-//        }
-//        // updating dynamic blocking-state: (e.g. handling doors)
-//        // TODO!
-
         if (!printed) { exportGrid(); printed = true; }
+    }
+
+    public void addToOctree(WorldEntity block) {
+        Boolean isOpen = SEBlockFunctions.geSlideDoorState(block) ;
+        // open-doors are more complicated. TODO.
+        if (isOpen != null) {
+            if (!isOpen)
+                grid.addObstacle(block);
+        }
+        else if(block.getStringProperty("blockType").contains("ButtonPanel")) {
+            var test = 1;
+        }
+        else
+            grid.addObstacle(block);
     }
 
     public void exportManualProfileShit() { // TODO: fix
@@ -221,7 +214,7 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
 //            }
 //        }
         for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-            grid.addObstacle(block);
+            addToOctree(block);
         }
 
         try {
