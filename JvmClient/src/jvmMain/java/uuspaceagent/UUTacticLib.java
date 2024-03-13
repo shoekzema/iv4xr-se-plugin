@@ -733,7 +733,12 @@ public class UUTacticLib {
 
                     if (arrivedAtDestination) {
                         state.currentPathToFollow.clear();
-                        return new Pair<>(state.wom.position, state.orientationForward()) ;
+                        if (state instanceof UUSeAgentState3DVoxelGrid || state instanceof UUSeAgentState3DOctree) {
+                            return new Pair<>(state.centerPos(), state.orientationForward());
+                        }
+                        else {
+                            return new Pair<>(state.wom.position, state.orientationForward());
+                        }
                     }
                     // else we are not at the destination yet...
 
