@@ -18,9 +18,6 @@ public class Octree implements Navigatable<Octree> {
     int code; // 0-7, Morton code (Z) order
     public static float MIN_NODE_SIZE = 1;
 
-    // TODO: remove
-    public static float AGENT_HEIGHT = 2f ;
-    public static float AGENT_WIDTH  = 1f ;
 
     public Octree(Boundary boundary, Octree parent, int code, byte label) {
         this.boundary = boundary;
@@ -30,15 +27,17 @@ public class Octree implements Navigatable<Octree> {
         this.label = label;
     }
 
+
     /**
      *  Initializes the octrees root boundary based on the first observed position and the observation radius.
      *  Call in UUSeAgentstate3D on first observation.
      */
     public void initializeGrid(Vec3 pos, float observation_radius) {
-        boundary = new Boundary(Vec3.sub(pos, new Vec3(observation_radius * 0.5f)), observation_radius);
+        boundary = new Boundary(Vec3.sub(pos, new Vec3(observation_radius)), 2 * observation_radius);
 //        boundary.lowerBounds = Vec3.sub(pos, new Vec3(observation_radius * 0.5f));
 //        boundary.upperBounds = Vec3.add(pos, new Vec3(observation_radius * 0.5f));
     }
+
 
     /**
      * Calculate the octree leaf-node that contains a given position.
@@ -73,14 +72,96 @@ public class Octree implements Navigatable<Octree> {
         return children.get(7).gridProjectedLocation(pos);
     }
 
+
     /**
      * Return the actual location of the center of an octree node; the location is expressed
      * as a 3D position in the space.
      */
     public Vec3 getCubeCenterLocation(Octree node) { return node.boundary.center(); }
 
+
+    public void addObstacle(WorldEntity block) {
+        // If the node is already full, do nothing
+        if (this.label == Label.BLOCKED)
+            return;
+
+        var blockBB = new Boundary(Vec3.sub(block.position, new Vec3(1.25f)), 2.5f);
+
+        // If the node is entirely wall
+        if (blockBB.contains(this.boundary)) {
+            this.label = Label.BLOCKED;
+            if (!children.isEmpty()) {
+                children = new ArrayList<>(0);
+            }
+            return;
+        }
+        // Otherwise, it is partially block/unknown
+
+        // If we cannot subdivide further, force a full label
+        if (boundary.size() < MIN_NODE_SIZE) {
+            this.label = Label.BLOCKED;
+            return;
+        }
+        // If not already subdivided, subdivide
+        if (this.label != Label.MIXED) {
+            this.subdivide(this.label);
+            this.label = Label.MIXED;
+        }
+
+        // If this block intersects
+        if (blockBB.intersects(this.boundary)) {
+            children.forEach(node ->
+                    node.addObstacle(block));
+        }
+        // Check if every child-node is full, then become blocking and throw them away.
+        if (children.stream().noneMatch(node -> node.label != Label.BLOCKED)) {
+            this.label = Label.BLOCKED;
+            children = new ArrayList<>(0);
+        }
+    }
+
+
+    public void removeObstacle(WorldEntity block) {
+        // If the node is already empty, do nothing
+        if (this.label == Label.OPEN)
+            return;
+
+        var blockBB = new Boundary(Vec3.sub(block.position, new Vec3(1.25f)), 2.5f);
+
+        // If the node is entirely inside the removed block
+        if (blockBB.contains(this.boundary)) {
+            this.label = Label.OPEN;
+            if (!children.isEmpty()) {
+                children = new ArrayList<>(0);
+            }
+            return;
+        }
+        // Otherwise, it is partially inside the removed block
+
+        // If we cannot subdivide further, force an open label
+        if (boundary.size() < MIN_NODE_SIZE) {
+            this.label = Label.OPEN;
+            return;
+        }
+        // If not already subdivided, subdivide
+        if (this.label != Label.MIXED) {
+            this.subdivide(this.label);
+            this.label = Label.MIXED;
+        }
+
+        if (blockBB.intersects(this.boundary)) {
+            children.forEach(node -> node.removeObstacle(block));
+        }
+        // Check if every child-node is full, then become blocking and throw them away.
+        if (children.stream().noneMatch(node -> node.label != Label.BLOCKED)) {
+            this.label = Label.BLOCKED;
+            children = new ArrayList<>(0);
+        }
+    }
+
+
     /**
-     *  Updates the octree using a list of obstacles (blocks) and a viewing range.
+     *  Updates the octree using a list of obstacles (blocks) and a viewing range. (slow)
      */
     public void update(List<WorldEntity> blocks, Boundary range) {
         // If the quad is fully outside viewing distance
@@ -147,6 +228,7 @@ public class Octree implements Navigatable<Octree> {
         }
     }
 
+
     public void subdivide(byte label) {
         children = new ArrayList<>(8);
         float half = boundary.size() * 0.5f;
@@ -167,6 +249,113 @@ public class Octree implements Navigatable<Octree> {
                 this, 7, label));
         children.add(7, new Octree(new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, half, half)), half),
                 this, 8, label));
+    }
+
+
+    /**
+     *  Just like "subdivide()", but takes the old rootnode as input to make it a childnode
+     * @param child The old rootnode
+     * @param code A code [1-8] denoting the position of the old rootnode
+     */
+    public void subdivideExpand(Octree child, int code) {
+        children = new ArrayList<>(8);
+
+        child.parent = this;
+        child.code = code;
+        float half = boundary.size() * 0.5f;
+
+        for (int i = 1; i <= 8; i++) {
+            if (code == i) {
+                children.add(child);
+                continue;
+            }
+            Boundary bb;
+            switch (i) {
+                case 1  -> bb = new Boundary(         boundary.lowerBounds,                              half);
+                case 2  -> bb = new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, 0, 0)), half);
+                case 3  -> bb = new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(0, half, 0)), half);
+                case 4  -> bb = new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, half, 0)), half);
+                case 5  -> bb = new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(0, 0, half)), half);
+                case 6  -> bb = new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, 0, half)), half);
+                case 7  -> bb = new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(0, half, half)), half);
+                default -> bb = new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, half, half)), half);
+            }
+            children.add(new Octree(bb, this, i, Label.UNKNOWN));
+        }
+    }
+
+    /**
+     *  Check if the octree node fully contains the viewing range. If not, expand it outwards.
+     * @return The new root octree node
+     */
+    public Octree checkAndExpand(Boundary range) {
+        // If the rootNode of the Octree fully contain the viewing range, return nothing
+        if (this.boundary.contains(range))
+            return null;
+
+        // Otherwise, find the direction to expand in
+        int oldcode;
+        if (range.upperBounds.x >= this.boundary.upperBounds.x) { // expand to the right
+            if (range.upperBounds.y >= this.boundary.upperBounds.y) { // expand towards up-right
+                if (range.upperBounds.z >= this.boundary.upperBounds.z) // expand towards up-right-back
+                    oldcode = 1;
+                else // expand towards up-right-front
+                    oldcode = 5;
+
+            }
+            else { // expand towards down-right
+                if (range.upperBounds.z >= this.boundary.upperBounds.z) // expand towards down-right-back
+                    oldcode = 3;
+                else // expand towards down-right-front
+                    oldcode = 7;
+            }
+        }
+        else { // expand to the left
+            if (range.upperBounds.y >= this.boundary.upperBounds.y) { // expand towards up-left
+                if (range.upperBounds.z >= this.boundary.upperBounds.z) // expand towards up-left-back
+                    oldcode = 4;
+                else // expand towards up-left-front
+                    oldcode = 8;
+            } else { // expand towards down-left
+                if (range.upperBounds.z >= this.boundary.upperBounds.z) // expand towards down-left-back
+                    oldcode = 2;
+                else // expand towards down-left-front
+                    oldcode = 6;
+            }
+        }
+
+        Octree newRoot;
+        float newSize = boundary.size() * 2;
+        float oldSize = boundary.size();
+        switch (oldcode) {
+            case 1 -> newRoot = new Octree(
+                    new Boundary(boundary.lowerBounds, newSize),
+                    null, 0, Label.MIXED);
+            case 2 -> newRoot = new Octree(
+                    new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(oldSize, 0, 0)), newSize),
+                    null, 0, Label.MIXED);
+            case 3 -> newRoot = new Octree(
+                    new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(0, oldSize, 0)), newSize),
+                    null, 0, Label.MIXED);
+            case 4 -> newRoot = new Octree(
+                    new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(oldSize, oldSize, 0)), newSize),
+                    null, 0, Label.MIXED);
+
+            case 5 -> newRoot = new Octree(
+                    new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(0, 0, oldSize)), newSize),
+                    null, 0, Label.MIXED);
+            case 6 -> newRoot = new Octree(
+                    new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(oldSize, 0, oldSize)), newSize),
+                    null, 0, Label.MIXED);
+            case 7 -> newRoot = new Octree(
+                    new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(0, oldSize, oldSize)), newSize),
+                    null, 0, Label.MIXED);
+            default -> newRoot = new Octree(
+                    new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(oldSize, oldSize, oldSize)), newSize),
+                    null, 0, Label.MIXED);
+        }
+        newRoot.subdivideExpand(this, oldcode);
+        return newRoot;
     }
 
 

@@ -127,10 +127,12 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
                         .filter(blockId -> !cubeGridNew.elements.containsKey(blockId))
                         .collect(Collectors.toList());
 
+                boolean rebuild = false;
                 for(var blockId : tobeRemoved) {
                     var block = cubegridOld.elements.get(blockId);
                     if (Vec3.dist(block.position, newWom.position) < OBSERVATION_RADIUS) {
                         grid.removeObstacle(block);
+                        rebuild = true;
 
                         // Removing a block makes all voxels it overlaps with empty, so go over all blocks to check
                         // if some voxels overlapped with multiple blocks.
@@ -139,13 +141,14 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
                         }
                     }
                 }
-
-                // We add new blocks (from grids that changed):
-                List<String> tobeAdded = cubeGridNew.elements.keySet().stream()
-                        .filter(id -> !cubegridOld.elements.containsKey(id))
-                        .collect(Collectors.toList());
-                for(var blockId : tobeAdded) {
-                    grid.addObstacle(cubeGridNew.elements.get(blockId));
+                if (!rebuild) {
+                    // We add new blocks (from grids that changed):
+                    List<String> tobeAdded = cubeGridNew.elements.keySet().stream()
+                            .filter(id -> !cubegridOld.elements.containsKey(id))
+                            .collect(Collectors.toList());
+                    for (var blockId : tobeAdded) {
+                        grid.addObstacle(cubeGridNew.elements.get(blockId));
+                    }
                 }
             }
         }

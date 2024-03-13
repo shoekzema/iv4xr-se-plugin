@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
 
-    float OBSERVATION_RADIUS = 50.0f;
+    float OBSERVATION_RADIUS = 20.0f;
     boolean printed = false;
 
     public Octree grid = new Octree(null, null, 0, Label.UNKNOWN) ;
@@ -100,35 +100,68 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
             // this is the first observation
             wom = newWom ;
             grid.initializeGrid(wom.position, OBSERVATION_RADIUS);
+
+            //Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS)), 2 * OBSERVATION_RADIUS);
+            //grid.update(SEBlockFunctions.getAllBlocks(gridsAndBlocksStates), observation_radius);
+
+            for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
+                grid.addObstacle(block);
+            }
         }
         else {
             // MERGING the two woms:
-            wom.mergeNewObservation(newWom) ;
+            var changes = wom.mergeNewObservation(newWom) ;
             // merges the woms, but cannot easily be used for exploration because everything outside the viewing distance
             // is thrown away out of the wom
 
             System.out.println("========================================================");
 
+            // Check if the Octree needs to be expanded
+            Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS)), 2 * OBSERVATION_RADIUS);
+            Octree newRoot = grid.checkAndExpand(observation_radius);
+            if (newRoot != null)
+                grid = newRoot;
+
+            // Remove grids that are not in the WOM anymore
             List<String> tobeRemoved = wom.elements.keySet().stream()
                     .filter(id -> ! newWom.elements.keySet().contains(id))
                     .collect(Collectors.toList());
             for(var id : tobeRemoved) wom.elements.remove(id) ;
-            // Then, we remove disappearing blocks (from grids that remain):
-            for(var cubegridOld : wom.elements.values()) {
-                var cubeGridNew = newWom.elements.get(cubegridOld.id) ;
+
+            for(var cubeGridNew : changes) {
+                var cubegridOld = cubeGridNew.getPreviousState();
+
+                // Then, we remove disappearing blocks (from grids that changed):
                 tobeRemoved.clear();
                 tobeRemoved = cubegridOld.elements.keySet().stream()
-                        .filter(blockId -> ! cubeGridNew.elements.keySet().contains(blockId))
+                        .filter(blockId -> !cubeGridNew.elements.containsKey(blockId))
                         .collect(Collectors.toList());
-                for(var blockId : tobeRemoved) cubegridOld.elements.remove(blockId) ;
+
+                boolean rebuild = false;
+                for (var blockId : tobeRemoved) {
+                    var block = cubegridOld.elements.get(blockId);
+                    if (Vec3.dist(block.position, newWom.position) < OBSERVATION_RADIUS) {
+                        grid.removeObstacle(block);
+                        rebuild = true;
+
+                        // Removing a block makes all voxels it overlaps with empty, so go over all blocks to check
+                        // if some voxels overlapped with multiple blocks.
+                        for (var block2 : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
+                            grid.addObstacle(block2);
+                        }
+                    }
+                }
+                if (!rebuild) {
+                    // We add new blocks (from grids that changed):
+                    List<String> tobeAdded = cubeGridNew.elements.keySet().stream()
+                            .filter(id -> !cubegridOld.elements.containsKey(id))
+                            .collect(Collectors.toList());
+                    for (var blockId : tobeAdded) {
+                        grid.addObstacle(cubeGridNew.elements.get(blockId));
+                    }
+                }
             }
         }
-
-//        for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-//            grid.addObstacle(block);
-//        }
-        Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS * 0.5f)), OBSERVATION_RADIUS);
-        grid.update(SEBlockFunctions.getAllBlocks(gridsAndBlocksStates), observation_radius);
 
 //        // then, there may also be new blocks ... we add them to the nav-grid:
 //        // TODO: this assumes doors are initially closed. Calculating blocked squares
@@ -147,7 +180,6 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
 //        }
 //        // updating dynamic blocking-state: (e.g. handling doors)
 //        // TODO!
-
 
         if (!printed) { exportGrid(); printed = true; }
     }
@@ -188,8 +220,9 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
 //                doorpos = block.position;
 //            }
 //        }
-        Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS * 0.5f)), OBSERVATION_RADIUS);
-        grid.update(SEBlockFunctions.getAllBlocks(gridsAndBlocksStates), observation_radius);
+        for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
+            grid.addObstacle(block);
+        }
 
         try {
             System.out.println(System.getProperty("user.dir"));
