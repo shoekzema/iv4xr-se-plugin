@@ -21,7 +21,7 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
     float OBSERVATION_RADIUS = 20.0f;
     boolean printed = false;
 
-    public Octree grid = new Octree(null, null, 0, Label.UNKNOWN) ;
+    public Octree grid = new Octree(null, null, (byte) 0, Label.UNKNOWN) ;
 
     public UUSeAgentState3DOctree(String agentId) {
         super(agentId);
@@ -177,9 +177,10 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
             grid.addObstacle(block);
     }
 
-    public void exportManualProfileShit() { // TODO: fix
+    public void exportManualProfileShit() { // TODO: check
 
-        int gridMemSize = 1; // in bytes
+        int number = grid.countNodes();
+        int gridMemSize = number * (2 + (6*4) + (8*4) + 4); // == 62 bytes
 
         int womMemSize = 0;
         for (Map.Entry<String, WorldEntity> entry : wom.elements.entrySet()) {

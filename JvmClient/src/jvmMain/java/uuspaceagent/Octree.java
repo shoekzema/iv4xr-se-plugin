@@ -15,11 +15,11 @@ public class Octree implements Navigatable<Octree> {
     public ArrayList<Octree> children;
     public Octree parent;
     byte label; // empty = 0, full = 1, mixed = 2, mixed-unknown = 3
-    int code; // 0-7, Morton code (Z) order
+    byte code; // 0-7, Morton code (Z) order
     public static float MIN_NODE_SIZE = 1;
 
 
-    public Octree(Boundary boundary, Octree parent, int code, byte label) {
+    public Octree(Boundary boundary, Octree parent, byte code, byte label) {
         this.boundary = boundary;
         this.children = new ArrayList<>(0);
         this.parent = parent;
@@ -233,22 +233,22 @@ public class Octree implements Navigatable<Octree> {
         children = new ArrayList<>(8);
         float half = boundary.size() * 0.5f;
         children.add(0, new Octree(new Boundary(boundary.lowerBounds, half),
-                this, 1, label));
+                this, (byte) 1, label));
         children.add(1, new Octree(new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, 0, 0)), half),
-                this, 2, label));
+                this, (byte) 2, label));
         children.add(2, new Octree(new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(0, half, 0)), half),
-                this, 3, label));
+                this, (byte) 3, label));
         children.add(3, new Octree(new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, half, 0)), half),
-                this, 4, label));
+                this, (byte) 4, label));
 
         children.add(4, new Octree(new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(0, 0, half)), half),
-                this, 5, label));
+                this, (byte) 5, label));
         children.add(5, new Octree(new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, 0, half)), half),
-                this, 6, label));
+                this, (byte) 6, label));
         children.add(6, new Octree(new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(0, half, half)), half),
-                this, 7, label));
+                this, (byte) 7, label));
         children.add(7, new Octree(new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, half, half)), half),
-                this, 8, label));
+                this, (byte) 8, label));
     }
 
 
@@ -257,14 +257,14 @@ public class Octree implements Navigatable<Octree> {
      * @param child The old rootnode
      * @param code A code [1-8] denoting the position of the old rootnode
      */
-    public void subdivideExpand(Octree child, int code) {
+    public void subdivideExpand(Octree child, byte code) {
         children = new ArrayList<>(8);
 
         child.parent = this;
         child.code = code;
         float half = boundary.size() * 0.5f;
 
-        for (int i = 1; i <= 8; i++) {
+        for (byte i = 1; i <= 8; i++) {
             if (code == i) {
                 children.add(child);
                 continue;
@@ -330,31 +330,31 @@ public class Octree implements Navigatable<Octree> {
         switch (oldcode) {
             case 1 -> newRoot = new Octree(
                     new Boundary(boundary.lowerBounds, newSize),
-                    null, 0, Label.MIXED);
+                    null, (byte) 0, Label.MIXED);
             case 2 -> newRoot = new Octree(
                     new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(oldSize, 0, 0)), newSize),
-                    null, 0, Label.MIXED);
+                    null, (byte) 0, Label.MIXED);
             case 3 -> newRoot = new Octree(
                     new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(0, oldSize, 0)), newSize),
-                    null, 0, Label.MIXED);
+                    null, (byte) 0, Label.MIXED);
             case 4 -> newRoot = new Octree(
                     new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(oldSize, oldSize, 0)), newSize),
-                    null, 0, Label.MIXED);
+                    null, (byte) 0, Label.MIXED);
 
             case 5 -> newRoot = new Octree(
                     new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(0, 0, oldSize)), newSize),
-                    null, 0, Label.MIXED);
+                    null, (byte) 0, Label.MIXED);
             case 6 -> newRoot = new Octree(
                     new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(oldSize, 0, oldSize)), newSize),
-                    null, 0, Label.MIXED);
+                    null, (byte) 0, Label.MIXED);
             case 7 -> newRoot = new Octree(
                     new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(0, oldSize, oldSize)), newSize),
-                    null, 0, Label.MIXED);
+                    null, (byte) 0, Label.MIXED);
             default -> newRoot = new Octree(
                     new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(oldSize, oldSize, oldSize)), newSize),
-                    null, 0, Label.MIXED);
+                    null, (byte) 0, Label.MIXED);
         }
-        newRoot.subdivideExpand(this, oldcode);
+        newRoot.subdivideExpand(this, (byte) oldcode);
         return newRoot;
     }
 
@@ -714,5 +714,15 @@ public class Octree implements Navigatable<Octree> {
         for (Octree child : children) {
             child.export(printWriter);
         }
+    }
+
+    public int countNodes() {
+        int count = 1;
+        if (!children.isEmpty()) {
+            for (int i = 0; i < 8; i++) {
+                count += children.get(i).countNodes();
+            }
+        }
+        return count;
     }
 }
