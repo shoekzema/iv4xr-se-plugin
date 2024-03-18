@@ -876,7 +876,16 @@ public class UUTacticLib {
             var gradient_v1v2 = Vec3.sub(v2,v1).normalized() ;
             var gradient_v2v3 = Vec3.sub(v3,v2).normalized() ;
             float cos_alpha = Vec3.dot(gradient_v1v2, gradient_v2v3) ;
-            if (cos_alpha >= 0.99) {
+
+            float threshold = 0.9f; // 0.91 == dot when v1 and v3 have around an angle of 25 degrees (for 3D cases)
+            // If effectively a 2D angle
+            if ((v1.x == v2.x && v2.x == v3.x) ||
+                (v1.y == v2.y && v2.y == v3.y) ||
+                (v1.z == v2.z && v2.z == v3.z)) {
+                threshold = 0.7f; // 0.71 == dot when v1 and v3 have around an angle of 45 degrees (for 2D cases)
+            }
+
+            if (cos_alpha >= threshold) {
                 // the gradients v1-->v2 and v2-->v3 are the same or almost the same,
                 // so v1--v2--v3 are on the same line, or almost at the same line.
                 // We then remove v2:
