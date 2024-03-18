@@ -221,24 +221,16 @@ public class VoxelGrid implements Navigatable<DPos3> {
     public Iterable<DPos3> neighbours(DPos3 p) {
         List<DPos3> candidates = new LinkedList<>() ;
 
-//            int xi = (int) ((p.x - boundary.lowerBounds.x) / voxelSize);
-//            int yi = (int) ((p.y - boundary.lowerBounds.y) / voxelSize);
-//            int zi = (int) ((p.z - boundary.lowerBounds.z) / voxelSize);
-
-        if (get(p.x-1, p.y, p.z).label != Label.BLOCKED)
-            candidates.add(new DPos3(p.x-1, p.y, p.z));
-        if (get(p.x+1, p.y, p.z).label != Label.BLOCKED)
-            candidates.add(new DPos3(p.x+1, p.y, p.z));
-
-        if (get(p.x, p.y-1, p.z).label != Label.BLOCKED)
-            candidates.add(new DPos3(p.x, p.y-1, p.z));
-        if (get(p.x, p.y+1, p.z).label != Label.BLOCKED)
-            candidates.add(new DPos3(p.x, p.y+1, p.z));
-
-        if (get(p.x, p.y, p.z-1).label != Label.BLOCKED)
-            candidates.add(new DPos3(p.x, p.y, p.z-1));
-        if (get(p.x, p.y, p.z+1).label != Label.BLOCKED)
-            candidates.add(new DPos3(p.x, p.y, p.z+1));
+        for (int x = p.x-1 ; x <= p.x+1 ; x++) {
+            for (int y = p.y-1 ; y <= p.y+1 ; y++) {
+                for (int z = p.z-1; z <= p.z+1 ; z++) {
+                    if(x==p.x && y==p.y && z==p.z) continue;
+                    var neighbourCube = new DPos3(x,y,z) ; // a neighbouring cube
+                    if(get(x,y,z).label != Label.BLOCKED)
+                        candidates.add(neighbourCube) ;
+                }
+            }
+        }
 
         return candidates ;
     }

@@ -358,6 +358,7 @@ public class Octree implements Navigatable<Octree> {
         return newRoot;
     }
 
+    // ========================================================================================================== //
 
     public List<Octree> getTopEdgeChildrenLeafs(Stack<Integer> codes) {
         List<Octree> list = new ArrayList<>();
@@ -467,6 +468,274 @@ public class Octree implements Navigatable<Octree> {
         }
         return list;
     }
+
+    public List<Octree> getTopLeftEdgeChildrenLeafs(Stack<Integer> codes) {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        if (!codes.isEmpty()) {
+            list.addAll(children.get(codes.pop()).getTopLeftEdgeChildrenLeafs(codes));
+        }
+        else {
+            list.addAll(children.get(0).getTopLeftEdgeChildrenLeafs(codes));
+            list.addAll(children.get(4).getTopLeftEdgeChildrenLeafs(codes));
+        }
+        return list;
+    }
+    public List<Octree> getTopRightEdgeChildrenLeafs(Stack<Integer> codes) {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        if (!codes.isEmpty()) {
+            list.addAll(children.get(codes.pop()).getTopRightEdgeChildrenLeafs(codes));
+        }
+        else {
+            list.addAll(children.get(1).getTopRightEdgeChildrenLeafs(codes));
+            list.addAll(children.get(5).getTopRightEdgeChildrenLeafs(codes));
+        }
+        return list;
+    }
+    public List<Octree> getBottomLeftEdgeChildrenLeafs(Stack<Integer> codes) {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        if (!codes.isEmpty()) {
+            list.addAll(children.get(codes.pop()).getBottomLeftEdgeChildrenLeafs(codes));
+        }
+        else {
+            list.addAll(children.get(2).getBottomLeftEdgeChildrenLeafs(codes));
+            list.addAll(children.get(6).getBottomLeftEdgeChildrenLeafs(codes));
+        }
+        return list;
+    }
+    public List<Octree> getBottomRightEdgeChildrenLeafs(Stack<Integer> codes) {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        if (!codes.isEmpty()) {
+            list.addAll(children.get(codes.pop()).getBottomRightEdgeChildrenLeafs(codes));
+        }
+        else {
+            list.addAll(children.get(3).getBottomRightEdgeChildrenLeafs(codes));
+            list.addAll(children.get(7).getBottomRightEdgeChildrenLeafs(codes));
+        }
+        return list;
+    }
+    public List<Octree> getLeftFrontEdgeChildrenLeafs(Stack<Integer> codes) {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        if (!codes.isEmpty()) {
+            list.addAll(children.get(codes.pop()).getLeftFrontEdgeChildrenLeafs(codes));
+        }
+        else {
+            list.addAll(children.get(0).getLeftFrontEdgeChildrenLeafs(codes));
+            list.addAll(children.get(2).getLeftFrontEdgeChildrenLeafs(codes));
+        }
+        return list;
+    }
+    public List<Octree> getRightFrontEdgeChildrenLeafs(Stack<Integer> codes) {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        if (!codes.isEmpty()) {
+            list.addAll(children.get(codes.pop()).getRightFrontEdgeChildrenLeafs(codes));
+        }
+        else {
+            list.addAll(children.get(1).getRightFrontEdgeChildrenLeafs(codes));
+            list.addAll(children.get(3).getRightFrontEdgeChildrenLeafs(codes));
+        }
+        return list;
+    }
+    public List<Octree> getLeftBackEdgeChildrenLeafs(Stack<Integer> codes) {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        if (!codes.isEmpty()) {
+            list.addAll(children.get(codes.pop()).getLeftBackEdgeChildrenLeafs(codes));
+        }
+        else {
+            list.addAll(children.get(4).getLeftBackEdgeChildrenLeafs(codes));
+            list.addAll(children.get(6).getLeftBackEdgeChildrenLeafs(codes));
+        }
+        return list;
+    }
+    public List<Octree> getRightBackEdgeChildrenLeafs(Stack<Integer> codes) {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        if (!codes.isEmpty()) {
+            list.addAll(children.get(codes.pop()).getRightBackEdgeChildrenLeafs(codes));
+        }
+        else {
+            list.addAll(children.get(5).getRightBackEdgeChildrenLeafs(codes));
+            list.addAll(children.get(7).getRightBackEdgeChildrenLeafs(codes));
+        }
+        return list;
+    }
+    public List<Octree> getTopFrontEdgeChildrenLeafs(Stack<Integer> codes) {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        if (!codes.isEmpty()) {
+            list.addAll(children.get(codes.pop()).getTopFrontEdgeChildrenLeafs(codes));
+        }
+        else {
+            list.addAll(children.get(0).getTopFrontEdgeChildrenLeafs(codes));
+            list.addAll(children.get(1).getTopFrontEdgeChildrenLeafs(codes));
+        }
+        return list;
+    }
+    public List<Octree> getBottomFrontEdgeChildrenLeafs(Stack<Integer> codes) {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        if (!codes.isEmpty()) {
+            list.addAll(children.get(codes.pop()).getBottomFrontEdgeChildrenLeafs(codes));
+        }
+        else {
+            list.addAll(children.get(2).getBottomFrontEdgeChildrenLeafs(codes));
+            list.addAll(children.get(3).getBottomFrontEdgeChildrenLeafs(codes));
+        }
+        return list;
+    }
+    public List<Octree> getTopBackEdgeChildrenLeafs(Stack<Integer> codes) {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        if (!codes.isEmpty()) {
+            list.addAll(children.get(codes.pop()).getTopBackEdgeChildrenLeafs(codes));
+        }
+        else {
+            list.addAll(children.get(4).getTopBackEdgeChildrenLeafs(codes));
+            list.addAll(children.get(5).getTopBackEdgeChildrenLeafs(codes));
+        }
+        return list;
+    }
+    public List<Octree> getBottomBackEdgeChildrenLeafs(Stack<Integer> codes) {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        if (!codes.isEmpty()) {
+            list.addAll(children.get(codes.pop()).getBottomBackEdgeChildrenLeafs(codes));
+        }
+        else {
+            list.addAll(children.get(6).getBottomBackEdgeChildrenLeafs(codes));
+            list.addAll(children.get(7).getBottomBackEdgeChildrenLeafs(codes));
+        }
+        return list;
+    }
+
+    public List<Octree> getTopLeftFrontEdgeChildrenLeafs() {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        return children.get(0).getTopLeftFrontEdgeChildrenLeafs();
+    }
+    public List<Octree> getTopRightFrontEdgeChildrenLeafs() {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        return children.get(1).getTopRightFrontEdgeChildrenLeafs();
+    }
+    public List<Octree> getBottomLeftFrontEdgeChildrenLeafs() {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        return children.get(2).getBottomLeftFrontEdgeChildrenLeafs();
+    }
+    public List<Octree> getBottomRightFrontEdgeChildrenLeafs() {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        return children.get(3).getBottomRightFrontEdgeChildrenLeafs();
+    }
+    public List<Octree> getTopLeftBackEdgeChildrenLeafs() {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        return children.get(4).getTopLeftBackEdgeChildrenLeafs();
+    }
+    public List<Octree> getTopRightBackEdgeChildrenLeafs() {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        return children.get(5).getTopRightBackEdgeChildrenLeafs();
+    }
+    public List<Octree> getBottomLeftBackEdgeChildrenLeafs() {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        return children.get(6).getBottomLeftBackEdgeChildrenLeafs();
+    }
+    public List<Octree> getBottomRightBackEdgeChildrenLeafs() {
+        List<Octree> list = new ArrayList<>();
+        if (this.children.isEmpty()) {
+            if (this.label != Label.BLOCKED)
+                list.add(this);
+            return list;
+        }
+        return children.get(7).getBottomRightBackEdgeChildrenLeafs();
+    }
+
+    // ========================================================================================================== //
 
     public List<Octree> getTopNeighbour(Stack<Integer> codes) {
         switch (this.code) {
@@ -667,10 +936,730 @@ public class Octree implements Navigatable<Octree> {
         return null; // Should never happen
     }
 
+    // ========================================================================================================== //
+
+    public List<Octree> getTopLeftNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                codes.push(3);
+                return parent.getTopLeftNeighbour(codes);
+            }
+            case 2 -> { // top-right-front
+                codes.push(2);
+                return parent.children.get(0).getTopNeighbour(codes);
+            }
+            case 3 -> { // bottom-left-front
+                codes.push(1);
+                return parent.children.get(0).getLeftNeighbour(codes);
+            }
+            case 4 -> { // bottom-right-front
+                return parent.children.get(0).getBottomRightEdgeChildrenLeafs(codes);
+            }
+            case 5 -> { // top-left-back
+                codes.push(7);
+                return parent.getTopLeftNeighbour(codes);
+            }
+            case 6 -> { // top-right-back
+                codes.push(6);
+                return parent.children.get(4).getTopNeighbour(codes);
+            }
+            case 7 -> { // bottom-left-back
+                codes.push(5);
+                return parent.children.get(4).getLeftNeighbour(codes);
+            }
+            case 8 -> { // bottom-right-back
+                return parent.children.get(4).getBottomRightEdgeChildrenLeafs(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+    public List<Octree> getTopRightNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                codes.push(3);
+                return parent.children.get(1).getTopNeighbour(codes);
+            }
+            case 2 -> { // top-right-front
+                codes.push(2);
+                return parent.getTopRightNeighbour(codes);
+            }
+            case 3 -> { // bottom-left-front
+                return parent.children.get(1).getBottomLeftEdgeChildrenLeafs(codes);
+            }
+            case 4 -> { // bottom-right-front
+                codes.push(0);
+                return parent.children.get(1).getRightNeighbour(codes);
+            }
+            case 5 -> { // top-left-back
+                codes.push(7);
+                return parent.children.get(5).getTopNeighbour(codes);
+            }
+            case 6 -> { // top-right-back
+                codes.push(6);
+                return parent.getTopRightNeighbour(codes);
+            }
+            case 7 -> { // bottom-left-back
+                return parent.children.get(5).getBottomLeftEdgeChildrenLeafs(codes);
+            }
+            case 8 -> { // bottom-right-back
+                codes.push(4);
+                return parent.children.get(5).getRightNeighbour(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+    public List<Octree> getBottomLeftNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                codes.push(3);
+                return parent.children.get(2).getLeftNeighbour(codes);
+            }
+            case 2 -> { // top-right-front
+                return parent.children.get(2).getTopRightEdgeChildrenLeafs(codes);
+            }
+            case 3 -> { // bottom-left-front
+                codes.push(1);
+                return parent.getBottomLeftNeighbour(codes);
+            }
+            case 4 -> { // bottom-right-front
+                codes.push(0);
+                return parent.children.get(2).getBottomNeighbour(codes);
+            }
+            case 5 -> { // top-left-back
+                codes.push(7);
+                return parent.children.get(6).getRightNeighbour(codes);
+            }
+            case 6 -> { // top-right-back
+                return parent.children.get(6).getTopRightEdgeChildrenLeafs(codes);
+            }
+            case 7 -> { // bottom-left-back
+                codes.push(5);
+                return parent.getBottomLeftNeighbour(codes);
+            }
+            case 8 -> { // bottom-right-back
+                codes.push(4);
+                return parent.children.get(6).getTopNeighbour(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+    public List<Octree> getBottomRightNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                return parent.children.get(3).getTopLeftEdgeChildrenLeafs(codes);
+            }
+            case 2 -> { // top-right-front
+                codes.push(2);
+                return parent.children.get(3).getRightNeighbour(codes);
+            }
+            case 3 -> { // bottom-left-front
+                codes.push(1);
+                return parent.children.get(3).getBottomNeighbour(codes);
+            }
+            case 4 -> { // bottom-right-front
+                codes.push(0);
+                return parent.getBottomRightNeighbour(codes);
+            }
+            case 5 -> { // top-left-back
+                return parent.children.get(7).getTopLeftEdgeChildrenLeafs(codes);
+            }
+            case 6 -> { // top-right-back
+                codes.push(6);
+                return parent.children.get(7).getLeftNeighbour(codes);
+            }
+            case 7 -> { // bottom-left-back
+                codes.push(5);
+                return parent.children.get(7).getTopNeighbour(codes);
+            }
+            case 8 -> { // bottom-right-back
+                codes.push(4);
+                return parent.getBottomRightNeighbour(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+
+    public List<Octree> getLeftFrontNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                codes.push(5);
+                return parent.getLeftFrontNeighbour(codes);
+            }
+            case 2 -> { // top-right-front
+                codes.push(4);
+                return parent.children.get(0).getFrontNeighbour(codes);
+            }
+            case 3 -> { // bottom-left-front
+                codes.push(7);
+                return parent.getLeftFrontNeighbour(codes);
+            }
+            case 4 -> { // bottom-right-front
+                codes.push(6);
+                return parent.children.get(2).getFrontNeighbour(codes);
+            }
+            case 5 -> { // top-left-back
+                codes.push(1);
+                return parent.children.get(0).getLeftNeighbour(codes);
+            }
+            case 6 -> { // top-right-back
+                return parent.children.get(0).getRightBackEdgeChildrenLeafs(codes);
+            }
+            case 7 -> { // bottom-left-back
+                codes.push(3);
+                return parent.children.get(2).getLeftNeighbour(codes);
+            }
+            case 8 -> { // bottom-right-back
+                return parent.children.get(2).getRightBackEdgeChildrenLeafs(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+    public List<Octree> getRightFrontNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                codes.push(5);
+                return parent.children.get(1).getFrontNeighbour(codes);
+            }
+            case 2 -> { // top-right-front
+                codes.push(4);
+                return parent.getRightFrontNeighbour(codes);
+            }
+            case 3 -> { // bottom-left-front
+                codes.push(7);
+                return parent.children.get(3).getFrontNeighbour(codes);
+            }
+            case 4 -> { // bottom-right-front
+                codes.push(6);
+                return parent.getRightFrontNeighbour(codes);
+            }
+            case 5 -> { // top-left-back
+                return parent.children.get(1).getLeftBackEdgeChildrenLeafs(codes);
+            }
+            case 6 -> { // top-right-back
+                codes.push(0);
+                return parent.children.get(1).getRightNeighbour(codes);
+            }
+            case 7 -> { // bottom-left-back
+                return parent.children.get(3).getLeftBackEdgeChildrenLeafs(codes);
+            }
+            case 8 -> { // bottom-right-back
+                codes.push(2);
+                return parent.children.get(3).getRightNeighbour(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+    public List<Octree> getLeftBackNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                codes.push(5);
+                return parent.children.get(4).getLeftNeighbour(codes);
+            }
+            case 2 -> { // top-right-front
+                return parent.children.get(4).getRightFrontEdgeChildrenLeafs(codes);
+            }
+            case 3 -> { // bottom-left-front
+                codes.push(7);
+                return parent.children.get(6).getLeftNeighbour(codes);
+            }
+            case 4 -> { // bottom-right-front
+                return parent.children.get(6).getRightFrontEdgeChildrenLeafs(codes);
+            }
+            case 5 -> { // top-left-back
+                codes.push(1);
+                return parent.getLeftBackNeighbour(codes);
+            }
+            case 6 -> { // top-right-back
+                codes.push(0);
+                return parent.children.get(4).getBackNeighbour(codes);
+            }
+            case 7 -> { // bottom-left-back
+                codes.push(3);
+                return parent.getLeftBackNeighbour(codes);
+            }
+            case 8 -> { // bottom-right-back
+                codes.push(2);
+                return parent.children.get(6).getBackNeighbour(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+    public List<Octree> getRightBackNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                return parent.children.get(5).getLeftFrontEdgeChildrenLeafs(codes);
+            }
+            case 2 -> { // top-right-front
+                codes.push(4);
+                return parent.children.get(5).getRightNeighbour(codes);
+            }
+            case 3 -> { // bottom-left-front
+                return parent.children.get(7).getLeftFrontEdgeChildrenLeafs(codes);
+            }
+            case 4 -> { // bottom-right-front
+                codes.push(6);
+                return parent.children.get(7).getRightNeighbour(codes);
+            }
+            case 5 -> { // top-left-back
+                codes.push(1);
+                return parent.children.get(5).getBackNeighbour(codes);
+            }
+            case 6 -> { // top-right-back
+                codes.push(0);
+                return parent.getRightBackNeighbour(codes);
+            }
+            case 7 -> { // bottom-left-back
+                codes.push(3);
+                return parent.children.get(7).getBackNeighbour(codes);
+            }
+            case 8 -> { // bottom-right-back
+                codes.push(2);
+                return parent.getRightBackNeighbour(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+
+    public List<Octree> getTopFrontNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                codes.push(6);
+                return parent.getTopFrontNeighbour(codes);
+            }
+            case 2 -> { // top-right-front
+                codes.push(7);
+                return parent.getTopFrontNeighbour(codes);
+            }
+            case 3 -> { // bottom-left-front
+                codes.push(4);
+                return parent.children.get(0).getFrontNeighbour(codes);
+            }
+            case 4 -> { // bottom-right-front
+                codes.push(5);
+                return parent.children.get(1).getFrontNeighbour(codes);
+            }
+            case 5 -> { // top-left-back
+                codes.push(2);
+                return parent.children.get(0).getTopNeighbour(codes);
+            }
+            case 6 -> { // top-right-back
+                codes.push(3);
+                return parent.children.get(1).getTopNeighbour(codes);
+            }
+            case 7 -> { // bottom-left-back
+                return parent.children.get(0).getBottomBackEdgeChildrenLeafs(codes);
+            }
+            case 8 -> { // bottom-right-back
+                return parent.children.get(1).getBottomBackEdgeChildrenLeafs(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+    public List<Octree> getBottomFrontNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                codes.push(6);
+                return parent.children.get(2).getFrontNeighbour(codes);
+            }
+            case 2 -> { // top-right-front
+                codes.push(7);
+                return parent.children.get(3).getFrontNeighbour(codes);
+            }
+            case 3 -> { // bottom-left-front
+                codes.push(4);
+                return parent.getBottomFrontNeighbour(codes);
+            }
+            case 4 -> { // bottom-right-front
+                codes.push(5);
+                return parent.getBottomFrontNeighbour(codes);
+            }
+            case 5 -> { // top-left-back
+                return parent.children.get(2).getTopBackEdgeChildrenLeafs(codes);
+            }
+            case 6 -> { // top-right-back
+                return parent.children.get(3).getTopBackEdgeChildrenLeafs(codes);
+            }
+            case 7 -> { // bottom-left-back
+                codes.push(0);
+                return parent.children.get(2).getBottomNeighbour(codes);
+            }
+            case 8 -> { // bottom-right-back
+                codes.push(1);
+                return parent.children.get(3).getBottomNeighbour(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+    public List<Octree> getTopBackNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                codes.push(6);
+                return parent.children.get(4).getTopNeighbour(codes);
+            }
+            case 2 -> { // top-right-front
+                codes.push(7);
+                return parent.children.get(5).getTopNeighbour(codes);
+            }
+            case 3 -> { // bottom-left-front
+                return parent.children.get(4).getBottomFrontEdgeChildrenLeafs(codes);
+            }
+            case 4 -> { // bottom-right-front
+                return parent.children.get(5).getBottomFrontEdgeChildrenLeafs(codes);
+            }
+            case 5 -> { // top-left-back
+                codes.push(2);
+                return parent.getTopBackNeighbour(codes);
+            }
+            case 6 -> { // top-right-back
+                codes.push(3);
+                return parent.getTopBackNeighbour(codes);
+            }
+            case 7 -> { // bottom-left-back
+                codes.push(0);
+                return parent.children.get(4).getBackNeighbour(codes);
+            }
+            case 8 -> { // bottom-right-back
+                codes.push(1);
+                return parent.children.get(5).getBackNeighbour(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+    public List<Octree> getBottomBackNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                return parent.children.get(6).getTopFrontEdgeChildrenLeafs(codes);
+            }
+            case 2 -> { // top-right-front
+                return parent.children.get(7).getTopFrontEdgeChildrenLeafs(codes);
+            }
+            case 3 -> { // bottom-left-front
+                codes.push(4);
+                return parent.children.get(6).getBottomNeighbour(codes);
+            }
+            case 4 -> { // bottom-right-front
+                codes.push(5);
+                return parent.children.get(7).getBottomNeighbour(codes);
+            }
+            case 5 -> { // top-left-back
+                codes.push(2);
+                return parent.children.get(6).getBackNeighbour(codes);
+            }
+            case 6 -> { // top-right-back
+                codes.push(3);
+                return parent.children.get(7).getBackNeighbour(codes);
+            }
+            case 7 -> { // bottom-left-back
+                codes.push(0);
+                return parent.getBottomBackNeighbour(codes);
+            }
+            case 8 -> { // bottom-right-back
+                codes.push(1);
+                return parent.getBottomBackNeighbour(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+
+    // ========================================================================================================== //
+
+    public List<Octree> getTopLeftFrontNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                codes.push(7);
+                return parent.getTopLeftFrontNeighbour(codes);
+            }
+            case 2 -> { // top-right-front
+                codes.push(6);
+                return parent.children.get(0).getTopFrontNeighbour(codes);
+            }
+            case 3 -> { // bottom-left-front
+                codes.push(5);
+                return parent.children.get(0).getLeftFrontNeighbour(codes);
+            }
+            case 4 -> { // bottom-right-front
+                codes.push(4);
+                return parent.children.get(0).getFrontNeighbour(codes);
+            }
+            case 5 -> { // top-left-back
+                codes.push(3);
+                return parent.children.get(0).getTopLeftNeighbour(codes);
+            }
+            case 6 -> { // top-right-back
+                codes.push(2);
+                return parent.children.get(0).getTopNeighbour(codes);
+            }
+            case 7 -> { // bottom-left-back
+                codes.push(1);
+                return parent.children.get(0).getLeftNeighbour(codes);
+            }
+            case 8 -> { // bottom-right-back
+                return parent.children.get(0).getBottomRightBackEdgeChildrenLeafs();
+            }
+        }
+        return null; // Should never happen
+    }
+    public List<Octree> getTopRightFrontNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                codes.push(7);
+                return parent.children.get(1).getTopFrontNeighbour(codes);
+            }
+            case 2 -> { // top-right-front
+                codes.push(6);
+                return parent.getTopRightFrontNeighbour(codes);
+            }
+            case 3 -> { // bottom-left-front
+                codes.push(5);
+                return parent.children.get(1).getFrontNeighbour(codes);
+            }
+            case 4 -> { // bottom-right-front
+                codes.push(4);
+                return parent.children.get(1).getRightFrontNeighbour(codes);
+            }
+            case 5 -> { // top-left-back
+                codes.push(3);
+                return parent.children.get(1).getTopNeighbour(codes);
+            }
+            case 6 -> { // top-right-back
+                codes.push(2);
+                return parent.children.get(1).getTopRightNeighbour(codes);
+            }
+            case 7 -> { // bottom-left-back
+                return parent.children.get(1).getBottomLeftBackEdgeChildrenLeafs();
+            }
+            case 8 -> { // bottom-right-back
+                codes.push(0);
+                return parent.children.get(1).getRightNeighbour(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+    public List<Octree> getBottomLeftFrontNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                codes.push(7);
+                return parent.children.get(2).getLeftFrontNeighbour(codes);
+            }
+            case 2 -> { // top-right-front
+                codes.push(6);
+                return parent.children.get(2).getFrontNeighbour(codes);
+            }
+            case 3 -> { // bottom-left-front
+                codes.push(5);
+                return parent.getBottomLeftFrontNeighbour(codes);
+            }
+            case 4 -> { // bottom-right-front
+                codes.push(4);
+                return parent.children.get(2).getBottomFrontNeighbour(codes);
+            }
+            case 5 -> { // top-left-back
+                codes.push(3);
+                return parent.children.get(2).getLeftNeighbour(codes);
+            }
+            case 6 -> { // top-right-back
+                return parent.children.get(2).getTopRightBackEdgeChildrenLeafs();
+            }
+            case 7 -> { // bottom-left-back
+                codes.push(1);
+                return parent.children.get(2).getBottomLeftNeighbour(codes);
+            }
+            case 8 -> { // bottom-right-back
+                codes.push(0);
+                return parent.children.get(2).getBottomNeighbour(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+    public List<Octree> getBottomRightFrontNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                codes.push(7);
+                return parent.children.get(3).getFrontNeighbour(codes);
+            }
+            case 2 -> { // top-right-front
+                codes.push(6);
+                return parent.children.get(3).getRightFrontNeighbour(codes);
+            }
+            case 3 -> { // bottom-left-front
+                codes.push(5);
+                return parent.children.get(3).getBottomFrontNeighbour(codes);
+            }
+            case 4 -> { // bottom-right-front
+                codes.push(4);
+                return parent.getBottomRightFrontNeighbour(codes);
+            }
+            case 5 -> { // top-left-back
+                return parent.children.get(3).getTopRightBackEdgeChildrenLeafs();
+            }
+            case 6 -> { // top-right-back
+                codes.push(2);
+                return parent.children.get(3).getRightNeighbour(codes);
+            }
+            case 7 -> { // bottom-left-back
+                codes.push(1);
+                return parent.children.get(3).getBottomNeighbour(codes);
+            }
+            case 8 -> { // bottom-right-back
+                codes.push(0);
+                return parent.children.get(3).getBottomRightNeighbour(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+
+    public List<Octree> getTopLeftBackNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                codes.push(7);
+                return parent.children.get(4).getTopLeftNeighbour(codes);
+            }
+            case 2 -> { // top-right-front
+                codes.push(6);
+                return parent.children.get(4).getTopNeighbour(codes);
+            }
+            case 3 -> { // bottom-left-front
+                codes.push(5);
+                return parent.children.get(4).getLeftNeighbour(codes);
+            }
+            case 4 -> { // bottom-right-front
+                return parent.children.get(4).getBottomRightFrontEdgeChildrenLeafs();
+            }
+            case 5 -> { // top-left-back
+                codes.push(3);
+                return parent.getTopLeftBackNeighbour(codes);
+            }
+            case 6 -> { // top-right-back
+                codes.push(2);
+                return parent.children.get(4).getTopBackNeighbour(codes);
+            }
+            case 7 -> { // bottom-left-back
+                codes.push(1);
+                return parent.children.get(4).getLeftBackNeighbour(codes);
+            }
+            case 8 -> { // bottom-right-back
+                codes.push(0);
+                return parent.children.get(4).getBackNeighbour(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+    public List<Octree> getTopRightBackNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                codes.push(7);
+                return parent.children.get(5).getTopNeighbour(codes);
+            }
+            case 2 -> { // top-right-front
+                codes.push(6);
+                return parent.children.get(5).getTopRightNeighbour(codes);
+            }
+            case 3 -> { // bottom-left-front
+                return parent.children.get(5).getBottomLeftFrontEdgeChildrenLeafs();
+            }
+            case 4 -> { // bottom-right-front
+                codes.push(4);
+                return parent.children.get(5).getRightNeighbour(codes);
+            }
+            case 5 -> { // top-left-back
+                codes.push(3);
+                return parent.children.get(5).getTopBackNeighbour(codes);
+            }
+            case 6 -> { // top-right-back
+                codes.push(2);
+                return parent.getTopRightBackNeighbour(codes);
+            }
+            case 7 -> { // bottom-left-back
+                codes.push(1);
+                return parent.children.get(5).getBackNeighbour(codes);
+            }
+            case 8 -> { // bottom-right-back
+                codes.push(0);
+                return parent.children.get(5).getRightBackNeighbour(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+    public List<Octree> getBottomLeftBackNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                codes.push(7);
+                return parent.children.get(6).getLeftNeighbour(codes);
+            }
+            case 2 -> { // top-right-front
+                return parent.children.get(6).getTopRightFrontEdgeChildrenLeafs();
+            }
+            case 3 -> { // bottom-left-front
+                codes.push(5);
+                return parent.children.get(6).getBottomLeftNeighbour(codes);
+            }
+            case 4 -> { // bottom-right-front
+                codes.push(4);
+                return parent.children.get(6).getBottomNeighbour(codes);
+            }
+            case 5 -> { // top-left-back
+                codes.push(3);
+                return parent.children.get(6).getLeftBackNeighbour(codes);
+            }
+            case 6 -> { // top-right-back
+                codes.push(2);
+                return parent.children.get(6).getBackNeighbour(codes);
+            }
+            case 7 -> { // bottom-left-back
+                codes.push(1);
+                return parent.getBottomLeftBackNeighbour(codes);
+            }
+            case 8 -> { // bottom-right-back
+                codes.push(0);
+                return parent.children.get(6).getBottomBackNeighbour(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+    public List<Octree> getBottomRightBackNeighbour(Stack<Integer> codes) {
+        switch (this.code) {
+            case 1 -> { // top-left-front
+                return parent.children.get(7).getTopLeftFrontEdgeChildrenLeafs();
+            }
+            case 2 -> { // top-right-front
+                codes.push(6);
+                return parent.children.get(7).getRightNeighbour(codes);
+            }
+            case 3 -> { // bottom-left-front
+                codes.push(5);
+                return parent.children.get(7).getBottomNeighbour(codes);
+            }
+            case 4 -> { // bottom-right-front
+                codes.push(4);
+                return parent.children.get(7).getBottomRightNeighbour(codes);
+            }
+            case 5 -> { // top-left-back
+                codes.push(3);
+                return parent.children.get(7).getBackNeighbour(codes);
+            }
+            case 6 -> { // top-right-back
+                codes.push(2);
+                return parent.children.get(7).getRightBackNeighbour(codes);
+            }
+            case 7 -> { // bottom-left-back
+                codes.push(1);
+                return parent.children.get(7).getBottomBackNeighbour(codes);
+            }
+            case 8 -> { // bottom-right-back
+                codes.push(0);
+                return parent.getBottomRightBackNeighbour(codes);
+            }
+        }
+        return null; // Should never happen
+    }
+
+    // ========================================================================================================== //
+
     @Override
     public Iterable<Octree> neighbours(Octree node) {
         List<Octree> candidates = new LinkedList<>();
 
+        // Directional
         List<Octree> temp = node.getTopNeighbour(new Stack<>());
         if (temp != null)
             candidates.addAll(temp);
@@ -687,6 +1676,70 @@ public class Octree implements Navigatable<Octree> {
         if (temp != null)
             candidates.addAll(temp);
         temp = node.getBackNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+
+        // Diagonal (2D)
+        temp = node.getTopLeftNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getTopRightNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getBottomLeftNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getBottomRightNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getLeftFrontNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getRightFrontNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getLeftBackNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getRightBackNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getTopFrontNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getBottomFrontNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getTopBackNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getBottomBackNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+
+        // Diagonal (3D)
+        temp = node.getTopLeftFrontNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getTopRightFrontNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getBottomLeftFrontNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getBottomRightFrontNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getTopLeftBackNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getTopRightBackNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getBottomLeftBackNeighbour(new Stack<>());
+        if (temp != null)
+            candidates.addAll(temp);
+        temp = node.getBottomRightBackNeighbour(new Stack<>());
         if (temp != null)
             candidates.addAll(temp);
 
