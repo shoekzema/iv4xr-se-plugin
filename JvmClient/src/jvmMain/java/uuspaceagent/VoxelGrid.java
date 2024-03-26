@@ -1,6 +1,5 @@
 package uuspaceagent;
 
-import eu.iv4xr.framework.extensions.pathfinding.Navigatable;
 import eu.iv4xr.framework.mainConcepts.WorldEntity;
 import eu.iv4xr.framework.spatial.Vec3;
 import uuspaceagent.exploration.Explorable;
@@ -43,7 +42,7 @@ public class VoxelGrid implements Explorable<DPos3> {
         Vec3 lowerB = Vec3.sub(pos, new Vec3(observation_radius + 10));
         boundary = new Boundary(lowerB, 2 * (observation_radius + 10));
 
-        int initialSize = (int) ((boundary.upperBounds.x - boundary.lowerBounds.x) / voxelSize);
+        int initialSize = (int) ((boundary.upperBounds().x - boundary.position.x) / voxelSize);
         grid = new ArrayList<>(initialSize);
         for (int x = 0; x < initialSize; x++) {
             grid.add(x, new ArrayList<>(initialSize));
@@ -65,7 +64,7 @@ public class VoxelGrid implements Explorable<DPos3> {
      * Calculate the unit-cube that contains a point p.
      */
     public DPos3 gridProjectedLocation(Vec3 p) {
-        p = Vec3.sub(p, boundary.lowerBounds) ;
+        p = Vec3.sub(p, boundary.position) ;
         /*
         int x = (int) (Math.floor(p.x / CUBE_SIZE)) ;
         int y = (int) (Math.floor(p.y / CUBE_SIZE)) ;
@@ -83,9 +82,9 @@ public class VoxelGrid implements Explorable<DPos3> {
      * as a 3D position in the space.
      */
     public Vec3 getCubeCenterLocation(DPos3 cube) {
-        float x = (((float) cube.x) + 0.5f) * voxelSize + boundary.lowerBounds.x ;
-        float y = (((float) cube.y) + 0.5f) * voxelSize + boundary.lowerBounds.y ;
-        float z = (((float) cube.z) + 0.5f) * voxelSize + boundary.lowerBounds.z ;
+        float x = (((float) cube.x) + 0.5f) * voxelSize + boundary.position.x ;
+        float y = (((float) cube.y) + 0.5f) * voxelSize + boundary.position.y ;
+        float z = (((float) cube.z) + 0.5f) * voxelSize + boundary.position.z ;
         return new Vec3(x,y,z) ;
     }
 
@@ -164,7 +163,7 @@ public class VoxelGrid implements Explorable<DPos3> {
                 }
             }
             voxel.x++;
-            boundary.lowerBounds.x -= voxelSize;
+            boundary.position.x -= voxelSize;
             retVal.x++;
         }
         while (voxel.x >= gridSize.x) {
@@ -175,7 +174,8 @@ public class VoxelGrid implements Explorable<DPos3> {
                     grid.get(gridSize.x-1).get(y).add(z, new Voxel());
                 }
             }
-            boundary.upperBounds.x += voxelSize;
+            //boundary.upperBounds.x += voxelSize;
+            boundary.size += voxelSize;
         }
         while (voxel.y < 0) {
             for (int x = 0; x < gridSize.x; x++) {
@@ -185,7 +185,7 @@ public class VoxelGrid implements Explorable<DPos3> {
                 }
             }
             voxel.y++;
-            boundary.lowerBounds.y -= voxelSize;
+            boundary.position.y -= voxelSize;
             retVal.y++;
         }
         while (voxel.y >= gridSize.y) {
@@ -195,7 +195,8 @@ public class VoxelGrid implements Explorable<DPos3> {
                     grid.get(x).get(gridSize.y-1).add(z, new Voxel());
                 }
             }
-            boundary.upperBounds.z += voxelSize;
+            //boundary.upperBounds.z += voxelSize;
+            boundary.size += voxelSize;
         }
         while (voxel.z < 0) {
             for (int x = 0; x < gridSize.x; x++) {
@@ -204,7 +205,7 @@ public class VoxelGrid implements Explorable<DPos3> {
                 }
             }
             voxel.z++;
-            boundary.lowerBounds.z -= voxelSize;
+            boundary.position.z -= voxelSize;
             retVal.z++;
         }
         while (voxel.z >= gridSize.z) {
@@ -213,7 +214,8 @@ public class VoxelGrid implements Explorable<DPos3> {
                     grid.get(x).get(y).add(new Voxel());
                 }
             }
-            boundary.upperBounds.z += voxelSize;
+            //boundary.upperBounds.z += voxelSize;
+            boundary.size += voxelSize;
         }
         return retVal;
     }

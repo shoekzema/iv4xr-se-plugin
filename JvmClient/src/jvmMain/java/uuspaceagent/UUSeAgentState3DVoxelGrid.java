@@ -1,7 +1,6 @@
 package uuspaceagent;
 
 import environments.SeEnvironmentKt;
-import eu.iv4xr.framework.extensions.pathfinding.Navigatable;
 import eu.iv4xr.framework.mainConcepts.WorldEntity;
 import eu.iv4xr.framework.mainConcepts.WorldModel;
 import eu.iv4xr.framework.spatial.Vec3;
@@ -44,7 +43,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
 
     @Override
     public Vec3 getOrigin() {
-        return grid.boundary.lowerBounds;
+        return grid.boundary.position;
     }
 
     @Override

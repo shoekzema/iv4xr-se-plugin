@@ -3,49 +3,64 @@ package uuspaceagent;
 import eu.iv4xr.framework.spatial.Vec3;
 
 public class Boundary {
-    Vec3 lowerBounds, upperBounds;
+    /**
+     * The lower boundary of the voxel boundary
+     */
+    Vec3 position;
+    float size;
 
     public Boundary(Vec3 pos, float size) {
-        lowerBounds = pos;
-        upperBounds = new Vec3(pos.x + size, pos.y + size, pos.z + size);
+        position = pos;
+        this.size = size;
+        //upperBounds = new Vec3(pos.x + size, pos.y + size, pos.z + size);
     }
 
-    public float size() { return upperBounds.x - lowerBounds.x; } // Because a boundary is always cubic, we can just take the width
+    public float size() { return size; } // Because a boundary is always cubic, we can just take the width
+    //public float size() { return upperBounds.x - position.x; } // Because a boundary is always cubic, we can just take the width
 
-    public Vec3 center() { return Vec3.mul(Vec3.add(lowerBounds, upperBounds), 0.5f); }
+    public Vec3 upperBounds() { return Vec3.add(position, new Vec3(size)); }
+
+    public Vec3 center() { return Vec3.add(position, new Vec3(size / 2)); }
+    //public Vec3 center() { return Vec3.mul(Vec3.add(position, upperBounds), 0.5f); }
 
     public boolean intersects(Boundary other) {
-        if (other.lowerBounds.x > this.upperBounds.x || other.upperBounds.x < this.lowerBounds.x)
+        Vec3 this_upperBounds = this.upperBounds();
+        Vec3 other_upperBounds = other.upperBounds();
+        if (other.position.x > this_upperBounds.x || other_upperBounds.x < this.position.x)
             return false;
-        if (other.lowerBounds.y > this.upperBounds.y || other.upperBounds.y < this.lowerBounds.y)
+        if (other.position.y > this_upperBounds.y || other_upperBounds.y < this.position.y)
             return false;
-        if (other.lowerBounds.z > this.upperBounds.z || other.upperBounds.z < this.lowerBounds.z)
+        if (other.position.z > this_upperBounds.z || other_upperBounds.z < this.position.z)
             return false;
         return true;
     }
 
     public boolean contains(Boundary other) {
-        if (other.lowerBounds.x < this.lowerBounds.x || other.upperBounds.x > this.upperBounds.x)
+        Vec3 this_upperBounds = this.upperBounds();
+        Vec3 other_upperBounds = other.upperBounds();
+        if (other.position.x < this.position.x || other_upperBounds.x > this_upperBounds.x)
             return false;
-        if (other.lowerBounds.y < this.lowerBounds.y || other.upperBounds.y > this.upperBounds.y)
+        if (other.position.y < this.position.y || other_upperBounds.y > this_upperBounds.y)
             return false;
-        if (other.lowerBounds.z < this.lowerBounds.z || other.upperBounds.z > this.upperBounds.z)
+        if (other.position.z < this.position.z || other_upperBounds.z > this_upperBounds.z)
             return false;
         return true;
     }
 
     public boolean contains(Vec3 point) {
-        return (point.x >= lowerBounds.x && point.x <= upperBounds.x
+        Vec3 upperBounds = upperBounds();
+        return (point.x >= position.x && point.x <= upperBounds.x
                 &&
-                point.y >= lowerBounds.y && point.y <= upperBounds.y
+                point.y >= position.y && point.y <= upperBounds.y
                 &&
-                point.z >= lowerBounds.z && point.z <= upperBounds.z);
+                point.z >= position.z && point.z <= upperBounds.z);
     }
     public boolean contains(DPos3 point) {
-        return (point.x >= lowerBounds.x && point.x <= upperBounds.x
+        Vec3 upperBounds = upperBounds();
+        return (point.x >= position.x && point.x <= upperBounds.x
                 &&
-                point.y >= lowerBounds.y && point.y <= upperBounds.y
+                point.y >= position.y && point.y <= upperBounds.y
                 &&
-                point.z >= lowerBounds.z && point.z <= upperBounds.z);
+                point.z >= position.z && point.z <= upperBounds.z);
     }
 }

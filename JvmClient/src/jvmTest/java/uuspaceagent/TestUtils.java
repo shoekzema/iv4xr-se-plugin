@@ -60,7 +60,7 @@ public class TestUtils {
     }
 
 
-    public static Pair<TestAgent, UUSeAgentState3DOctree> loadSE3D(String worldName) {
+    public static Pair<TestAgent, UUSeAgentState3DVoxelGrid> loadSE3D(String worldName) {
         var agentId = "se0" ; // ""agentId" ;
         var blockType = "LargeHeavyBlockArmorBlock" ;
         var context = new SpaceEngineersTestContext() ;
@@ -84,7 +84,7 @@ public class TestUtils {
         ) ;
         theEnv.loadWorld() ;
 
-        var myAgentState = new UUSeAgentState3DOctree(agentId) ;
+        var myAgentState = new UUSeAgentState3DVoxelGrid(agentId) ;
 
         console("** Creating a test-agent");
         var testAgent = new TestAgent(agentId, "some role name, else nothing")

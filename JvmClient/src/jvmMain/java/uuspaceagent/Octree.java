@@ -1,12 +1,9 @@
 package uuspaceagent;
 
-import eu.iv4xr.framework.extensions.pathfinding.Navigatable;
 import eu.iv4xr.framework.mainConcepts.WorldEntity;
 import eu.iv4xr.framework.spatial.Vec3;
 import uuspaceagent.exploration.Explorable;
 
-import java.awt.*;
-import java.awt.geom.Ellipse2D;
 import java.io.PrintWriter;
 import java.util.*;
 import java.util.List;
@@ -233,22 +230,22 @@ public class Octree implements Explorable<Octree> {
     public void subdivide(byte label) {
         children = new ArrayList<>(8);
         float half = boundary.size() * 0.5f;
-        children.add(0, new Octree(new Boundary(boundary.lowerBounds, half),
+        children.add(0, new Octree(new Boundary(boundary.position, half),
                 this, (byte) 1, label));
-        children.add(1, new Octree(new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, 0, 0)), half),
+        children.add(1, new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(half, 0, 0)), half),
                 this, (byte) 2, label));
-        children.add(2, new Octree(new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(0, half, 0)), half),
+        children.add(2, new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(0, half, 0)), half),
                 this, (byte) 3, label));
-        children.add(3, new Octree(new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, half, 0)), half),
+        children.add(3, new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(half, half, 0)), half),
                 this, (byte) 4, label));
 
-        children.add(4, new Octree(new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(0, 0, half)), half),
+        children.add(4, new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(0, 0, half)), half),
                 this, (byte) 5, label));
-        children.add(5, new Octree(new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, 0, half)), half),
+        children.add(5, new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(half, 0, half)), half),
                 this, (byte) 6, label));
-        children.add(6, new Octree(new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(0, half, half)), half),
+        children.add(6, new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(0, half, half)), half),
                 this, (byte) 7, label));
-        children.add(7, new Octree(new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, half, half)), half),
+        children.add(7, new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(half, half, half)), half),
                 this, (byte) 8, label));
     }
 
@@ -272,14 +269,14 @@ public class Octree implements Explorable<Octree> {
             }
             Boundary bb;
             switch (i) {
-                case 1  -> bb = new Boundary(         boundary.lowerBounds,                              half);
-                case 2  -> bb = new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, 0, 0)), half);
-                case 3  -> bb = new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(0, half, 0)), half);
-                case 4  -> bb = new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, half, 0)), half);
-                case 5  -> bb = new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(0, 0, half)), half);
-                case 6  -> bb = new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, 0, half)), half);
-                case 7  -> bb = new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(0, half, half)), half);
-                default -> bb = new Boundary(Vec3.add(boundary.lowerBounds, new Vec3(half, half, half)), half);
+                case 1  -> bb = new Boundary(         boundary.position,                              half);
+                case 2  -> bb = new Boundary(Vec3.add(boundary.position, new Vec3(half, 0, 0)), half);
+                case 3  -> bb = new Boundary(Vec3.add(boundary.position, new Vec3(0, half, 0)), half);
+                case 4  -> bb = new Boundary(Vec3.add(boundary.position, new Vec3(half, half, 0)), half);
+                case 5  -> bb = new Boundary(Vec3.add(boundary.position, new Vec3(0, 0, half)), half);
+                case 6  -> bb = new Boundary(Vec3.add(boundary.position, new Vec3(half, 0, half)), half);
+                case 7  -> bb = new Boundary(Vec3.add(boundary.position, new Vec3(0, half, half)), half);
+                default -> bb = new Boundary(Vec3.add(boundary.position, new Vec3(half, half, half)), half);
             }
             children.add(new Octree(bb, this, i, Label.UNKNOWN));
         }
@@ -296,29 +293,29 @@ public class Octree implements Explorable<Octree> {
 
         // Otherwise, find the direction to expand in
         int oldcode;
-        if (range.upperBounds.x >= this.boundary.upperBounds.x) { // expand to the right
-            if (range.upperBounds.y >= this.boundary.upperBounds.y) { // expand towards up-right
-                if (range.upperBounds.z >= this.boundary.upperBounds.z) // expand towards up-right-back
+        if (range.upperBounds().x >= this.boundary.upperBounds().x) { // expand to the right
+            if (range.upperBounds().y >= this.boundary.upperBounds().y) { // expand towards up-right
+                if (range.upperBounds().z >= this.boundary.upperBounds().z) // expand towards up-right-back
                     oldcode = 1;
                 else // expand towards up-right-front
                     oldcode = 5;
 
             }
             else { // expand towards down-right
-                if (range.upperBounds.z >= this.boundary.upperBounds.z) // expand towards down-right-back
+                if (range.upperBounds().z >= this.boundary.upperBounds().z) // expand towards down-right-back
                     oldcode = 3;
                 else // expand towards down-right-front
                     oldcode = 7;
             }
         }
         else { // expand to the left
-            if (range.upperBounds.y >= this.boundary.upperBounds.y) { // expand towards up-left
-                if (range.upperBounds.z >= this.boundary.upperBounds.z) // expand towards up-left-back
+            if (range.upperBounds().y >= this.boundary.upperBounds().y) { // expand towards up-left
+                if (range.upperBounds().z >= this.boundary.upperBounds().z) // expand towards up-left-back
                     oldcode = 4;
                 else // expand towards up-left-front
                     oldcode = 8;
             } else { // expand towards down-left
-                if (range.upperBounds.z >= this.boundary.upperBounds.z) // expand towards down-left-back
+                if (range.upperBounds().z >= this.boundary.upperBounds().z) // expand towards down-left-back
                     oldcode = 2;
                 else // expand towards down-left-front
                     oldcode = 6;
@@ -330,29 +327,29 @@ public class Octree implements Explorable<Octree> {
         float oldSize = boundary.size();
         switch (oldcode) {
             case 1 -> newRoot = new Octree(
-                    new Boundary(boundary.lowerBounds, newSize),
+                    new Boundary(boundary.position, newSize),
                     null, (byte) 0, Label.MIXED);
             case 2 -> newRoot = new Octree(
-                    new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(oldSize, 0, 0)), newSize),
+                    new Boundary(Vec3.sub(boundary.position, new Vec3(oldSize, 0, 0)), newSize),
                     null, (byte) 0, Label.MIXED);
             case 3 -> newRoot = new Octree(
-                    new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(0, oldSize, 0)), newSize),
+                    new Boundary(Vec3.sub(boundary.position, new Vec3(0, oldSize, 0)), newSize),
                     null, (byte) 0, Label.MIXED);
             case 4 -> newRoot = new Octree(
-                    new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(oldSize, oldSize, 0)), newSize),
+                    new Boundary(Vec3.sub(boundary.position, new Vec3(oldSize, oldSize, 0)), newSize),
                     null, (byte) 0, Label.MIXED);
 
             case 5 -> newRoot = new Octree(
-                    new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(0, 0, oldSize)), newSize),
+                    new Boundary(Vec3.sub(boundary.position, new Vec3(0, 0, oldSize)), newSize),
                     null, (byte) 0, Label.MIXED);
             case 6 -> newRoot = new Octree(
-                    new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(oldSize, 0, oldSize)), newSize),
+                    new Boundary(Vec3.sub(boundary.position, new Vec3(oldSize, 0, oldSize)), newSize),
                     null, (byte) 0, Label.MIXED);
             case 7 -> newRoot = new Octree(
-                    new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(0, oldSize, oldSize)), newSize),
+                    new Boundary(Vec3.sub(boundary.position, new Vec3(0, oldSize, oldSize)), newSize),
                     null, (byte) 0, Label.MIXED);
             default -> newRoot = new Octree(
-                    new Boundary(Vec3.sub(boundary.lowerBounds, new Vec3(oldSize, oldSize, oldSize)), newSize),
+                    new Boundary(Vec3.sub(boundary.position, new Vec3(oldSize, oldSize, oldSize)), newSize),
                     null, (byte) 0, Label.MIXED);
         }
         newRoot.subdivideExpand(this, (byte) oldcode);
@@ -1769,7 +1766,7 @@ public class Octree implements Explorable<Octree> {
 
     public void export(PrintWriter printWriter) {
         if (children.isEmpty())
-            printWriter.printf("%f %f %f %f %b %n", boundary.lowerBounds.x, boundary.lowerBounds.y, boundary.lowerBounds.z, boundary.size(), label==Label.BLOCKED);
+            printWriter.printf("%f %f %f %f %b %n", boundary.position.x, boundary.position.y, boundary.position.z, boundary.size(), label==Label.BLOCKED);
         for (Octree child : children) {
             child.export(printWriter);
         }
