@@ -12,6 +12,9 @@ import eu.iv4xr.framework.spatial.Vec3;
 import nl.uu.cs.aplib.agents.State ;
 import spaceEngineers.model.Block;
 import spaceEngineers.model.CharacterObservation;
+import uuspaceagent.exploration.AStarExplore;
+import uuspaceagent.exploration.Explorable;
+import uuspaceagent.exploration.PathExplorer;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -22,7 +25,7 @@ public abstract class UUSeAgentState<NodeId> extends State {
 
     public String agentId ;
     public WorldModel wom ;
-    public Pathfinder<NodeId> pathfinder = new AStar<>();
+    public PathExplorer<NodeId> pathfinder = new AStarExplore<>();
     public List<NodeId> currentPathToFollow = new LinkedList<>();
 
     /**
@@ -56,7 +59,7 @@ public abstract class UUSeAgentState<NodeId> extends State {
     public abstract Vec3 getBlockCenter(Vec3 targetLocation);
     public abstract Vec3 getBlockCenter(NodeId targetLocation);
     public abstract Vec3 getOrigin();
-    public abstract Navigatable<NodeId> getGrid();
+    public abstract Explorable<NodeId> getGrid();
 
     @Override
     public void updateState(String agentId) {

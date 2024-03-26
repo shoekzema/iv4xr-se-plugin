@@ -7,6 +7,7 @@ import eu.iv4xr.framework.mainConcepts.WorldModel;
 import eu.iv4xr.framework.spatial.Vec3;
 import spaceEngineers.model.CharacterObservation;
 import spaceEngineers.model.Observation;
+import uuspaceagent.exploration.Explorable;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -47,7 +48,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
     }
 
     @Override
-    public Navigatable<DPos3> getGrid() {
+    public Explorable<DPos3> getGrid() {
         return grid;
     }
 
@@ -128,7 +129,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
                         .collect(Collectors.toList());
 
                 boolean rebuild = false;
-                for(var blockId : tobeRemoved) {
+                for (var blockId : tobeRemoved) {
                     var block = cubegridOld.elements.get(blockId);
                     if (Vec3.dist(block.position, newWom.position) < OBSERVATION_RADIUS) {
                         grid.removeObstacle(block);
@@ -136,7 +137,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
 
                         // Removing a block makes all voxels it overlaps with empty, so go over all blocks to check
                         // if some voxels overlapped with multiple blocks.
-                        for(var block2 : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
+                        for (var block2 : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
                             addToGrid(block2);
                         }
                     }

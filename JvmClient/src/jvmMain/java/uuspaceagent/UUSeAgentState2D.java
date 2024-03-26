@@ -6,6 +6,7 @@ import eu.iv4xr.framework.mainConcepts.WorldModel;
 import eu.iv4xr.framework.spatial.Vec3;
 import spaceEngineers.model.CharacterObservation;
 import spaceEngineers.model.Observation;
+import uuspaceagent.exploration.Explorable;
 
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +41,7 @@ public class UUSeAgentState2D extends UUSeAgentState<DPos3> {
     }
 
     @Override
-    public Navigatable<DPos3> getGrid() {
+    public Explorable<DPos3> getGrid() {
         return navgrid;
     }
 

@@ -3,6 +3,7 @@ package uuspaceagent;
 import eu.iv4xr.framework.extensions.pathfinding.Navigatable;
 import eu.iv4xr.framework.mainConcepts.WorldEntity;
 import eu.iv4xr.framework.spatial.Vec3;
+import uuspaceagent.exploration.Explorable;
 
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
@@ -10,7 +11,7 @@ import java.io.PrintWriter;
 import java.util.*;
 import java.util.List;
 
-public class Octree implements Navigatable<Octree> {
+public class Octree implements Explorable<Octree> {
     public Boundary boundary;
     public ArrayList<Octree> children;
     public Octree parent;
@@ -1759,6 +1760,11 @@ public class Octree implements Navigatable<Octree> {
         return Math.abs(to.boundary.center().x - from.boundary.center().x)
                 + Math.abs(to.boundary.center().y - from.boundary.center().y)
                 + Math.abs(to.boundary.center().z - from.boundary.center().z);
+    }
+
+    @Override
+    public boolean isUnknown(Octree node) {
+        return node.label == Label.UNKNOWN;
     }
 
     public void export(PrintWriter printWriter) {

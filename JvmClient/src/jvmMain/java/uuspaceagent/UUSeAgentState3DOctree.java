@@ -7,10 +7,12 @@ import eu.iv4xr.framework.mainConcepts.WorldModel;
 import eu.iv4xr.framework.spatial.Vec3;
 import spaceEngineers.model.CharacterObservation;
 import spaceEngineers.model.Observation;
+import uuspaceagent.exploration.Explorable;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +24,7 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
     boolean printed = false;
 
     public Octree grid = new Octree(null, null, (byte) 0, Label.UNKNOWN) ;
+    public List<WorldEntity> dynamicObjects = new ArrayList<>();
 
     public UUSeAgentState3DOctree(String agentId) {
         super(agentId);
@@ -48,7 +51,7 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
     }
 
     @Override
-    public Navigatable<Octree> getGrid() {
+    public Explorable<Octree> getGrid() {
         return grid;
     }
 
@@ -121,7 +124,7 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
 
             // Remove grids that are not in the WOM anymore
             List<String> tobeRemoved = wom.elements.keySet().stream()
-                    .filter(id -> ! newWom.elements.keySet().contains(id))
+                    .filter(id -> ! newWom.elements.containsKey(id))
                     .collect(Collectors.toList());
             for(var id : tobeRemoved) wom.elements.remove(id) ;
 
@@ -169,9 +172,10 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
         if (isOpen != null) {
             if (!isOpen)
                 grid.addObstacle(block);
+            dynamicObjects.add(block);
         }
         else if(block.getStringProperty("blockType").contains("ButtonPanel")) {
-            var test = 1;
+            dynamicObjects.add(block);
         }
         else
             grid.addObstacle(block);
@@ -189,9 +193,9 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
 
         System.out.println("Memory Usage:");
         if (gridMemSize > 1000000)
-            System.out.printf("Grid: %f GB %n", (float)gridMemSize / 1000000);
+            System.out.printf("Grid: %f MB %n", (float)gridMemSize / 1000000);
         else if (gridMemSize > 1000)
-            System.out.printf("Grid: %f MB %n", (float)gridMemSize / 1000);
+            System.out.printf("Grid: %f kB %n", (float)gridMemSize / 1000);
         else
             System.out.printf("Grid: %d B %n", gridMemSize);
 

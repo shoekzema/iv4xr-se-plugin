@@ -4,7 +4,7 @@ import eu.iv4xr.framework.extensions.pathfinding.Navigatable;
 import eu.iv4xr.framework.mainConcepts.WorldEntity;
 import eu.iv4xr.framework.spatial.Obstacle;
 import eu.iv4xr.framework.spatial.Vec3;
-import nl.uu.cs.aplib.utils.Pair;
+import uuspaceagent.exploration.Explorable;
 
 import java.util.*;
 
@@ -58,7 +58,7 @@ import java.util.*;
  *  could be a gaping hole in space). We can do this by maintaining a list of squares
  *  with solid floor.
  */
-public class NavGrid implements Navigatable<DPos3>{
+public class NavGrid implements Explorable<DPos3> {
 
     /**
      * The assumed height of the player characters. It is 1.8, we conservatively
@@ -382,6 +382,9 @@ public class NavGrid implements Navigatable<DPos3>{
     public float heuristic(DPos3 from, DPos3 to) {
         // using Manhattan distance...
         return CUBE_SIZE * (float) (Math.abs(to.x - from.x) + Math.abs(to.y - from.y) + Math.abs(to.z - from.z)) ;
+
+        // using Euclidean distance...
+        // return CUBE_SIZE * (float) Math.sqrt((to.x - from.x) * (to.x - from.x) + (to.y - from.y) * (to.y - from.y) + (to.z - from.z) * (to.z - from.z)) ;
     }
 
     @Override
@@ -406,5 +409,10 @@ public class NavGrid implements Navigatable<DPos3>{
             return CUBE_SIZE;
         }
         return squareDiagonalLength ;
+    }
+
+    @Override
+    public boolean isUnknown(DPos3 node) {
+        return false;
     }
 }

@@ -3,12 +3,13 @@ package uuspaceagent;
 import eu.iv4xr.framework.extensions.pathfinding.Navigatable;
 import eu.iv4xr.framework.mainConcepts.WorldEntity;
 import eu.iv4xr.framework.spatial.Vec3;
+import uuspaceagent.exploration.Explorable;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-public class VoxelGrid implements Navigatable<DPos3> {
+public class VoxelGrid implements Explorable<DPos3> {
 
     /**
      * The assumed height of the player characters. It is 1.8, we conservatively
@@ -244,5 +245,10 @@ public class VoxelGrid implements Navigatable<DPos3> {
     @Override
     public float distance(DPos3 from, DPos3 to) {
         return voxelSize;
+    }
+
+    @Override
+    public boolean isUnknown(DPos3 node) {
+        return false;
     }
 }
