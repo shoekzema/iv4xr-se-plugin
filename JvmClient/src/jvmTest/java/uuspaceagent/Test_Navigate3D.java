@@ -94,4 +94,22 @@ public class Test_Navigate3D {
         G.printGoalStructureStatus();
         assertTrue(G.getStatus().success());
     }
+
+    @Test
+    public void test_navigate3DToBattery() throws InterruptedException {
+        console("*** start test...");
+        var agentAndState = deployAgent("myworld-3 Indoors"); //myworld-3 3D-nav //Almost Empty v2 //myworld-3 with open door
+        // agent start location = <9, -5, 55>
+        TestAgent agent = agentAndState.fst;
+        // var state = agentAndState.snd;
+
+        GoalStructure G = DEPLOYonce(agent, UUGoalLib.smartClose3DTo(agent,
+                "LargeBlockBatteryBlock",
+                SEBlockFunctions.BlockSides.FRONT,
+                20f,
+                0.5f));
+        test_Goal(agentAndState.fst, agentAndState.snd, G);
+        G.printGoalStructureStatus();
+        assertTrue(G.getStatus().success());
+    }
 }

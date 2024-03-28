@@ -899,87 +899,110 @@ public class UUTacticLib {
     }
 
     /**
-     * Construct an action that would explore the world, in the direction of the given location.
-     *
-    Action exploreAction(Pair<Integer, Vec3> heuristicLocation) {
+     * Construct an action that would explore the world.
+     */
+    public static Tactic exploreTAC() {
+        return action("explore")
+                .do2((UUSeAgentState state) -> (Pair<List<DPos3>, Boolean> queryResult) -> {
+                    var path = queryResult.fst;
+                    var arrivedAtDestination = queryResult.snd;
 
-        List[] memorized = { null } ;
-        final int memoryDuration = 10 ;
-        int[] memoryCountdown = {0} ;
-
-        Action alpha = action("explore")
-                .do2((UUSeAgentState state) ->  (Vec3 nextLoc) -> {
-                    WorldModel newwom = navigateToTAC(nextLoc) ;
-                    return new Pair<>(state, newwom) ;
-                })
-                .on((UUSeAgentState state) -> {
-                    //if (!state.agentIsAlive()) return null ;
-                    var a = state.wom.getElement(state.wom.agentId) ;
-                    Sparse2DTiledSurface_NavGraph.Tile agentPos = Utils.toTile(state.wom.position) ;
-                    //System.out.println(">>> agent is " + S.worldmodel().agentId) ;
-
-                    //System.out.println("### explore is invoked agent @" + agentPos) ;
-
-                    List<Pair<Integer, DPos3>> path = null ;
-                    if (delayPathReplan) {
-                        if (memoryCountdown[0] <= 0) {
-                            memoryCountdown[0] = memoryDuration ;
+                    if (state instanceof UUSeAgentState2D) {
+                        // check first if we should turn on/off jetpack:
+                        if (state.wom.position.y - state.getOrigin().y <= NavGrid.AGENT_HEIGHT
+                                && path.get(0).y == 0 && state.jetpackRunning()
+                        ) {
+                            state.env().getController().getCharacter().turnOffJetpack();
+                        } else {
+                            if (path.get(0).y > 0 && !state.jetpackRunning()) {
+                                state.env().getController().getCharacter().turnOnJetpack();
+                                //state.env().getController().getAdmin().getCharacter().use();
+                            }
+                        }
+                    } else if (state instanceof UUSeAgentState3DVoxelGrid || state instanceof UUSeAgentState3DOctree) {
+                        // turn on jetpack if not already on
+                        if (!state.jetpackRunning())
+                            state.env().getController().getCharacter().turnOnJetpack();
+                    }
+                    if (arrivedAtDestination) {
+                        state.currentPathToFollow.clear();
+                        if (state instanceof UUSeAgentState3DVoxelGrid || state instanceof UUSeAgentState3DOctree) {
+                            return new Pair<>(state.centerPos(), state.orientationForward());
                         }
                         else {
-                            path = memorized[0] ;
-                            //System.out.println("### about to use memorized path: " + path) ;
-                            if (path.size()<=1) {
-                                //System.out.println("### memorized path is singleton or empty, dropping it") ;
-                                path = null ;
-                                memoryCountdown[0] = memoryDuration ;
-                            }
-                            else {
-                                path.remove(0) ;
-                                memoryCountdown[0] -- ;
-                                DPos3 next = path.get(0).snd ;
-                                if(!graph.neighbours(agentPos).contains(next)) {
-                                    //System.out.println("### next node in memorized path is not adjacent; dropping it") ;
-                                    path = null ;
-                                    memoryCountdown[0] = memoryDuration ;
-                                }
-                            }
-                            //if (path!=null) System.out.println("### using memorized path->" + path.get(0)) ;
+                            return new Pair<>(state.wom.position, state.orientationForward());
+                        }
+                    } // else we are not at the destination yet...
 
-                        }
-                    }
-                    if (path == null) {
-                        if (heuristicLocation == null) {
-                            //System.out.println(">>> @maze " + Utils.mazeId(a) + ", tile: " + agentPos) ;
-                            path = state.multiLayerNav.explore(Utils.loc3(Utils.mazeId(a),agentPos.x, agentPos.y)) ;
-                        }
-                        else
-                            path = state.multiLayerNav.explore(Utils.loc3(Utils.mazeId(a),agentPos.x, agentPos.y), heuristicLocation) ;
+                    // set currentPathToFollow:
+                    state.currentPathToFollow = path ;
 
-                        if (path == null || path.isEmpty()) {
-                            //System.out.println(">>>> can't find an explore path!") ;
-                            return null ;
-                        }
-                        path.remove(0) ;
-                        memorized[0] = path ;
-                        //System.out.println("### calculated new path-> " + path.get(0)) ;
+                    // follow the path, direct the agent to the next node in the path (actually, the first
+                    // node in the path, since we remove a node if it is passed):
+                    var nextNode = state.currentPathToFollow.get(0);
+                    var nextNodePos = state.getBlockCenter(nextNode);
+                    if(Vec3.sub(nextNodePos, state.centerPos()).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
+                        // agent is already in the same square as the next-node destination-square. Mark the node
+                        // as reached (so, we remove it from the plan):
+                        state.currentPathToFollow.remove(0) ;
+                        return new Pair<>(state.centerPos(), state.orientationForward()) ;
                     }
 
-                    try {
-                        return path.get(0).snd ;
+                    CharacterObservation obs = null ;
+                    // disabling rotation for now
+                    obs = yTurnTowardACT(state, nextNodePos, 0.8f, 10) ;
+                    if (obs != null) {
+                        // we did turning, we won't move.
+                        return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward())) ;
                     }
-                    catch(Exception e) {
-                        System.out.println(">>> agent @" + agentPos + ", path: " + path) ;
-                        throw e ;
+
+                    if (state instanceof UUSeAgentState3DVoxelGrid) {
+                        obs = moveToward((UUSeAgentState3DVoxelGrid) state, nextNodePos, 20);
+                    } else if (state instanceof UUSeAgentState3DOctree) {
+                        obs = moveToward((UUSeAgentState3DOctree) state, nextNodePos, 20);
+                    } else {
+                        obs = moveToward(state, nextNodePos, 20);
                     }
-                    //return path.get(1).snd ;
+
+                    return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward()));
                 })
-                ;
-        return alpha ;
-    }
+                .on((UUSeAgentState state) -> {
+                    if (state.wom==null) return null ;
+                    var agentSq = state.getGridPos(state.centerPos());
 
-
-    public Tactic explore(Pair<Integer, DPos3> heuristicLocation) {
-        return exploreAction(heuristicLocation).lift() ;
+                    int currentPathLength = state.currentPathToFollow.size() ;
+                    if (currentPathLength == 0)
+                    {  // there is no path planned, or there is an ongoing path, but it goes to a different target
+                        if (state instanceof UUSeAgentState3DOctree) {
+                            List<Octree> path = state.pathfinder.explore(state.getGrid(), agentSq);
+                            if (path == null) {
+                                // the pathfinder cannot find a path. The tactic is then not enabled:
+                                System.out.println("### NO path to an unknown node");
+                                return null;
+                            }
+                            path = smoothenOctreePath(path);
+                            System.out.println("### PATH: " + PrintInfos.showPath((UUSeAgentState3DOctree) state, path));
+                            return new Pair<>(path, false);
+                        }
+                        else {
+                            List<DPos3> path = state.pathfinder.explore(state.getGrid(), agentSq);
+                            if (path == null) {
+                                // the pathfinder cannot find a path. The tactic is then not enabled:
+                                System.out.println("### NO path to an unknown node");
+                                return null;
+                            }
+                            path = smoothenPath(path);
+                            if (state instanceof UUSeAgentState2D) // cursed way to do it
+                                System.out.println("### PATH: " + PrintInfos.showPath((UUSeAgentState2D) state, path));
+                            else if (state instanceof UUSeAgentState3DVoxelGrid)
+                                System.out.println("### PATH: " + PrintInfos.showPath((UUSeAgentState3DVoxelGrid) state, path));
+                            return new Pair<>(path, false);
+                        }
+                    }
+                    else {
+                        return new Pair<>(state.currentPathToFollow,false) ;
+                    }
+                })
+                .lift();
     }
-     */
 }

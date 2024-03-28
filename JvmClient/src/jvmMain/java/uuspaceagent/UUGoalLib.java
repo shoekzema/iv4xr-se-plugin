@@ -48,6 +48,36 @@ public class UUGoalLib {
         } ;
     }
 
+    /**
+     * A goal that is solved when the agent manage to be in some distance close to a
+     * given destination. If the destination is reachable from the agents current position,
+     * use the tactic navigateToTAC, otherwise addBefore an explore goal.
+     * The goal is aborted if the destination is not reachable.
+     */
+    public static Function<UUSeAgentState,GoalStructure> smartCloseTo(String goalname, Vec3 targetLocation) {
+
+        if(goalname == null) {
+            goalname = "close to location " + targetLocation ;
+        }
+
+        String goalname_ = goalname ;
+
+        return (UUSeAgentState state) -> {
+            Vec3 targetSquareCenter = state.getBlockCenter(targetLocation);
+            GoalStructure G = goal(goalname_)
+                    .toSolve((Pair<Vec3,Vec3> posAndOrientation) -> {
+                        var agentPosition = posAndOrientation.fst ;
+                        return Vec3.sub(targetSquareCenter,agentPosition).lengthSq() <= UUTacticLib.THRESHOLD_SQUARED_DISTANCE_TO_SQUARE ;
+                    })
+                    .withTactic(
+                            FIRSTof(UUTacticLib.navigateToTAC(targetLocation),
+                                    UUTacticLib.exploreTAC(),
+                                    ABORT()) )
+                    .lift() ;
+            return G ;
+        } ;
+    }
+
     public static Function<UUSeAgentState,GoalStructure> closeTo(Vec3 targetLocation) {
         return closeTo(null,targetLocation) ;
     }
@@ -88,6 +118,28 @@ public class UUGoalLib {
         float sqradius = radius * radius ;
 
         return close3DTo(agent,
+                "type " + blockType,
+                (UUSeAgentState state) -> (WorldEntity e)
+                        ->
+                        blockType.equals(e.getStringProperty("blockType"))
+                                && Vec3.sub(e.position, state.wom.position).lengthSq() <= sqradius,
+                side,
+                delta
+        ) ;
+    }
+
+    /**
+     * smart version of closeTo3DTo, that assumes the goal block is reachable, but not necessarily right now.
+     * It may have to explore a bit or press a button to open a door.
+     */
+    public static Function<UUSeAgentState, GoalStructure> smartClose3DTo(TestAgent agent,
+                                                                         String blockType,
+                                                                         SEBlockFunctions.BlockSides side,
+                                                                         float radius,
+                                                                         float delta) {
+        float sqradius = radius * radius ;
+
+        return smartClose3DTo(agent,
                 "type " + blockType,
                 (UUSeAgentState state) -> (WorldEntity e)
                         ->
@@ -202,6 +254,43 @@ public class UUGoalLib {
 //                            + " ," + side, blockCenter)
             ) ;
         } ;
+    }
+
+    /**
+     * Smart version of close3DTo. Use this to target a block in 3D using a generic selector function.
+     * It assumes the goal block is reachable, but not necessarily right now, and it may have to explore a bit or
+     * press a button to open a door.
+     */
+    public static Function<UUSeAgentState, GoalStructure> smartClose3DTo(TestAgent agent,
+                                                                    String selectorDesc,
+                                                                    Function<UUSeAgentState, Predicate<WorldEntity>> selector,
+                                                                    SEBlockFunctions.BlockSides side,
+                                                                    float delta) {
+
+
+        return  (UUSeAgentState state) -> {
+
+            WorldEntity block = SEBlockFunctions.findClosestBlock(state.wom, selector.apply(state)) ;
+            if (block == null) return FAIL("Navigating autofail; no block can be found: " + selectorDesc);
+
+            Vec3 intermediatePosition = SEBlockFunctions.getSideCenterPoint(block, side, delta + 1.5f);
+            Vec3 goalPosition = SEBlockFunctions.getSideCenterPoint(block, side, delta);
+            Vec3 blockCenter = (Vec3) block.getProperty("centerPosition");
+
+            return SEQ((DEPLOYonce(agent,
+                            smartCloseTo("close to a block of property " + selectorDesc + " @"
+                                            + block.position
+                                            + " ," + side + ", targeting " + intermediatePosition,
+                                    intermediatePosition))),
+                    veryclose2DTo("very close to a block of property " + selectorDesc + " @"
+                                    + block.position
+                                    + " ," + side + ", targeting " + goalPosition,
+                            goalPosition),
+                    face2DToward("facing towards a block of property " + selectorDesc + " @"
+                            + block.position
+                            + " ," + side, blockCenter)
+            );
+        };
     }
 
     /**
