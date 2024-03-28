@@ -1063,11 +1063,11 @@ public class Octree implements Explorable<Octree> {
             }
             case 6 -> { // top-right-back
                 codes.push(6);
-                return parent.children.get(7).getLeftNeighbour(codes);
+                return parent.children.get(7).getRightNeighbour(codes);
             }
             case 7 -> { // bottom-left-back
                 codes.push(5);
-                return parent.children.get(7).getTopNeighbour(codes);
+                return parent.children.get(7).getBottomNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
                 codes.push(4);
@@ -1766,7 +1766,7 @@ public class Octree implements Explorable<Octree> {
 
     public void export(PrintWriter printWriter) {
         if (children.isEmpty())
-            printWriter.printf("%f %f %f %f %b %n", boundary.position.x, boundary.position.y, boundary.position.z, boundary.size(), label==Label.BLOCKED);
+            printWriter.printf("%f %f %f %f %d %n", boundary.position.x, boundary.position.y, boundary.position.z, boundary.size(), label);
         for (Octree child : children) {
             child.export(printWriter);
         }
