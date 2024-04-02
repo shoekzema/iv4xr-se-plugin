@@ -164,7 +164,7 @@ public class SEBlockFunctions {
      * NOTE: for now, because SE does not propagate open/close state of doors, this will
      * always return true.
      */
-    public static Boolean geSlideDoorState(WorldEntity block) {
+    public static Boolean getSlideDoorState(WorldEntity block) {
         if(!block.type.equals("block")) return null ;
         if (block.getStringProperty("blockType").contains("SlideDoor")) {
             return block.getBooleanProperty("isOpen") ;

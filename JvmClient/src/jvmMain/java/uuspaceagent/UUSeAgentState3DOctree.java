@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 
 public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
 
-    float OBSERVATION_RADIUS = 20.0f;
     boolean printed = false;
 
     public Octree grid = new Octree(null, null, (byte) 0, Label.UNKNOWN) ;
@@ -166,7 +165,7 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
     }
 
     public void addToOctree(WorldEntity block) {
-        Boolean isOpen = SEBlockFunctions.geSlideDoorState(block) ;
+        Boolean isOpen = SEBlockFunctions.getSlideDoorState(block) ;
         // open-doors are more complicated. TODO.
         if (isOpen != null) {
             if (!isOpen)

@@ -137,7 +137,7 @@ public class UUSeAgentState2D extends UUSeAgentState<DPos3> {
         for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
             navgrid.addObstacle(block);
             // check if it is a door, and get its open/close state:
-            Boolean isOpen = SEBlockFunctions.geSlideDoorState(block) ;
+            Boolean isOpen = SEBlockFunctions.getSlideDoorState(block) ;
             if (isOpen != null) {
                 navgrid.setObstacleBlockingState(block, !isOpen);
             }

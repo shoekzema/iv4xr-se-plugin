@@ -8,6 +8,9 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import static java.lang.Math.min;
+import static java.lang.Math.max;
+
 public class VoxelGrid implements Explorable<DPos3> {
 
     /**
@@ -19,6 +22,8 @@ public class VoxelGrid implements Explorable<DPos3> {
 
     public Boundary boundary;
     public float voxelSize;
+    float squareDiagonalLength;
+    float cubeDiagonalLength;
     ArrayList<ArrayList<ArrayList<Voxel>>> grid;
 
     public Voxel get(int x, int y, int z) {
@@ -31,6 +36,8 @@ public class VoxelGrid implements Explorable<DPos3> {
 
     public VoxelGrid(float voxelSize) {
         this.voxelSize = voxelSize;
+        squareDiagonalLength = new Vec3(0,voxelSize,voxelSize).length();
+        cubeDiagonalLength = new Vec3(voxelSize,voxelSize,voxelSize).length() ;
     }
 
     /**
@@ -49,15 +56,13 @@ public class VoxelGrid implements Explorable<DPos3> {
             for (int y = 0; y < initialSize; y++) {
                 grid.get(x).add(y, new ArrayList<>(initialSize));
                 for (int z = 0; z < initialSize; z++) {
-                    grid.get(x).get(y).add(z, new Voxel());
+                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.position.x,
+                                                             y * voxelSize + boundary.position.y,
+                                                             z * voxelSize + boundary.position.z));
+                    grid.get(x).get(y).add(z, new Voxel(distance <= observation_radius ? Label.OPEN : Label.UNKNOWN));
                 }
             }
         }
-//        grid = new ArrayList<>(Collections.nCopies(initialSize,
-//                    new ArrayList<>(Collections.nCopies(initialSize,
-//                        new ArrayList<>(Collections.nCopies(initialSize, (byte)0)))
-//                    )
-//               ));
     }
 
     /**
@@ -102,11 +107,14 @@ public class VoxelGrid implements Explorable<DPos3> {
 
         // TODO: a more general approach for 3D. So not assuming y is the up-axis
         // add some padding due to agent's body width:
-//        Vec3 hpadding = Vec3.mul(new Vec3(AGENT_WIDTH, 0, AGENT_WIDTH), 0.6f) ;
-//        Vec3 vpadding = new Vec3(0, AGENT_HEIGHT, 0) ;
-//        minCorner = Vec3.sub(minCorner, hpadding) ;
-//        minCorner = Vec3.sub(minCorner, vpadding) ;
-//        maxCorner = Vec3.add(maxCorner, hpadding) ;
+        //      note: agent height = 1.8, about 0.5 above feet is the rotation point, so to prevent the agent from
+        //            hitting their head, pad with (1.3 - 0.5 * voxelSize)
+        //Vec3 hpadding = Vec3.mul(new Vec3(AGENT_WIDTH, 0, AGENT_WIDTH), 0.6f) ;
+        Vec3 vpadding = new Vec3(0, 1.3f - 0.5f * voxelSize, 0) ;
+        //minCorner = Vec3.sub(minCorner, hpadding) ;
+        minCorner = Vec3.sub(minCorner, vpadding) ;
+        //maxCorner = Vec3.add(maxCorner, hpadding) ;
+
         var corner1 = gridProjectedLocation(minCorner) ;
         var corner2 = gridProjectedLocation(maxCorner) ;
         // all squares between these two corners are blocked:
@@ -123,13 +131,13 @@ public class VoxelGrid implements Explorable<DPos3> {
         return obstructed ;
     }
 
-    public void addObstacle(WorldEntity block) {
+    public void addObstacle(WorldEntity block, Vec3 pos, float observation_radius) {
 
         var obstructedCubes = getObstructedCubes(block) ;
         DPos3 min = new DPos3(0, 0, 0);
 
         for(var voxel : obstructedCubes) {
-            DPos3 newMin = checkAndExpand(DPos3.add(voxel, min));
+            DPos3 newMin = checkAndExpand(DPos3.add(voxel, min), pos, observation_radius);
             min.x = Math.max(min.x, newMin.x);
             min.y = Math.max(min.y, newMin.y);
             min.z = Math.max(min.z, newMin.z);
@@ -150,7 +158,7 @@ public class VoxelGrid implements Explorable<DPos3> {
      * Checks if the voxel is outside the grid and if so, expands the grid to contain the voxel
      * @param voxel
      */
-    public DPos3 checkAndExpand(DPos3 voxel) {
+    public DPos3 checkAndExpand(DPos3 voxel, Vec3 pos, float observation_radius) {
         var retVal = new DPos3(0, 0, 0);
         DPos3 gridSize = size();
 
@@ -159,7 +167,10 @@ public class VoxelGrid implements Explorable<DPos3> {
             for (int y = 0; y < gridSize.y; y++) {
                 grid.get(0).add(y, new ArrayList<>(gridSize.z));
                 for (int z = 0; z < gridSize.z; z++) {
-                    grid.get(0).get(y).add(z, new Voxel());
+                    float distance = Vec3.dist(pos, new Vec3(boundary.position.x,
+                            y * voxelSize + boundary.position.y,
+                            z * voxelSize + boundary.position.z));
+                    grid.get(0).get(y).add(z, new Voxel(distance <= observation_radius ? Label.OPEN : Label.UNKNOWN));
                 }
             }
             voxel.x++;
@@ -171,7 +182,10 @@ public class VoxelGrid implements Explorable<DPos3> {
             for (int y = 0; y < gridSize.y; y++) {
                 grid.get(grid.size()-1).add(y, new ArrayList<>(gridSize.z));
                 for (int z = 0; z < gridSize.z; z++) {
-                    grid.get(gridSize.x-1).get(y).add(z, new Voxel());
+                    float distance = Vec3.dist(pos, new Vec3((gridSize.x-1) * voxelSize + boundary.position.x,
+                            y * voxelSize + boundary.position.y,
+                            z * voxelSize + boundary.position.z));
+                    grid.get(0).get(y).add(z, new Voxel(distance <= observation_radius ? Label.OPEN : Label.UNKNOWN));
                 }
             }
             //boundary.upperBounds.x += voxelSize;
@@ -181,7 +195,10 @@ public class VoxelGrid implements Explorable<DPos3> {
             for (int x = 0; x < gridSize.x; x++) {
                 grid.get(x).add(0, new ArrayList<>(gridSize.z));
                 for (int z = 0; z < gridSize.z; z++) {
-                    grid.get(x).get(0).add(z, new Voxel());
+                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.position.x,
+                            boundary.position.y,
+                            z * voxelSize + boundary.position.z));
+                    grid.get(x).get(0).add(z, new Voxel(distance <= observation_radius ? Label.OPEN : Label.UNKNOWN));
                 }
             }
             voxel.y++;
@@ -192,7 +209,10 @@ public class VoxelGrid implements Explorable<DPos3> {
             for (int x = 0; x < gridSize.x; x++) {
                 grid.get(x).add(new ArrayList<>(gridSize.z));
                 for (int z = 0; z < gridSize.z; z++) {
-                    grid.get(x).get(gridSize.y-1).add(z, new Voxel());
+                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.position.x,
+                            (gridSize.y)-1 * voxelSize + boundary.position.y,
+                            z * voxelSize + boundary.position.z));
+                    grid.get(x).get(gridSize.y-1).add(z, new Voxel(distance <= observation_radius ? Label.OPEN : Label.UNKNOWN));
                 }
             }
             //boundary.upperBounds.z += voxelSize;
@@ -201,7 +221,10 @@ public class VoxelGrid implements Explorable<DPos3> {
         while (voxel.z < 0) {
             for (int x = 0; x < gridSize.x; x++) {
                 for (int y = 0; y < gridSize.y; y++) {
-                    grid.get(x).get(y).add(0, new Voxel());
+                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.position.x,
+                            y * voxelSize + boundary.position.y,
+                            boundary.position.z));
+                    grid.get(x).get(y).add(0, new Voxel(distance <= observation_radius ? Label.OPEN : Label.UNKNOWN));
                 }
             }
             voxel.z++;
@@ -211,7 +234,10 @@ public class VoxelGrid implements Explorable<DPos3> {
         while (voxel.z >= gridSize.z) {
             for (int x = 0; x < gridSize.x; x++) {
                 for (int y = 0; y < gridSize.y; y++) {
-                    grid.get(x).get(y).add(new Voxel());
+                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.position.x,
+                            y * voxelSize + boundary.position.y,
+                            (gridSize.z-1) * voxelSize + boundary.position.z));
+                    grid.get(x).get(y).add(new Voxel(distance <= observation_radius ? Label.OPEN : Label.UNKNOWN));
                 }
             }
             //boundary.upperBounds.z += voxelSize;
@@ -224,12 +250,14 @@ public class VoxelGrid implements Explorable<DPos3> {
     public Iterable<DPos3> neighbours(DPos3 p) {
         List<DPos3> candidates = new LinkedList<>() ;
 
-        for (int x = p.x-1 ; x <= p.x+1 ; x++) {
-            for (int y = p.y-1 ; y <= p.y+1 ; y++) {
-                for (int z = p.z-1; z <= p.z+1 ; z++) {
+        for (int x = max(p.x-1, 0); x <= min(p.x+1, size().x-1); x++) {
+            for (int y = max(p.y-1, 0); y <= min(p.y+1, size().y-1); y++) {
+                for (int z = max(p.z-1, 0); z <= min(p.z+1, size().z-1); z++) {
+
                     if(x==p.x && y==p.y && z==p.z) continue;
                     var neighbourCube = new DPos3(x,y,z) ; // a neighbouring cube
-                    if(get(x,y,z).label != Label.BLOCKED)
+
+                    if(get(x,y,z).label == Label.OPEN)
                         candidates.add(neighbourCube) ;
                 }
             }
@@ -241,16 +269,34 @@ public class VoxelGrid implements Explorable<DPos3> {
     @Override
     public float heuristic(DPos3 from, DPos3 to) {
         // using Manhattan distance...
-        return voxelSize * (float) (Math.abs(to.x - from.x) + Math.abs(to.y - from.y) + Math.abs(to.z - from.z)) ;
+        // return voxelSize * (float) (Math.abs(to.x - from.x) + Math.abs(to.y - from.y) + Math.abs(to.z - from.z)) ;
+
+        // using Euclidean distance...
+        return voxelSize * (float) Math.sqrt((to.x - from.x) * (to.x - from.x) + (to.y - from.y) * (to.y - from.y) + (to.z - from.z) * (to.z - from.z)) ;
     }
 
     @Override
     public float distance(DPos3 from, DPos3 to) {
-        return voxelSize;
+        if (from.x != to.x && from.y != to.y && from.z != to.z) {
+            return cubeDiagonalLength ;
+        }
+        if(from.x == to.x) {
+            if (from.y == to.y || from.z == to.z) {
+                return voxelSize;
+            }
+            return squareDiagonalLength ;
+        }
+        if(from.y == to.y) {
+            if (from.x == to.x || from.z == to.z) {
+                return voxelSize;
+            }
+            return squareDiagonalLength ;
+        }
+        return squareDiagonalLength ;
     }
 
     @Override
     public boolean isUnknown(DPos3 node) {
-        return false;
+        return get(node).label == Label.UNKNOWN;
     }
 }
