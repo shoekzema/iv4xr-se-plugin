@@ -167,7 +167,7 @@ public class SEBlockFunctions {
     public static Boolean geSlideDoorState(WorldEntity block) {
         if(!block.type.equals("block")) return null ;
         if (block.getStringProperty("blockType").contains("SlideDoor")) {
-            return true ;
+            return block.getBooleanProperty("isOpen") ;
         }
         return null ;
     }
