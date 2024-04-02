@@ -49,10 +49,10 @@ public class UUGoalLib {
     }
 
     /**
-     * A goal that is solved when the agent manage to be in some distance close to a
-     * given destination. If the destination is reachable from the agents current position,
-     * use the tactic navigateToTAC, otherwise addBefore an explore goal.
-     * The goal is aborted if the destination is not reachable.
+     * A goal that is solved when the agent manage to be in some distance close to a given destination.
+     * If the destination is reachable from the agents current position, use the tactic navigateToTAC,
+     * otherwise use the tactic exploreTAC.
+     * The goal is aborted if the destination is not reachable and all reachable unexplored nodes have been explored.
      */
     public static Function<UUSeAgentState,GoalStructure> smartCloseTo(String goalname, Vec3 targetLocation) {
 
@@ -71,6 +71,41 @@ public class UUGoalLib {
                     })
                     .withTactic(
                             FIRSTof(UUTacticLib.navigateToTAC(targetLocation),
+                                    UUTacticLib.exploreTAC(),
+                                    ABORT()) )
+                    .lift() ;
+            return G ;
+        } ;
+    }
+
+    /**
+     * A goal that is solved when the agent manage to be in some distance close to a given block.
+     * If the block is reachable from the agents current position, use the tactic navigateToBlockTAC,
+     * use the tactic exploreTAC.
+     * The goal is aborted if the destination is not reachable and all reachable unexplored nodes have been explored.
+     */
+    public static Function<UUSeAgentState,GoalStructure> smartCloseToBlock(TestAgent agent,
+                                                                           //String selectorDesc,
+                                                                           Function<UUSeAgentState, Predicate<WorldEntity>> selector,
+                                                                           SEBlockFunctions.BlockSides side,
+                                                                           float delta) {
+
+        String goalname_ = "test go to block" ;
+
+        return (UUSeAgentState state) -> {
+            GoalStructure G = goal(goalname_)
+                    .toSolve((Pair<Vec3,Vec3> posAndOrientation) -> {
+                        WorldEntity block = SEBlockFunctions.findClosestBlock(state.wom, selector.apply(state));
+                        if (block == null) return false;
+
+                        Vec3 targetLocation = SEBlockFunctions.getSideCenterPoint(block, side, delta + 1.5f);
+                        Vec3 targetSquareCenter = state.getBlockCenter(targetLocation);
+
+                        var agentPosition = posAndOrientation.fst ;
+                        return Vec3.sub(targetSquareCenter, agentPosition).lengthSq() <= UUTacticLib.THRESHOLD_SQUARED_DISTANCE_TO_SQUARE ;
+                    })
+                    .withTactic(
+                            FIRSTof(UUTacticLib.navigateToBlockTAC(selector, side, delta),
                                     UUTacticLib.exploreTAC(),
                                     ABORT()) )
                     .lift() ;
@@ -139,8 +174,16 @@ public class UUGoalLib {
                                                                          float delta) {
         float sqradius = radius * radius ;
 
-        return smartClose3DTo(agent,
-                "type " + blockType,
+//        return smartClose3DTo(agent,
+//                "type " + blockType,
+//                (UUSeAgentState state) -> (WorldEntity e)
+//                        ->
+//                        blockType.equals(e.getStringProperty("blockType"))
+//                                && Vec3.sub(e.position, state.wom.position).lengthSq() <= sqradius,
+//                side,
+//                delta
+//        ) ;
+        return smartCloseToBlock(agent,
                 (UUSeAgentState state) -> (WorldEntity e)
                         ->
                         blockType.equals(e.getStringProperty("blockType"))

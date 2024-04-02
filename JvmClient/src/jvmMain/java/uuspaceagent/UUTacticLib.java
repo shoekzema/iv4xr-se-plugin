@@ -1,5 +1,6 @@
 package uuspaceagent;
 
+import eu.iv4xr.framework.mainConcepts.WorldEntity;
 import eu.iv4xr.framework.spatial.Vec3;
 import nl.uu.cs.aplib.mainConcepts.Action;
 import nl.uu.cs.aplib.mainConcepts.Tactic;
@@ -8,6 +9,8 @@ import spaceEngineers.model.CharacterObservation;
 import spaceEngineers.model.Vec2F;
 
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 import static nl.uu.cs.aplib.AplibEDSL.action;
 import static spaceEngineers.controller.Character.DISTANCE_CENTER_CAMERA;
@@ -696,6 +699,140 @@ public class UUTacticLib {
                 })
                 .on_((UUSeAgentState state) -> Vec3.sub(destination, state.wom.position).lengthSq() >= 0.01)
                 ;
+    }
+
+    public static Tactic navigateToBlockTAC(Function<UUSeAgentState, Predicate<WorldEntity>> selector,
+                                            SEBlockFunctions.BlockSides side,
+                                            float delta) {
+
+        return action("navigateTo").do2((UUSeAgentState state)
+                        -> (Pair<List<DPos3>, Boolean> queryResult) -> {
+                    var path = queryResult.fst ;
+                    var arrivedAtDestination = queryResult.snd ;
+
+                    if (state instanceof UUSeAgentState2D) {
+                        // check first if we should turn on/off jetpack:
+                        if (state.wom.position.y - state.getOrigin().y <= NavGrid.AGENT_HEIGHT
+                                && path.get(0).y == 0 && state.jetpackRunning()
+                        ) {
+                            state.env().getController().getCharacter().turnOffJetpack();
+                        } else {
+                            if (path.get(0).y > 0 && !state.jetpackRunning()) {
+                                state.env().getController().getCharacter().turnOnJetpack();
+                                //state.env().getController().getAdmin().getCharacter().use();
+                            }
+                        }
+                    } else if (state instanceof UUSeAgentState3DVoxelGrid || state instanceof UUSeAgentState3DOctree) {
+                        // turn on jetpack if not already on
+                        if (!state.jetpackRunning())
+                            state.env().getController().getCharacter().turnOnJetpack();
+                    }
+
+                    if (arrivedAtDestination) {
+                        state.currentPathToFollow.clear();
+                        if (state instanceof UUSeAgentState3DVoxelGrid || state instanceof UUSeAgentState3DOctree) {
+                            return new Pair<>(state.centerPos(), state.orientationForward());
+                        }
+                        else {
+                            return new Pair<>(state.wom.position, state.orientationForward());
+                        }
+                    }
+                    // else we are not at the destination yet...
+
+                    // set currentPathToFollow:
+                    state.currentPathToFollow = path ;
+
+                    // follow the path, direct the agent to the next node in the path (actually, the first
+                    // node in the path, since we remove a node if it is passed):
+                    var nextNode = state.currentPathToFollow.get(0) ;
+                    var nextNodePos = state.getBlockCenter(nextNode) ;
+                    //var agentSq = state.navgrid.gridProjectedLocation(state.wom.position) ;
+                    //if(agentSq.equals(nextNode)) {
+                    if(Vec3.sub(nextNodePos, state.centerPos()).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
+                        // agent is already in the same square as the next-node destination-square. Mark the node
+                        // as reached (so, we remove it from the plan):
+                        state.currentPathToFollow.remove(0) ;
+                        return new Pair<>(state.centerPos(), state.orientationForward()) ;
+                    }
+                    CharacterObservation obs = null ;
+                    // disabling rotation for now
+                    obs = yTurnTowardACT(state, nextNodePos, 0.8f, 10) ;
+                    if (obs != null) {
+                        // we did turning, we won't move.
+                        return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward())) ;
+                    }
+//                    obs = zTurnTowardACT(state, nextNodePos, 0.8f,5) ;
+//                    if (obs != null) {
+//                        // we did turning, we won't move.
+//                        return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward())) ;
+//                    }
+                    if (state instanceof UUSeAgentState3DVoxelGrid) {
+                        obs = moveToward((UUSeAgentState3DVoxelGrid) state, nextNodePos, 20);
+                    }
+                    else if (state instanceof UUSeAgentState3DOctree) {
+                        obs = moveToward((UUSeAgentState3DOctree) state, nextNodePos, 20);
+                    }
+                    else {
+                        obs = moveToward(state, nextNodePos, 20);
+                    }
+                    return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward()))  ;
+                } )
+                .on((UUSeAgentState state)  -> {
+                    if (state.wom==null) return null ;
+
+                    WorldEntity block = SEBlockFunctions.findClosestBlock(state.wom, selector.apply(state));
+                    if (block == null) return null;
+
+                    Vec3 destination = SEBlockFunctions.getSideCenterPoint(block, side, delta + 1.5f);
+
+                    var agentSq = state.getGridPos(state.centerPos()) ;
+                    var destinationSq = state.getGridPos(destination) ;
+                    var destinationSqCenterPos = state.getBlockCenter(destinationSq) ;
+                    //if (state.grid2D.squareDistanceToSquare(agentPos,destinationSq) <= SQEPSILON_TO_NODE_IN_2D_PATH_NAVIGATION) {
+                    //if(agentSq.equals(destinationSq)) {
+                    if(Vec3.sub(destinationSqCenterPos, state.centerPos()).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
+
+                        // the agent is already at the destination. Just return the path, and indicate that
+                        // we have arrived at the destination:
+                        return new Pair<>(state.currentPathToFollow, true) ;
+                    }
+                    int currentPathLength = state.currentPathToFollow.size() ;
+                    if (currentPathLength == 0
+                            || ! destinationSq.equals(state.currentPathToFollow.get(currentPathLength - 1)))
+                    {  // there is no path planned, or there is an ongoing path, but it goes to a different target
+                        if (state instanceof UUSeAgentState3DOctree) {
+                            List<Octree> path = state.pathfinder.findPath(state.getGrid(), agentSq, destinationSq);
+                            if (path == null) {
+                                // the pathfinder cannot find a path. The tactic is then not enabled:
+                                System.out.println("### NO path to " + destination);
+                                return null;
+                            }
+                            path = smoothenOctreePath(path);
+                            System.out.println("### PATH: " + PrintInfos.showPath((UUSeAgentState3DOctree) state, path));
+                            return new Pair<>(path, false);
+                        }
+                        else {
+                            List<DPos3> path = state.pathfinder.findPath(state.getGrid(), agentSq, destinationSq);
+                            if (path == null) {
+                                // the pathfinder cannot find a path. The tactic is then not enabled:
+                                System.out.println("### NO path to " + destination);
+                                return null;
+                            }
+                            path = smoothenPath(path);
+                            if (state instanceof UUSeAgentState2D) // cursed way to do it
+                                System.out.println("### PATH: " + PrintInfos.showPath((UUSeAgentState2D) state, path));
+                            else if (state instanceof UUSeAgentState3DVoxelGrid)
+                                System.out.println("### PATH: " + PrintInfos.showPath((UUSeAgentState3DVoxelGrid) state, path));
+                            return new Pair<>(path, false);
+                        }
+                    }
+                    else {
+                        // the currently followed path leads to the specified destination, and  furthermore we are not
+                        // at the destination yet:
+                        return new Pair<>(state.currentPathToFollow,false) ;
+                    }
+                })
+                .lift();
     }
 
     /**

@@ -7,6 +7,8 @@ import uuspaceagent.exploration.Explorable;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.lang.Math.min;
 import static java.lang.Math.max;
@@ -19,6 +21,7 @@ public class VoxelGrid implements Explorable<DPos3> {
      */
     public static float AGENT_HEIGHT = 2f ;
     public static float AGENT_WIDTH  = 1f ;
+    public static float BLOCK_SIZE   = 2.5f ;
 
     public Boundary boundary;
     public float voxelSize;
@@ -46,8 +49,8 @@ public class VoxelGrid implements Explorable<DPos3> {
      */
     public void initializeGrid(Vec3 pos, float observation_radius) {
         // radius +10   so that the agent can move a little before having to rebuild the whole grid (expand)
-        Vec3 lowerB = Vec3.sub(pos, new Vec3(observation_radius + 10));
-        boundary = new Boundary(lowerB, 2 * (observation_radius + 10));
+        Vec3 lowerB = Vec3.sub(pos, new Vec3(observation_radius + BLOCK_SIZE));
+        boundary = new Boundary(lowerB, 2 * (observation_radius + BLOCK_SIZE));
 
         int initialSize = (int) ((boundary.upperBounds().x - boundary.position.x) / voxelSize);
         grid = new ArrayList<>(initialSize);
@@ -156,92 +159,90 @@ public class VoxelGrid implements Explorable<DPos3> {
 
     /**
      * Checks if the voxel is outside the grid and if so, expands the grid to contain the voxel
-     * @param voxel
+     * @param voxel: The voxel position that is or is not yet in the grid
+     * @param pos: The agent position (unused with current implementation)
+     * @param observation_radius: speaks for itself
+     * @return X,Y,Z amount it expanded towards minus (used to add to subsequent calls that do not re-evaluate the gridSize)
      */
     public DPos3 checkAndExpand(DPos3 voxel, Vec3 pos, float observation_radius) {
         var retVal = new DPos3(0, 0, 0);
         DPos3 gridSize = size();
 
-        while (voxel.x < 0) {
-            grid.add(0, new ArrayList<>(gridSize.y));
-            for (int y = 0; y < gridSize.y; y++) {
-                grid.get(0).add(y, new ArrayList<>(gridSize.z));
-                for (int z = 0; z < gridSize.z; z++) {
-                    float distance = Vec3.dist(pos, new Vec3(boundary.position.x,
-                            y * voxelSize + boundary.position.y,
-                            z * voxelSize + boundary.position.z));
-                    grid.get(0).get(y).add(z, new Voxel(distance <= observation_radius ? Label.OPEN : Label.UNKNOWN));
-                }
+        if (voxel.x < 0) {
+            int diff = -1 * voxel.x;
+            for (int x = 0; x < diff; x++) {
+//                ArrayList<Voxel> temp = Stream.generate(Voxel::new)
+//                        .limit(diff).collect(Collectors.toCollection(ArrayList::new));
+                ArrayList<ArrayList<Voxel>> newX = Stream.generate(() -> Stream.generate(Voxel::new)
+                                .limit(gridSize.z)
+                                .collect(Collectors.toCollection(ArrayList::new)))
+                        .limit(gridSize.y)
+                        .collect(Collectors.toCollection(ArrayList::new));
+                grid.add(0, newX);
+                boundary.position.x -= voxelSize;
+                retVal.x += diff;
             }
-            voxel.x++;
-            boundary.position.x -= voxelSize;
-            retVal.x++;
         }
-        while (voxel.x >= gridSize.x) {
-            grid.add(new ArrayList<>(gridSize.y));
-            for (int y = 0; y < gridSize.y; y++) {
-                grid.get(grid.size()-1).add(y, new ArrayList<>(gridSize.z));
-                for (int z = 0; z < gridSize.z; z++) {
-                    float distance = Vec3.dist(pos, new Vec3((gridSize.x-1) * voxelSize + boundary.position.x,
-                            y * voxelSize + boundary.position.y,
-                            z * voxelSize + boundary.position.z));
-                    grid.get(0).get(y).add(z, new Voxel(distance <= observation_radius ? Label.OPEN : Label.UNKNOWN));
-                }
+        else if (voxel.x >= gridSize.x) {
+            int diff = voxel.x - (gridSize.x-1);
+            for (int x = 0; x < diff; x++) {
+                ArrayList<ArrayList<Voxel>> newX = Stream.generate(() -> Stream.generate(Voxel::new)
+                                .limit(gridSize.z)
+                                .collect(Collectors.toCollection(ArrayList::new)))
+                        .limit(gridSize.y)
+                        .collect(Collectors.toCollection(ArrayList::new));
+                grid.add(newX);
             }
-            //boundary.upperBounds.x += voxelSize;
-            boundary.size += voxelSize;
         }
-        while (voxel.y < 0) {
+        if (voxel.y < 0) {
+            int diff = -1 * voxel.y;
             for (int x = 0; x < gridSize.x; x++) {
-                grid.get(x).add(0, new ArrayList<>(gridSize.z));
-                for (int z = 0; z < gridSize.z; z++) {
-                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.position.x,
-                            boundary.position.y,
-                            z * voxelSize + boundary.position.z));
-                    grid.get(x).get(0).add(z, new Voxel(distance <= observation_radius ? Label.OPEN : Label.UNKNOWN));
+                for (int y = 0; y < diff; y++) {
+                    ArrayList<Voxel> newY = Stream.generate(Voxel::new)
+                            .limit(gridSize.z).collect(Collectors.toCollection(ArrayList::new));
+                    grid.get(x).add(0, newY);
                 }
             }
-            voxel.y++;
             boundary.position.y -= voxelSize;
             retVal.y++;
         }
-        while (voxel.y >= gridSize.y) {
+        else if (voxel.y >= gridSize.y) {
+            int diff = voxel.y - (gridSize.y-1);
             for (int x = 0; x < gridSize.x; x++) {
-                grid.get(x).add(new ArrayList<>(gridSize.z));
-                for (int z = 0; z < gridSize.z; z++) {
-                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.position.x,
-                            (gridSize.y)-1 * voxelSize + boundary.position.y,
-                            z * voxelSize + boundary.position.z));
-                    grid.get(x).get(gridSize.y-1).add(z, new Voxel(distance <= observation_radius ? Label.OPEN : Label.UNKNOWN));
+                for (int y = 0; y < diff; y++) {
+                    ArrayList<Voxel> newY = Stream.generate(Voxel::new)
+                            .limit(gridSize.z).collect(Collectors.toCollection(ArrayList::new));
+                    grid.get(x).add(newY);
                 }
             }
-            //boundary.upperBounds.z += voxelSize;
-            boundary.size += voxelSize;
         }
-        while (voxel.z < 0) {
+        if (voxel.z < 0) {
+            int diff = -1 * voxel.z;
             for (int x = 0; x < gridSize.x; x++) {
                 for (int y = 0; y < gridSize.y; y++) {
-                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.position.x,
-                            y * voxelSize + boundary.position.y,
-                            boundary.position.z));
-                    grid.get(x).get(y).add(0, new Voxel(distance <= observation_radius ? Label.OPEN : Label.UNKNOWN));
+                    for (int z = 0; z < diff; z++) {
+//                        float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.position.x,
+//                                y * voxelSize + boundary.position.y,
+//                                boundary.position.z - z * voxelSize));
+                        grid.get(x).get(y).add(0, new Voxel());
+                    }
                 }
             }
-            voxel.z++;
             boundary.position.z -= voxelSize;
             retVal.z++;
         }
-        while (voxel.z >= gridSize.z) {
+        else if (voxel.z >= gridSize.z) {
+            int diff = voxel.z - (gridSize.z-1);
             for (int x = 0; x < gridSize.x; x++) {
                 for (int y = 0; y < gridSize.y; y++) {
-                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.position.x,
-                            y * voxelSize + boundary.position.y,
-                            (gridSize.z-1) * voxelSize + boundary.position.z));
-                    grid.get(x).get(y).add(new Voxel(distance <= observation_radius ? Label.OPEN : Label.UNKNOWN));
+                    for (int z = 0; z < diff; z++) {
+//                        float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.position.x,
+//                                y * voxelSize + boundary.position.y,
+//                                (gridSize.z - 1 + z) * voxelSize + boundary.position.z));
+                        grid.get(x).get(y).add(new Voxel());
+                    }
                 }
             }
-            //boundary.upperBounds.z += voxelSize;
-            boundary.size += voxelSize;
         }
         return retVal;
     }
@@ -273,6 +274,12 @@ public class VoxelGrid implements Explorable<DPos3> {
         for (int x = max(p.x-1, 0); x <= min(p.x+1, size().x-1); x++) {
             for (int y = max(p.y-1, 0); y <= min(p.y+1, size().y-1); y++) {
                 for (int z = max(p.z-1, 0); z <= min(p.z+1, size().z-1); z++) {
+                    // If the neighbour is outside the grid, add it to the neighbours
+                    // Note: do NOT use outside of explore()
+                    if (x < 0 || y < 0 || z < 0 || x >= size().x || y >= size().y || z >= size().z) {
+                        candidates.add(new DPos3(x,y,z));
+                        continue;
+                    }
 
                     if(x==p.x && y==p.y && z==p.z) continue;
                     var neighbourCube = new DPos3(x,y,z) ; // a neighbouring cube
@@ -317,6 +324,8 @@ public class VoxelGrid implements Explorable<DPos3> {
 
     @Override
     public boolean isUnknown(DPos3 node) {
+        if (node.x < 0 || node.y < 0 || node.z < 0 || node.x >= size().x || node.y >= size().y || node.z >= size().z)
+            return true; // if outside the grid, it must be unknown
         return get(node).label == Label.UNKNOWN;
     }
 
