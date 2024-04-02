@@ -267,6 +267,26 @@ public class VoxelGrid implements Explorable<DPos3> {
     }
 
     @Override
+    public Iterable<DPos3> neighbours_explore(DPos3 p) {
+        List<DPos3> candidates = new LinkedList<>() ;
+
+        for (int x = max(p.x-1, 0); x <= min(p.x+1, size().x-1); x++) {
+            for (int y = max(p.y-1, 0); y <= min(p.y+1, size().y-1); y++) {
+                for (int z = max(p.z-1, 0); z <= min(p.z+1, size().z-1); z++) {
+
+                    if(x==p.x && y==p.y && z==p.z) continue;
+                    var neighbourCube = new DPos3(x,y,z) ; // a neighbouring cube
+
+                    if(get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN)
+                        candidates.add(neighbourCube) ;
+                }
+            }
+        }
+
+        return candidates ;
+    }
+
+    @Override
     public float heuristic(DPos3 from, DPos3 to) {
         // using Manhattan distance...
         // return voxelSize * (float) (Math.abs(to.x - from.x) + Math.abs(to.y - from.y) + Math.abs(to.z - from.z)) ;
@@ -298,5 +318,26 @@ public class VoxelGrid implements Explorable<DPos3> {
     @Override
     public boolean isUnknown(DPos3 node) {
         return get(node).label == Label.UNKNOWN;
+    }
+
+    @Override
+    public void updateUnknown(Vec3 pos, float observation_radius) {
+        Vec3 minCorner = Vec3.sub(pos, new Vec3(observation_radius));
+        Vec3 maxCorner = Vec3.add(pos, new Vec3(observation_radius));
+        var corner1 = gridProjectedLocation(minCorner) ;
+        var corner2 = gridProjectedLocation(maxCorner) ;
+
+        for(int x = max(corner1.x, 0); x <= min(corner2.x, size().x-1); x++) {
+            for (int y = max(corner1.y, 0); y <= min(corner2.y, size().y-1); y++) {
+                for (int z = max(corner1.z, 0); z <= min(corner2.z, size().z-1); z++) {
+                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.position.x,
+                            y * voxelSize + boundary.position.y,
+                            z * voxelSize + boundary.position.z));
+                    if (get(x, y, z).label == Label.UNKNOWN && distance <= observation_radius) {
+                        get(x, y, z).label = Label.OPEN;
+                    }
+                }
+            }
+        }
     }
 }

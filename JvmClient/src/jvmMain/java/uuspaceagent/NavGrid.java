@@ -379,6 +379,11 @@ public class NavGrid implements Explorable<DPos3> {
     }
 
     @Override
+    public Iterable<DPos3> neighbours_explore(DPos3 p) {
+        return null;
+    }
+
+    @Override
     public float heuristic(DPos3 from, DPos3 to) {
         // using Manhattan distance...
         return CUBE_SIZE * (float) (Math.abs(to.x - from.x) + Math.abs(to.y - from.y) + Math.abs(to.z - from.z)) ;
@@ -415,4 +420,7 @@ public class NavGrid implements Explorable<DPos3> {
     public boolean isUnknown(DPos3 node) {
         return false;
     }
+
+    @Override
+    public void updateUnknown(Vec3 pos, float observation_radius) { }
 }

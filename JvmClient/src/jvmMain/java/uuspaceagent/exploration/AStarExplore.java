@@ -137,24 +137,24 @@ public class AStarExplore<NodeId> implements PathExplorer<NodeId> {
             // remove the node with the lowest "priority" from the open-list.
             NodeId current = open.remove().item ;
 
-            // Check if an unknown node is reached, the search stops, and the path to it is returned.
-            // In particular note that we don't search further e.g. to find a better path.
-            if (graph.isUnknown(current)) {
-                // Reconstruct path backwards
-                var path = new ArrayList<NodeId>();
-                path.add(current);
-                while (! current.equals(start)) {
-                    current = paths.get(current);
-                    path.add(current);
-                }
-                // Reverse path to get correct direction
-                Collections.reverse(path);
-                return path;
-            }
-
             var distToCurrent = closed.get(current).floatValue();
 
-            for (NodeId next : graph.neighbours(current)) {
+            for (NodeId next : graph.neighbours_explore(current)) {
+
+                // Check if an unknown node is reached, the search stops, and the path to it is returned.
+                // In particular note that we don't search further e.g. to find a better path.
+                if (graph.isUnknown(next)) {
+                    // Reconstruct path backwards
+                    var path = new ArrayList<NodeId>();
+                    path.add(current);  // this one is unknown, so in case it is a wall, we do not add it to the path
+                    while (! current.equals(start)) {
+                        current = paths.get(current);
+                        path.add(current);
+                    }
+                    // Reverse path to get correct direction
+                    Collections.reverse(path);
+                    return path;
+                }
 
                 float dn = graph.distance(current, next) ;
                 if (dn == Float.POSITIVE_INFINITY)

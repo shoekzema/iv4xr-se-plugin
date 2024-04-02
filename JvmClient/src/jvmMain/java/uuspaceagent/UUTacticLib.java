@@ -11,6 +11,7 @@ import java.util.List;
 
 import static nl.uu.cs.aplib.AplibEDSL.action;
 import static spaceEngineers.controller.Character.DISTANCE_CENTER_CAMERA;
+import static uuspaceagent.UUSeAgentState.OBSERVATION_RADIUS;
 
 public class UUTacticLib {
 
@@ -899,13 +900,33 @@ public class UUTacticLib {
     }
 
     /**
-     * Construct an action that would explore the world.
+     * A tactic; if executed repeatedly it guides the agent to get to some distance close to a
+     * location next to an unknown location, if it is reachable. Pathfinding is used to do this.
+     * To be more precise, the tactic targets the node N which neighbours an unknown node.
+     * Then it travels to some point with the distance at most d to the center of S.
+     * D is the square root of THRESHOLD_SQUARED_DISTANCE_TO_SQUARE.
+     *
+     * It does this until there are no more reachable nodes next to an unknown node.
+     *
+     * The tactic returns the resulting new position and forward-orientation of the agent.
      */
     public static Tactic exploreTAC() {
         return action("explore")
                 .do2((UUSeAgentState state) -> (Pair<List<DPos3>, Boolean> queryResult) -> {
                     var path = queryResult.fst;
                     var arrivedAtDestination = queryResult.snd;
+
+                    var agentSq = state.getGridPos(state.centerPos());
+                    for (var next : state.getGrid().neighbours_explore(agentSq)) {
+                         if (state.getGrid().isUnknown(next)) {
+                             state.getGrid().updateUnknown(state.centerPos(), OBSERVATION_RADIUS);
+
+                             state.currentPathToFollow.clear();
+                             return new Pair<>(state.centerPos(), state.orientationForward());
+                             //return new Pair<>(true, true);
+                         }
+                    }
+                    // else we are not at the destination yet...
 
                     if (state instanceof UUSeAgentState2D) {
                         // check first if we should turn on/off jetpack:
@@ -924,15 +945,6 @@ public class UUTacticLib {
                         if (!state.jetpackRunning())
                             state.env().getController().getCharacter().turnOnJetpack();
                     }
-                    if (arrivedAtDestination) {
-                        state.currentPathToFollow.clear();
-                        if (state instanceof UUSeAgentState3DVoxelGrid || state instanceof UUSeAgentState3DOctree) {
-                            return new Pair<>(state.centerPos(), state.orientationForward());
-                        }
-                        else {
-                            return new Pair<>(state.wom.position, state.orientationForward());
-                        }
-                    } // else we are not at the destination yet...
 
                     // set currentPathToFollow:
                     state.currentPathToFollow = path ;

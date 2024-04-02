@@ -1745,6 +1745,11 @@ public class Octree implements Explorable<Octree> {
     }
 
     @Override
+    public Iterable<Octree> neighbours_explore(Octree node) {
+        return null;
+    }
+
+    @Override
     public float heuristic(Octree from, Octree to) {
         // using Manhattan distance...
         return Math.abs(to.boundary.center().x - from.boundary.center().x)
@@ -1762,6 +1767,11 @@ public class Octree implements Explorable<Octree> {
     @Override
     public boolean isUnknown(Octree node) {
         return node.label == Label.UNKNOWN;
+    }
+
+    @Override
+    public void updateUnknown(Vec3 pos, float observation_radius) {
+
     }
 
     public void export(PrintWriter printWriter) {
