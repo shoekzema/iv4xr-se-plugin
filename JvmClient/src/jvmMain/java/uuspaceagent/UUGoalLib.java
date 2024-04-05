@@ -84,13 +84,12 @@ public class UUGoalLib {
      * use the tactic exploreTAC.
      * The goal is aborted if the destination is not reachable and all reachable unexplored nodes have been explored.
      */
-    public static Function<UUSeAgentState,GoalStructure> smartCloseToBlock(TestAgent agent,
-                                                                           //String selectorDesc,
+    public static Function<UUSeAgentState,GoalStructure> smartCloseToBlock(String targetBlock,
                                                                            Function<UUSeAgentState, Predicate<WorldEntity>> selector,
                                                                            SEBlockFunctions.BlockSides side,
                                                                            float delta) {
 
-        String goalname_ = "test go to block" ;
+        String goalname_ = "close to block " + targetBlock;
 
         return (UUSeAgentState state) -> {
             GoalStructure G = goal(goalname_)
@@ -167,23 +166,13 @@ public class UUGoalLib {
      * smart version of closeTo3DTo, that assumes the goal block is reachable, but not necessarily right now.
      * It may have to explore a bit or press a button to open a door.
      */
-    public static Function<UUSeAgentState, GoalStructure> smartClose3DTo(TestAgent agent,
-                                                                         String blockType,
+    public static Function<UUSeAgentState, GoalStructure> smartClose3DTo(String blockType,
                                                                          SEBlockFunctions.BlockSides side,
                                                                          float radius,
                                                                          float delta) {
         float sqradius = radius * radius ;
 
-//        return smartClose3DTo(agent,
-//                "type " + blockType,
-//                (UUSeAgentState state) -> (WorldEntity e)
-//                        ->
-//                        blockType.equals(e.getStringProperty("blockType"))
-//                                && Vec3.sub(e.position, state.wom.position).lengthSq() <= sqradius,
-//                side,
-//                delta
-//        ) ;
-        return smartCloseToBlock(agent,
+        return smartCloseToBlock(blockType,
                 (UUSeAgentState state) -> (WorldEntity e)
                         ->
                         blockType.equals(e.getStringProperty("blockType"))

@@ -63,4 +63,34 @@ public class Boundary {
                 &&
                 point.z >= position.z && point.z <= upperBounds.z);
     }
+
+    public boolean sphereIntersects(Vec3 center, float radius) {
+        Vec3 closest = new Vec3(center.x, center.y, center.z);
+
+        if (center.x < position.x) closest.x = position.x;
+        else if(center.x > position.x + size) closest.x = position.x + size;
+
+        if (center.y < position.y) closest.y = position.y;
+        else if(center.y > position.y + size) closest.y = position.y + size;
+
+        if (center.z < position.z) closest.z = position.z;
+        else if(center.z > position.z + size) closest.z = position.z + size;
+
+        return Vec3.dist(center, closest) <= radius;
+    }
+
+    public boolean sphereContains(Vec3 center, float radius) {
+        Vec3 furthest = new Vec3(center.x, center.y, center.z);
+
+        if (center.x < position.x) furthest.x = position.x + size;
+        else if(center.x > position.x + size) furthest.x = position.x;
+
+        if (center.y < position.y) furthest.y = position.y + size;
+        else if(center.y > position.y + size) furthest.y = position.y;
+
+        if (center.z < position.z) furthest.z = position.z + size;
+        else if(center.z > position.z + size) furthest.z = position.z;
+
+        return Vec3.dist(center, furthest) <= radius;
+    }
 }

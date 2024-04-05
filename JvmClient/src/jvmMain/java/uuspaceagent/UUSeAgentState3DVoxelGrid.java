@@ -210,7 +210,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
             for (int x = 0; x < grid.grid.size(); x++) {
                 for (int y = 0; y < grid.grid.get(x).size(); y++) {
                     for (int z = 0; z < grid.grid.get(x).get(y).size(); z++) {
-                        if (grid.get(x, y, z).label == Label.UNKNOWN) {
+                        if (grid.get(x, y, z).label == Label.OPEN) {
                             Vec3 block_pos = grid.getCubeCenterLocation(new DPos3(x, y, z));
                             printWriter.printf("%f %f %f %n", block_pos.x, block_pos.y, block_pos.z);
                         }
