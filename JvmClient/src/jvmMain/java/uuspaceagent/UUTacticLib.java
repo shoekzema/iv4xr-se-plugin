@@ -8,6 +8,7 @@ import nl.uu.cs.aplib.utils.Pair;
 import spaceEngineers.model.CharacterObservation;
 import spaceEngineers.model.Vec2F;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -16,6 +17,7 @@ import static nl.uu.cs.aplib.AplibEDSL.action;
 import static spaceEngineers.controller.Character.DISTANCE_CENTER_CAMERA;
 import static uuspaceagent.UUSeAgentState.OBSERVATION_RADIUS;
 
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class UUTacticLib {
 
     /**
@@ -58,7 +60,7 @@ public class UUTacticLib {
      * square is considered as visited. This distance is an about the square size, so the agent
      * might actually in the neighboring square. This threshold is introduced to avoid the
      * agent from getting stuck because it keeps overshooting the center of a target square.
-     *
+     * <p>
      * The threshold is not expressed literally as distance, but for efficiency it is expressed
      * as the square of the distance (so that we don't have to keep calculating square-roots).
      */
@@ -90,10 +92,10 @@ public class UUTacticLib {
      * of commands sent is specified by the parameter "duration", though the burst is stopped once
      * the agent is very close to the destination (some threshold). The agent will run, if the
      * distance to the destination is >= 1, else it will walk.
-     *
+     * <p>
      * Note: (1) the method will not turn the direction the agent is facing,
      * and (2) that during the burst we will be blind to changes from SE.
-     *
+     * <p>
      * The method returns an observation if it did at least one move. If at the beginning the agent
      * is already (very close to) at the destination the method will not do any move and will
      * return null.
@@ -161,15 +163,15 @@ public class UUTacticLib {
      * This results in fast(er) move. The number
      * of commands sent is specified by the parameter "duration", though the burst is stopped once
      * the agent is very close to the destination (some threshold).
-     *
+     * <p>
      * Note: (1) the method will not turn the direction the agent is facing,
      * and (2) that during the burst we will be blind to changes from SE.
-     *
+     * <p>
      * The method returns an observation if it did at least one move. If at the beginning the agent
      * is already (very close to) at the destination the method will not do any move and return null.
      */
     public static CharacterObservation moveToward(UUSeAgentState3DVoxelGrid agentState, Vec3 destination, int duration) {
-        Vec3 playerPos3D = Vec3.add(agentState.wom.position, Vec3.mul(agentState.orientationUp(), 0.5f));
+        Vec3 playerPos3D = agentState.centerPos();
         Vec3 destinationRelativeLocation = Vec3.sub(destination, playerPos3D) ;
         float sqDistance = destinationRelativeLocation.lengthSq() ;
         if (sqDistance <= 0.01) {
@@ -208,7 +210,7 @@ public class UUTacticLib {
         return obs ;
     }
     public static CharacterObservation moveToward(UUSeAgentState3DOctree agentState, Vec3 destination, int duration) {
-        Vec3 playerPos3D = Vec3.add(agentState.wom.position, Vec3.mul(agentState.orientationUp(), 0.5f));
+        Vec3 playerPos3D = agentState.centerPos();
         Vec3 destinationRelativeLocation = Vec3.sub(destination, playerPos3D) ;
         float sqDistance = destinationRelativeLocation.lengthSq() ;
         if (sqDistance <= 0.01) {
@@ -252,16 +254,16 @@ public class UUTacticLib {
      * method will only change the agent's forward facing vector. So, it rotates the agent's
      * forward vector around the agent's y-axis. It does not change the agent's up-facing
      * vector either. (so, it is like moving the agent's head horizontally, but not vertically).
-     *
+     * <p>
      * The number of the turn-commands bursted is specified by the parameter duration. The agent
      * will turn on its place so that it would face the given destination. The parameter
      * "cosAlphaThreshold" specifies how far the agent should turn. It would turn until the angle
      * alpha between its forward direction and the straight line between itself and destination
      * is alpha. The cosAlphaThreshold expresses this alpha in terms of cos(alpha).
-     *
+     * <p>
      * The method will burst the turning, if the remaining angle towards alpha is still large,
      * after which it will not burst (so it will just send one turn-command and return).
-     *
+     * <p>
      * If at the beginning the angle to destination is less than alpha this method returns null,
      * and else it returns an observation at the end of the turns.
      */
@@ -348,16 +350,16 @@ public class UUTacticLib {
      * A primitive method that sends a burst of successive turn-angle commands to SE. This
      * method rotates the agent's up-facing vector around the agent's z-axis.
      * (so, it is like moving the agent's head vertically, but not horizontally).
-     *
+     * <p>
      * The number of the turn-commands bursted is specified by the parameter duration. The agent
      * will turn on its place so that it would face the given destination. The parameter
      * "cosAlphaThreshold" specifies how far the agent should turn. It would turn until the angle
      * alpha between its forward direction and the straight line between itself and destination
      * is alpha. The cosAlphaThreshold expresses this alpha in terms of cos(alpha).
-     *
+     * <p>
      * The method will burst the turning, if the remaining angle towards alpha is still large,
      * after which it will not burst (so it will just send one turn-command and return).
-     *
+     * <p>
      * If at the beginning the angle to destination is less than alpha this method returns null,
      * and else it returns an observation at the end of the turns.
      */
@@ -548,7 +550,7 @@ public class UUTacticLib {
      * given destination. The turning is around the y-axis (so, on the XZ plane; the y coordinates on all
      * points in the agent would stay the same). When the agent faces towards the destination
      * (with some epsilon), the action is no longer enabled.
-     *
+     * <p>
      * The action returns the resulting angle (expressed in cos-alpha) between the agent's
      * forward-orientation and the direction-vector towards the given destination.
      */
@@ -592,7 +594,7 @@ public class UUTacticLib {
      * given destination. The turning is around the z-axis (so, on the XY plane; the z coordinates on all
      * points in the agent would stay the same). When the agent faces towards the destination
      * (with some epsilon), the action is no longer enabled.
-     *
+     * <p>
      * The action returns the resulting angle (expressed in cos-alpha) between the agent's
      * up-orientation and the direction-vector towards the given destination.
      */
@@ -676,12 +678,12 @@ public class UUTacticLib {
      * When invoked repeatedly, this action drives the agent to move in the straight-line towards the given
      * destination. The destination is assumed to be on the same XZ plane as the agent. The space between
      * the agent and the destination are assumed to be clear, and the XZ-plane along the travel is walkable.
-     *
+     * <p>
      * The action is no longer enabled if the agent is already at the destination (or very very close to it).
-     *
+     * <p>
      * This action will not turn the agent to face the destination (so, it will strafe, if its orientation
      * is not aligned first).
-     *
+     * <p>
      * The action returns the resulting distance to the destination. More precisely, it returns
      * the square of the distance, to avoid calculating the more expensive square-root.
      */
@@ -783,7 +785,11 @@ public class UUTacticLib {
                     WorldEntity block = SEBlockFunctions.findClosestBlock(state.wom, selector.apply(state));
                     if (block == null) return null;
 
-                    Vec3 destination = SEBlockFunctions.getSideCenterPoint(block, side, delta + 1.5f);
+                    Vec3 destination;
+                    if (block.getStringProperty("blockType").contains("ButtonPanel"))
+                        destination = (Vec3) block.getProperty("centerPosition");
+                    else
+                        destination = SEBlockFunctions.getSideCenterPoint(block, side, delta + 1.5f);
 
                     var agentSq = state.getGridPos(state.centerPos()) ;
                     var destinationSq = state.getGridPos(destination) ;
@@ -841,7 +847,7 @@ public class UUTacticLib {
      * To be more precise, the tactic targets the square S on the grid where the destination is
      * located. Then it travels to some point with the distance at most d to the center of S.
      * D is the square root of THRESHOLD_SQUARED_DISTANCE_TO_SQUARE.
-     *
+     * <p>
      * The tactic returns the resulting new position and forward-orientation of the agent.
      */
     public static Tactic navigateToTAC(Vec3 destination) {
@@ -1042,9 +1048,9 @@ public class UUTacticLib {
      * To be more precise, the tactic targets the node N which neighbours an unknown node.
      * Then it travels to some point with the distance at most d to the center of S.
      * D is the square root of THRESHOLD_SQUARED_DISTANCE_TO_SQUARE.
-     *
+     * <p>
      * It does this until there are no more reachable nodes next to an unknown node.
-     *
+     * <p>
      * The tactic returns the resulting new position and forward-orientation of the agent.
      */
     public static Tactic exploreTAC() {
@@ -1097,7 +1103,7 @@ public class UUTacticLib {
                         return new Pair<>(state.centerPos(), state.orientationForward()) ;
                     }
 
-                    CharacterObservation obs = null ;
+                    CharacterObservation obs;
                     // disabling rotation for now
                     obs = yTurnTowardACT(state, nextNodePos, 0.8f, 10) ;
                     if (obs != null) {
