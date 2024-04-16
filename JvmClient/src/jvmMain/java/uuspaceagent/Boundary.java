@@ -46,6 +46,17 @@ public class Boundary {
             return false;
         return true;
     }
+    public boolean contains(Boundary2 other) {
+        Vec3 this_upperBounds = this.upperBounds();
+        Vec3 other_upperBounds = other.upperBounds;
+        if (other.lowerBounds.x < this.position.x || other_upperBounds.x > this_upperBounds.x)
+            return false;
+        if (other.lowerBounds.y < this.position.y || other_upperBounds.y > this_upperBounds.y)
+            return false;
+        if (other.lowerBounds.z < this.position.z || other_upperBounds.z > this_upperBounds.z)
+            return false;
+        return true;
+    }
 
     public boolean contains(Vec3 point) {
         Vec3 upperBounds = upperBounds();
