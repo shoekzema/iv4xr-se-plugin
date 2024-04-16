@@ -3,9 +3,6 @@ package uuspaceagent;
 
 //import eu.iv4xr.framework.mainConcepts.W3DAgentState;
 import environments.SeEnvironment;
-import eu.iv4xr.framework.extensions.pathfinding.AStar;
-import eu.iv4xr.framework.extensions.pathfinding.Navigatable;
-import eu.iv4xr.framework.extensions.pathfinding.Pathfinder;
 import eu.iv4xr.framework.mainConcepts.WorldEntity;
 import eu.iv4xr.framework.mainConcepts.WorldModel;
 import eu.iv4xr.framework.spatial.Vec3;
@@ -16,6 +13,7 @@ import uuspaceagent.exploration.AStarExplore;
 import uuspaceagent.exploration.Explorable;
 import uuspaceagent.exploration.PathExplorer;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -28,6 +26,9 @@ public abstract class UUSeAgentState<NodeId> extends State {
     public WorldModel wom ;
     public PathExplorer<NodeId> pathfinder = new AStarExplore<>();
     public List<NodeId> currentPathToFollow = new LinkedList<>();
+
+    public List<WorldEntity> doors = new ArrayList<>();
+    public List<WorldEntity> buttons = new ArrayList<>();
 
     /**
      * SE does not seem to send time-stamp, so we will keep track the number of state-updates

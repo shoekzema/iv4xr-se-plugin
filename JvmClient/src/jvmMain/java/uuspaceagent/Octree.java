@@ -19,9 +19,11 @@ public class Octree implements Explorable<Octree> {
     public static float AGENT_WIDTH  = 1f ;
 
     static boolean exploring = false;
-    // codePopOverwrite = 0 if no overwrite,
-    //      values [ 1-12] for diagonals (2D),
-    //      values [13-20] for diagonals (3D)
+    /**
+     * codePopOverwrite = 0 if no overwrite,
+     * values [ 1-12] for diagonals (2D),
+     * values [13-20] for diagonals (3D).
+     */
     static short codePopOverwrite = 0;
 
 
@@ -40,7 +42,7 @@ public class Octree implements Explorable<Octree> {
      */
     public void initializeGrid(Vec3 pos, float observation_radius) {
         // Add 1 to the observation radius, so that it doesn't immediately have to expand after the first frame
-        boundary = new Boundary(Vec3.sub(pos, new Vec3(observation_radius + 1)), 2 * observation_radius + 1);
+        boundary = new Boundary(Vec3.sub(pos, new Vec3(observation_radius + 2.5f)), 2 * observation_radius + 5);
     }
 
 
@@ -128,7 +130,7 @@ public class Octree implements Explorable<Octree> {
                     node.addObstacle(block));
         }
         // Check if every child-node is full, then become blocking and throw them away.
-        if (children.stream().noneMatch(node -> node.label != Label.BLOCKED)) {
+        if (children.stream().allMatch(node -> node.label == Label.BLOCKED)) {
             this.label = Label.BLOCKED;
             children = new ArrayList<>(0);
         }
@@ -176,7 +178,7 @@ public class Octree implements Explorable<Octree> {
             children.forEach(node -> node.removeObstacle(block));
         }
         // Check if every child-node is empty, then become open and throw them away.
-        if (children.stream().noneMatch(node -> node.label != Label.OPEN)) {
+        if (children.stream().allMatch(node -> node.label == Label.OPEN)) {
             this.label = Label.OPEN;
             children = new ArrayList<>(0);
         }
@@ -197,12 +199,12 @@ public class Octree implements Explorable<Octree> {
                     node.update(blocks, range));
 
             // If every child-node is full, become blocking and throw them away.
-            if (children.stream().noneMatch(node -> node.label != Label.BLOCKED)) {
+            if (children.stream().allMatch(node -> node.label == Label.BLOCKED)) {
                 this.label = Label.BLOCKED;
                 children = new ArrayList<>(0);
             }
             // If every child-node is empty, become empty and throw them away.
-            else if (children.stream().noneMatch(q -> q.label != Label.OPEN)) {
+            else if (children.stream().allMatch(q -> q.label == Label.OPEN)) {
                 this.label = Label.OPEN;
                 children = new ArrayList<>(0);
             }
@@ -245,7 +247,7 @@ public class Octree implements Explorable<Octree> {
             }
         }
         // Check if every child-node is full, then become blocking and throw them away.
-        if (children.stream().noneMatch(node -> node.label != Label.BLOCKED)) {
+        if (children.stream().allMatch(node -> node.label == Label.BLOCKED)) {
             this.label = Label.BLOCKED;
             children = new ArrayList<>(0);
         }
@@ -318,29 +320,29 @@ public class Octree implements Explorable<Octree> {
 
         // Otherwise, find the direction to expand in
         int oldcode;
-        if (range.upperBounds().x >= this.boundary.upperBounds().x) { // expand to the right
-            if (range.upperBounds().y >= this.boundary.upperBounds().y) { // expand towards up-right
-                if (range.upperBounds().z >= this.boundary.upperBounds().z) // expand towards up-right-back
-                    oldcode = 1;
+        if (range.center().x >= this.boundary.center().x) { // expand to the right
+            if (range.center().y < this.boundary.center().y) { // expand towards up-right
+                if (range.center().z >= this.boundary.center().z) // expand towards up-right-back
+                    oldcode = 3;
                 else // expand towards up-right-front
-                    oldcode = 5;
+                    oldcode = 7;
 
             }
             else { // expand towards down-right
-                if (range.upperBounds().z >= this.boundary.upperBounds().z) // expand towards down-right-back
-                    oldcode = 3;
+                if (range.center().z >= this.boundary.center().z) // expand towards down-right-back
+                    oldcode = 1;
                 else // expand towards down-right-front
-                    oldcode = 7;
+                    oldcode = 5;
             }
         }
         else { // expand to the left
-            if (range.upperBounds().y >= this.boundary.upperBounds().y) { // expand towards up-left
-                if (range.upperBounds().z >= this.boundary.upperBounds().z) // expand towards up-left-back
+            if (range.center().y < this.boundary.center().y) { // expand towards up-left
+                if (range.center().z >= this.boundary.center().z) // expand towards up-left-back
                     oldcode = 4;
                 else // expand towards up-left-front
                     oldcode = 8;
             } else { // expand towards down-left
-                if (range.upperBounds().z >= this.boundary.upperBounds().z) // expand towards down-left-back
+                if (range.center().z >= this.boundary.center().z) // expand towards down-left-back
                     oldcode = 2;
                 else // expand towards down-left-front
                     oldcode = 6;
@@ -352,7 +354,7 @@ public class Octree implements Explorable<Octree> {
         float oldSize = boundary.size();
         switch (oldcode) {
             case 1 -> newRoot = new Octree(
-                    new Boundary(boundary.position, newSize),
+                    new Boundary(Vec3.sub(boundary.position, new Vec3(0, 0, 0)), newSize),
                     null, (byte) 0, Label.MIXED);
             case 2 -> newRoot = new Octree(
                     new Boundary(Vec3.sub(boundary.position, new Vec3(oldSize, 0, 0)), newSize),
@@ -1679,32 +1681,62 @@ public class Octree implements Explorable<Octree> {
 
         // Directional
         List<Octree> temp = node.getTopNeighbour(new Stack<>());
-        if (!temp.isEmpty()) {
+        if (temp == null) {
+            if (exploring)
+                candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(0, boundary.size, 0)), boundary.size),
+                        null, (byte) 0, Label.UNKNOWN));
+        }
+        else if (!temp.isEmpty()) {
             candidates.addAll(temp);
             top = true;
         }
         temp = node.getRightNeighbour(new Stack<>());
-        if (!temp.isEmpty()) {
+        if (temp == null) {
+            if (exploring)
+                candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(boundary.size, 0, 0)), boundary.size),
+                        null, (byte) 0, Label.UNKNOWN));
+        }
+        else if (!temp.isEmpty()) {
             candidates.addAll(temp);
             right = true;
         }
         temp = node.getBottomNeighbour(new Stack<>());
-        if (!temp.isEmpty()) {
+        if (temp == null) {
+            if (exploring)
+                candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(0, -boundary.size, 0)), boundary.size),
+                        null, (byte) 0, Label.UNKNOWN));
+        }
+        else if (!temp.isEmpty()) {
             candidates.addAll(temp);
             bottom = true;
         }
         temp = node.getLeftNeighbour(new Stack<>());
-        if (!temp.isEmpty()) {
+        if (temp == null) {
+            if (exploring)
+                candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(-boundary.size, 0, 0)), boundary.size),
+                        null, (byte) 0, Label.UNKNOWN));
+        }
+        else if (!temp.isEmpty()) {
             candidates.addAll(temp);
             left = true;
         }
         temp = node.getFrontNeighbour(new Stack<>());
-        if (!temp.isEmpty()) {
+        if (temp == null) {
+            if (exploring)
+                candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(0, 0, -boundary.size)), boundary.size),
+                        null, (byte) 0, Label.UNKNOWN));
+        }
+        else if (!temp.isEmpty()) {
             candidates.addAll(temp);
             front = true;
         }
         temp = node.getBackNeighbour(new Stack<>());
-        if (!temp.isEmpty()) {
+        if (temp == null) {
+            if (exploring)
+                candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(0, 0, boundary.size)), boundary.size),
+                        null, (byte) 0, Label.UNKNOWN));
+        }
+        else if (!temp.isEmpty()) {
             candidates.addAll(temp);
             back = true;
         }
@@ -1713,7 +1745,12 @@ public class Octree implements Explorable<Octree> {
         if (top && left) {
             codePopOverwrite = 1;
             temp = node.getTopLeftNeighbour(new Stack<>());
-            if (!temp.isEmpty()) {
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(-boundary.size, boundary.size, 0)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) {
                 candidates.addAll(temp);
                 topleft = true;
             }
@@ -1721,7 +1758,12 @@ public class Octree implements Explorable<Octree> {
         if (top && right) {
             codePopOverwrite = 2;
             temp = node.getTopRightNeighbour(new Stack<>());
-            if (!temp.isEmpty()) {
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(boundary.size, boundary.size, 0)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) {
                 candidates.addAll(temp);
                 topright = true;
             }
@@ -1729,7 +1771,12 @@ public class Octree implements Explorable<Octree> {
         if (top && front) {
             codePopOverwrite = 9;
             temp = node.getTopFrontNeighbour(new Stack<>());
-            if (!temp.isEmpty()) {
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(0, boundary.size, -boundary.size)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) {
                 candidates.addAll(temp);
                 topfront = true;
             }
@@ -1737,7 +1784,12 @@ public class Octree implements Explorable<Octree> {
         if (top && back) {
             codePopOverwrite = 11;
             temp = node.getTopBackNeighbour(new Stack<>());
-            if (!temp.isEmpty()) {
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(0, boundary.size, boundary.size)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) {
                 candidates.addAll(temp);
                 topback = true;
             }
@@ -1745,7 +1797,12 @@ public class Octree implements Explorable<Octree> {
         if (bottom && left) {
             codePopOverwrite = 3;
             temp = node.getBottomLeftNeighbour(new Stack<>());
-            if (!temp.isEmpty()) {
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(-boundary.size, -boundary.size, 0)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) {
                 candidates.addAll(temp);
                 bottomleft = true;
             }
@@ -1753,7 +1810,12 @@ public class Octree implements Explorable<Octree> {
         if (bottom && right) {
             codePopOverwrite = 4;
             temp = node.getBottomRightNeighbour(new Stack<>());
-            if (!temp.isEmpty()) {
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(boundary.size, -boundary.size, 0)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) {
                 candidates.addAll(temp);
                 bottomright = true;
             }
@@ -1761,7 +1823,12 @@ public class Octree implements Explorable<Octree> {
         if (bottom && front) {
             codePopOverwrite = 10;
             temp = node.getBottomFrontNeighbour(new Stack<>());
-            if (!temp.isEmpty()) {
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(0, -boundary.size, -boundary.size)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) {
                 candidates.addAll(temp);
                 bottomfront = true;
             }
@@ -1769,7 +1836,12 @@ public class Octree implements Explorable<Octree> {
         if (bottom && back) {
             codePopOverwrite = 12;
             temp = node.getBottomBackNeighbour(new Stack<>());
-            if (!temp.isEmpty()) {
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(0, -boundary.size, boundary.size)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) {
                 candidates.addAll(temp);
                 bottomback = true;
             }
@@ -1777,15 +1849,25 @@ public class Octree implements Explorable<Octree> {
         if (left && front) {
             codePopOverwrite = 5;
             temp = node.getLeftFrontNeighbour(new Stack<>());
-            if (!temp.isEmpty()) {
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(-boundary.size, 0, -boundary.size)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) {
                 candidates.addAll(temp);
                 leftfront = true;
             }
         }
         if (left && back) {
             codePopOverwrite = 7;
-            temp = node.getLeftBackNeighbour(new Stack<>()); // TODO: check
-            if (!temp.isEmpty()) {
+            temp = node.getLeftBackNeighbour(new Stack<>());
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(-boundary.size, 0, boundary.size)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) {
                 candidates.addAll(temp);
                 leftback = true;
             }
@@ -1793,7 +1875,12 @@ public class Octree implements Explorable<Octree> {
         if (right && front) {
             codePopOverwrite = 6;
             temp = node.getRightFrontNeighbour(new Stack<>());
-            if (!temp.isEmpty()) {
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(boundary.size, 0, -boundary.size)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) {
                 candidates.addAll(temp);
                 rightfront = true;
             }
@@ -1801,7 +1888,12 @@ public class Octree implements Explorable<Octree> {
         if (right && back) {
             codePopOverwrite = 8;
             temp = node.getRightBackNeighbour(new Stack<>());
-            if (!temp.isEmpty()) {
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(boundary.size, 0, boundary.size)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) {
                 candidates.addAll(temp);
                 rightback = true;
             }
@@ -1810,39 +1902,79 @@ public class Octree implements Explorable<Octree> {
         if (topleft && topfront && leftfront) {
             codePopOverwrite = 13;
             temp = node.getTopLeftFrontNeighbour(new Stack<>());
-            if (!temp.isEmpty()) candidates.addAll(temp);
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(-boundary.size, boundary.size, -boundary.size)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) candidates.addAll(temp);
         }
         if (topleft && topback && leftback) {
             codePopOverwrite = 17;
             temp = node.getTopLeftBackNeighbour(new Stack<>());
-            if (!temp.isEmpty()) candidates.addAll(temp);
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(-boundary.size, boundary.size, boundary.size)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) candidates.addAll(temp);
         }
         if (topright && topfront && rightfront) {
             codePopOverwrite = 14;
             temp = node.getTopRightFrontNeighbour(new Stack<>());
-            if (!temp.isEmpty()) candidates.addAll(temp);
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(boundary.size, boundary.size, -boundary.size)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) candidates.addAll(temp);
         } if (topright && topback && rightback) {
             codePopOverwrite = 18;
             temp = node.getTopRightBackNeighbour(new Stack<>());
-            if (!temp.isEmpty()) candidates.addAll(temp);
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(boundary.size, boundary.size, boundary.size)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) candidates.addAll(temp);
         }
         if (bottomleft && bottomfront && leftfront) {
             codePopOverwrite = 15;
             temp = node.getBottomLeftFrontNeighbour(new Stack<>());
-            if (!temp.isEmpty()) candidates.addAll(temp);
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(-boundary.size, -boundary.size, -boundary.size)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) candidates.addAll(temp);
         } if (bottomleft && bottomback && leftback) {
             codePopOverwrite = 19;
             temp = node.getBottomLeftBackNeighbour(new Stack<>());
-            if (!temp.isEmpty()) candidates.addAll(temp);
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(-boundary.size, -boundary.size, boundary.size)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) candidates.addAll(temp);
         }
         if (bottomright && bottomfront && rightfront) {
             codePopOverwrite = 16;
             temp = node.getBottomRightFrontNeighbour(new Stack<>()); // TODO: check
-            if (!temp.isEmpty()) candidates.addAll(temp);
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(boundary.size, -boundary.size, -boundary.size)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) candidates.addAll(temp);
         } if (bottomright && bottomback && rightback) {
             codePopOverwrite = 20;
             temp = node.getBottomRightBackNeighbour(new Stack<>());
-            if (!temp.isEmpty()) candidates.addAll(temp);
+            if (temp == null) {
+                if (exploring)
+                    candidates.add(new Octree(new Boundary(Vec3.add(boundary.position, new Vec3(boundary.size, -boundary.size, boundary.size)), boundary.size),
+                            null, (byte) 0, Label.UNKNOWN));
+            }
+            else if (!temp.isEmpty()) candidates.addAll(temp);
         }
         codePopOverwrite = 0;
         return candidates;
@@ -1888,7 +2020,7 @@ public class Octree implements Explorable<Octree> {
                 children.forEach(node -> node.updateUnknown(pos, observation_radius));
 
                 // If every child-node is open, become open and throw away the children.
-                if (children.stream().noneMatch(node -> node.label != Label.OPEN)) {
+                if (children.stream().allMatch(node -> node.label == Label.OPEN)) {
                     this.label = Label.OPEN;
                     children = new ArrayList<>(0);
                 }

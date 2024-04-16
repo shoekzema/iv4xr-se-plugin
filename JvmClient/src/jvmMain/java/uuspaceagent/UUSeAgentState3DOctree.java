@@ -11,18 +11,12 @@ import uuspaceagent.exploration.Explorable;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
 
-    boolean printed = false;
-
-    public Octree grid = new Octree(null, null, (byte) 0, Label.UNKNOWN) ;
-    public List<WorldEntity> dynamicObjects = new ArrayList<>();
+    public Octree grid = new Octree(null, null, (byte) 0, Label.UNKNOWN);
 
     public UUSeAgentState3DOctree(String agentId) {
         super(agentId);
@@ -105,6 +99,8 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
             for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
                 addToOctree(block);
             }
+
+            grid.updateUnknown(centerPos(), OBSERVATION_RADIUS);
         }
         else {
             // MERGING the two woms:
@@ -114,8 +110,11 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
 
             System.out.println("========================================================");
 
+//            grid = new Octree(null, null, (byte) 0, Label.UNKNOWN);
+//            grid.initializeGrid(wom.position, OBSERVATION_RADIUS);
+
             // Check if the Octree needs to be expanded
-            Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS)), 2 * OBSERVATION_RADIUS);
+            Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS + 2.5f)), 2 * OBSERVATION_RADIUS + 5);
             Octree newRoot = grid.checkAndExpand(observation_radius);
             if (newRoot != null)
                 grid = newRoot;
@@ -127,6 +126,8 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
             for(var id : tobeRemoved) wom.elements.remove(id) ;
 
             for(var cubeGridNew : changes) {
+                if (Objects.equals(cubeGridNew.id, this.agentId)) continue;
+
                 var cubegridOld = cubeGridNew.getPreviousState();
 
                 // Then, we remove disappearing blocks (from grids that changed):
@@ -147,21 +148,21 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
                         for (var block2 : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
                             addToOctree(block2);
                         }
+                        grid.updateUnknown(centerPos(), OBSERVATION_RADIUS);
                     }
                 }
                 if (!rebuild) {
                     // We add new blocks (from grids that changed):
                     List<String> tobeAdded = cubeGridNew.elements.keySet().stream()
                             .filter(id -> !cubegridOld.elements.containsKey(id))
-                            .collect(Collectors.toList());
+                            .toList();
                     for (var blockId : tobeAdded) {
                         addToOctree(cubeGridNew.elements.get(blockId));
                     }
+                    grid.updateUnknown(centerPos(), OBSERVATION_RADIUS);
                 }
             }
         }
-
-        if (!printed) { exportGrid(); printed = true; }
     }
 
     public void addToOctree(WorldEntity block) {
@@ -170,10 +171,10 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
         if (isOpen != null) {
             if (!isOpen)
                 grid.addObstacle(block);
-            dynamicObjects.add(block);
+            doors.add(block);
         }
         else if(block.getStringProperty("blockType").contains("ButtonPanel")) {
-            dynamicObjects.add(block);
+            buttons.add(block);
         }
         else
             grid.addObstacle(block);
@@ -207,18 +208,18 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
 
     public void exportGrid() {
 
-        Observation rawGridsAndBlocksStates = env().getController().getObserver().observeBlocks() ;
-        WorldModel gridsAndBlocksStates = SeEnvironmentKt.toWorldModel(rawGridsAndBlocksStates) ;
-
-//        Vec3 doorpos = new Vec3(0);
+//        Observation rawGridsAndBlocksStates = env().getController().getObserver().observeBlocks() ;
+//        WorldModel gridsAndBlocksStates = SeEnvironmentKt.toWorldModel(rawGridsAndBlocksStates) ;
+//
+////        Vec3 doorpos = new Vec3(0);
+////        for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
+////            if (SEBlockFunctions.geSlideDoorState(block) != null) {
+////                doorpos = block.position;
+////            }
+////        }
 //        for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-//            if (SEBlockFunctions.geSlideDoorState(block) != null) {
-//                doorpos = block.position;
-//            }
+//            addToOctree(block);
 //        }
-        for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-            addToOctree(block);
-        }
 
         try {
             System.out.println(System.getProperty("user.dir"));
