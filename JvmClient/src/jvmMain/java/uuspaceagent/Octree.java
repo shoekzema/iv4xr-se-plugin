@@ -36,6 +36,20 @@ public class Octree implements Explorable<Octree> {
     }
 
 
+    Boundary2 blockBB(Vec3 pos) {
+        // Create block (size 2.5), but add some padding
+        // TODO: a more general approach for 3D. So not assuming y is the up-axis
+        // add some padding due to agent's body width/height:
+        //      note: agent height = 1.8, about 0.5 above feet is the rotation point, so to prevent the agent from
+        //            hitting their head, pad with (1.3 - 0.5 * MIN_NODE_SIZE)
+        float hpadding = 0; //AGENT_WIDTH * 0.5f;
+        float vpadding = 0; //1.3f - 0.5f * MIN_NODE_SIZE;
+
+        return new Boundary2(Vec3.sub(pos, new Vec3(1.25f + hpadding, 1.25f + vpadding, 1.25f + hpadding)),
+                             Vec3.add(pos, new Vec3(1.25f + hpadding, 1.25f,            1.25f + hpadding)));
+    }
+
+
     /**
      *  Initializes the octrees root boundary based on the first observed position and the observation radius.
      *  Call in UUSeAgentstate3D on first observation.
@@ -92,16 +106,7 @@ public class Octree implements Explorable<Octree> {
         if (this.label == Label.BLOCKED)
             return;
 
-        // Create block (size 2.5), but add some padding
-        // TODO: a more general approach for 3D. So not assuming y is the up-axis
-        // add some padding due to agent's body width/height:
-        //      note: agent height = 1.8, about 0.5 above feet is the rotation point, so to prevent the agent from
-        //            hitting their head, pad with (1.3 - 0.5 * MIN_NODE_SIZE)
-        float hpadding = AGENT_WIDTH * 0.5f;
-        float vpadding = 1.3f - 0.5f * MIN_NODE_SIZE;
-
-        var blockBB = new Boundary2(Vec3.sub(block.position, new Vec3(1.25f + hpadding, 1.25f + vpadding, 1.25f + hpadding)),
-                                    Vec3.add(block.position, new Vec3(1.25f + hpadding, 1.25f, 1.25f + hpadding)));
+        var blockBB = blockBB(block.position);
 
         // If the node is entirely wall
         if (blockBB.contains(this.boundary)) {
@@ -142,16 +147,7 @@ public class Octree implements Explorable<Octree> {
         if (this.label == Label.OPEN || this.label == Label.UNKNOWN)
             return;
 
-        // Create block (size 2.5), but add some padding
-        // TODO: a more general approach for 3D. So not assuming y is the up-axis
-        // add some padding due to agent's body width/height:
-        //      note: agent height = 1.8, about 0.5 above feet is the rotation point, so to prevent the agent from
-        //            hitting their head, pad with (1.3 - 0.5 * MIN_NODE_SIZE)
-        float hpadding = AGENT_WIDTH * 0.5f;
-        float vpadding = 1.3f - 0.5f * MIN_NODE_SIZE;
-
-        var blockBB = new Boundary2(Vec3.sub(block.position, new Vec3(1.25f + hpadding, 1.25f + vpadding, 1.25f + hpadding)),
-                Vec3.add(block.position, new Vec3(1.25f + hpadding, 1.25f, 1.25f + hpadding)));
+        var blockBB = blockBB(block.position);
 
         // If the node is entirely inside the removed block
         if (blockBB.contains(this.boundary)) {
@@ -1124,7 +1120,7 @@ public class Octree implements Explorable<Octree> {
                 return parent.children.get(2).getBottomNeighbour(codes);
             }
             case 5 -> { // top-left-back
-                return parent.children.get(6).getRightNeighbour(codes);
+                return parent.children.get(6).getLeftNeighbour(codes);
             }
             case 6 -> { // top-right-back
                 return parent.children.get(6).getTopRightEdgeChildrenLeafs(codes);
@@ -1134,7 +1130,7 @@ public class Octree implements Explorable<Octree> {
                 return parent.getBottomLeftNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
-                return parent.children.get(6).getTopNeighbour(codes);
+                return parent.children.get(6).getBottomNeighbour(codes);
             }
         }
         return null; // Should never happen
