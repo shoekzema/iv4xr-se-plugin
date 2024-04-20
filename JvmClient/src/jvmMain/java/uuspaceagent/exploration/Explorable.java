@@ -13,7 +13,7 @@ public interface Explorable<NodeId> {
 
     /**
      * An iterable that can be used by pathfinders to explore a node's connections.
-     * Different from normal {@link #neighbours()}, it allows unexplored nodes as neighbours
+     * Different from normal {@link #neighbours}, it allows unexplored nodes as neighbours
      *
      * @param id the index of the vertex to inspect.
      * @return an iterable of the connected neighbours.

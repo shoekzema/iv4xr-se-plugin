@@ -167,7 +167,9 @@ public class PrintInfos {
         z.append("path.size: " + path.size()) ;
         int k = 0 ;
         for(var node : path) {
-            z.append("\n" + "> Node " + k + ":" + node + ", center:" + node.boundary.center());
+            z.append("\n" + "> Node " + String.format("%2d", k) + ": center: (" + String.format("% .4f", node.boundary.center().x)
+                + "," + String.format("% .4f", node.boundary.center().y)
+                + "," + String.format("% .4f", node.boundary.center().z) + ")");
             if (node.label != Label.BLOCKED) {
                 z.append(", no-obstacles") ;
             }
