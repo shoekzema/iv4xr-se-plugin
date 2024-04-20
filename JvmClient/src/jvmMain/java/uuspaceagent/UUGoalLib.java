@@ -9,13 +9,17 @@ import eu.iv4xr.framework.spatial.Vec3;
 import nl.uu.cs.aplib.mainConcepts.*;
 import static nl.uu.cs.aplib.AplibEDSL.* ;
 import nl.uu.cs.aplib.utils.Pair;
+import spaceEngineers.controller.useobject.UseObjectExtensions;
+import spaceEngineers.model.Block;
 import spaceEngineers.model.Observation;
 import spaceEngineers.model.ToolbarLocation;
 
 
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class UUGoalLib {
 
     /**
@@ -48,48 +52,12 @@ public class UUGoalLib {
         } ;
     }
 
-    /**
-     * A goal that is solved when the agent manage to be in some distance close to a given destination.
-     * If the destination is reachable from the agents current position, use the tactic navigateToTAC,
-     * otherwise use the tactic exploreTAC.
-     * The goal is aborted if the destination is not reachable and all reachable unexplored nodes have been explored.
-     */
-    public static Function<UUSeAgentState,GoalStructure> smartCloseTo(String goalname, Vec3 targetLocation) {
+    public static Function<UUSeAgentState,GoalStructure> closeToBlock(String targetBlockName,
+                                                                      Function<UUSeAgentState, Predicate<WorldEntity>> selector,
+                                                                      SEBlockFunctions.BlockSides side,
+                                                                      float delta) {
 
-        if(goalname == null) {
-            goalname = "close to location " + targetLocation ;
-        }
-
-        String goalname_ = goalname ;
-
-        return (UUSeAgentState state) -> {
-            Vec3 targetSquareCenter = state.getBlockCenter(targetLocation);
-            GoalStructure G = goal(goalname_)
-                    .toSolve((Pair<Vec3,Vec3> posAndOrientation) -> {
-                        var agentPosition = posAndOrientation.fst ;
-                        return Vec3.sub(targetSquareCenter,agentPosition).lengthSq() <= UUTacticLib.THRESHOLD_SQUARED_DISTANCE_TO_SQUARE ;
-                    })
-                    .withTactic(
-                            FIRSTof(UUTacticLib.navigateToTAC(targetLocation),
-                                    UUTacticLib.exploreTAC(),
-                                    ABORT()) )
-                    .lift() ;
-            return G ;
-        } ;
-    }
-
-    /**
-     * A goal that is solved when the agent manage to be in some distance close to a given block.
-     * If the block is reachable from the agents current position, use the tactic navigateToBlockTAC,
-     * use the tactic exploreTAC.
-     * The goal is aborted if the destination is not reachable and all reachable unexplored nodes have been explored.
-     */
-    public static Function<UUSeAgentState,GoalStructure> smartCloseToBlock(String targetBlock,
-                                                                           Function<UUSeAgentState, Predicate<WorldEntity>> selector,
-                                                                           SEBlockFunctions.BlockSides side,
-                                                                           float delta) {
-
-        String goalname_ = "close to block " + targetBlock;
+        String goalname_ = "close to block " + targetBlockName;
 
         return (UUSeAgentState state) -> {
             GoalStructure G = goal(goalname_)
@@ -104,12 +72,160 @@ public class UUGoalLib {
                         return Vec3.sub(targetSquareCenter, agentPosition).lengthSq() <= UUTacticLib.THRESHOLD_SQUARED_DISTANCE_TO_SQUARE ;
                     })
                     .withTactic(
-                            FIRSTof(UUTacticLib.navigateToBlockTAC(selector, side, delta),
-                                    UUTacticLib.exploreTAC(),
-                                    ABORT()) )
+                            FIRSTof(UUTacticLib.navigateToBlockTAC(selector, side, delta), ABORT()) )
                     .lift() ;
             return G ;
         } ;
+    }
+
+    public static Function<UUSeAgentState,GoalStructure> closeToButton() {
+
+        return (UUSeAgentState state) -> {
+            if (state.doors.isEmpty()) return FAIL();
+            if (state.buttons.isEmpty()) return FAIL();
+
+            WorldEntity button = (WorldEntity) state.buttons.get(0);
+
+            Vec3 blockCenter = (Vec3) button.getProperty("centerPosition");
+            Vec3 buttonPanelCenter = blockCenter.copy();
+            buttonPanelCenter = Vec3.add(buttonPanelCenter, (Vec3) button.getProperty("orientationForward"));
+            buttonPanelCenter = Vec3.sub(buttonPanelCenter, Vec3.mul((Vec3) button.getProperty("orientationUp"), 0.5f));
+
+            return SEQ(
+                    closeTo("close to block ButtonPanelLarge", blockCenter).apply(state),
+                    veryclose2DTo("very close to block ButtonPanelLarge", blockCenter),
+                    face2DToward("facing towards block ButtonPanelLarge", buttonPanelCenter)
+                    //face2DTowardUpDown("facing* towards block ButtonPanelLarge", buttonPanelCenter)
+            );
+        };
+    }
+
+    public static Function<UUSeAgentState,GoalStructure> faceTowardBlock(String goalname,
+                                                                         Function<UUSeAgentState, Predicate<WorldEntity>> selector) {
+         return (UUSeAgentState state) -> {
+            WorldEntity block = SEBlockFunctions.findClosestBlock(state.wom, selector.apply(state));
+            if (block == null) return FAIL("Block not found");
+            Vec3 pos = block.position;
+            return goal(goalname)
+                    .toSolve((Float cos_alpha) -> 1 - cos_alpha <= 0.01)
+                    .withTactic(FIRSTof(UUTacticLib.yTurnTowardACT(pos).lift() , ABORT()))
+                    .lift() ;
+        };
+    }
+
+    /**
+     * A goal that is solved when the agent manage to be in some distance close to a given block.
+     * If the block is reachable from the agents current position, use the tactic navigateToBlockTAC.
+     * If the block is not reachable, check for unexplored nodes, using the tactic exploreTAC.
+     * If everything is explored and the block is still not reachable check if pressing buttons will help, using the tactic ____.
+     * The goal is aborted if the destination is not reachable and all reachable unexplored nodes have been explored.
+     */
+    public static Function<UUSeAgentState,GoalStructure> smartCloseToBlock(TestAgent agent,
+                                                                           String targetBlockName,
+                                                                           Function<UUSeAgentState, Predicate<WorldEntity>> selector,
+                                                                           SEBlockFunctions.BlockSides side,
+                                                                           float delta) {
+
+        String goalname_ = "close to block " + targetBlockName;
+        String goalname2_ = "facing towards block " + targetBlockName;
+
+        return (UUSeAgentState state) -> {
+            Function<Void, GoalStructure> G = (unused) -> goal(goalname_)
+                    .toSolve((Pair<Vec3,Vec3> posAndOrientation) -> {
+                        WorldEntity block = SEBlockFunctions.findClosestBlock(state.wom, selector.apply(state));
+                        if (block == null) return false;
+
+                        Vec3 targetLocation = SEBlockFunctions.getSideCenterPoint(block, side, delta + 1.5f);
+                        Vec3 targetSquareCenter = state.getBlockCenter(targetLocation);
+
+                        var agentPosition = posAndOrientation.fst ;
+                        return Vec3.sub(targetSquareCenter, agentPosition).lengthSq() <= UUTacticLib.THRESHOLD_SQUARED_DISTANCE_TO_SQUARE ;
+                    })
+                    .withTactic(
+                            FIRSTof(UUTacticLib.navigateToBlockTAC(selector, side, delta), ABORT()) )
+                    .lift() ;
+
+            return FIRSTof(
+                    SEQ(G.apply(null), // try to go to the goal. if not possible, go explore
+                        DEPLOYonce(agent, faceTowardBlock(goalname2_, selector))
+                    ),
+                    SEQ(explore(targetBlockName, selector, side, delta).apply(state),
+                        G.apply(null), // now with new knowledge, try again
+                        DEPLOYonce(agent, faceTowardBlock(goalname2_, selector))
+                    ),
+                    SEQ( // if still not possible, go to a button and press it
+                        //closeToBlock("ButtonPanelLarge", buttonSelector, SEBlockFunctions.BlockSides.FRONT, 0).apply(state),
+                        DEPLOYonce(agent, closeToButton()),
+                        lift((UUSeAgentState S) -> {
+                            UseObjectExtensions useUtil = new UseObjectExtensions(S.env().getController().getSpaceEngineers());
+                            WorldEntity button = (WorldEntity) S.buttons.get(0);
+                            if (button == null) return false;
+                            Block targetBlock = S.env().getBlock(button.id); //S.env().getController().getObserver().observe().getTargetBlock();
+                            useUtil.pressButton(targetBlock, 0);
+                            S.updateDoors();
+                            return true;
+                        }), // pressing a button will set the label of the nodes of all known doors to unknown
+                        explore(targetBlockName, selector, side, delta).apply(state), // now explore new possible locations (if any doors were reachable)
+                        G.apply(null), // final check if we can go to the goal
+                        DEPLOYonce(agent, faceTowardBlock(goalname2_, selector))
+                    )
+            );
+        };
+    }
+
+    /**
+     * A goal that is solved when the agent has no reachable unknown locations or the target block becomes reachable.
+     * If an unknown location is reachable from the agents current position, use the tactic exploreTAC.
+     * The goal is aborted if all reachable unexplored nodes have been explored.
+     * TODO: For octrees: if the octree node is too big, it cannot fit inside the viewing range fully and it will get stuck
+     */
+    public static Function<UUSeAgentState,GoalStructure> explore(String targetBlockName,
+                                                                 Function<UUSeAgentState, Predicate<WorldEntity>> selector,
+                                                                 SEBlockFunctions.BlockSides side,
+                                                                 float delta) {
+        return (UUSeAgentState state) -> {
+            GoalStructure G = goal("exploring the world to find " + targetBlockName)
+                    .toSolve((Pair<Vec3,Vec3> posAndOrientation) -> {
+                        var agentSq = state.getGridPos(state.centerPos());
+
+                        WorldEntity block = SEBlockFunctions.findClosestBlock(state.wom, selector.apply(state));
+                        if (block != null) {
+                            Vec3 targetLocation = SEBlockFunctions.getSideCenterPoint(block, side, delta + 1.5f);
+                            var destinationSq = state.getGridPos(targetLocation);
+
+                            List<Octree> path = state.pathfinder.findPath(state.getGrid(), agentSq, destinationSq);
+                            if (path != null) return true;
+                        }
+
+                        var path = state.pathfinder.explore(state.getGrid(), agentSq);
+                        // the pathfinder cannot find a path to an unknown node, meaning the world is explored
+                        return path == null;
+                    })
+                    .withTactic(
+                            FIRSTof(UUTacticLib.exploreTAC(selector, side, delta), ABORT()) )
+                    .lift();
+            return G;
+        };
+    }
+
+    /**
+     * A goal that is solved when the agent has no reachable unknown locations.
+     * If an unknown location is reachable from the agents current position, use the tactic exploreTAC.
+     * The goal is aborted if all reachable unexplored nodes have been explored.
+     * TODO: For octrees: if the octree node is too big, it cannot fit inside the viewing range fully and it will get stuck
+     */
+    public static Function<UUSeAgentState,GoalStructure> explore() {
+        return (UUSeAgentState state) -> {
+            return (GoalStructure) goal("exploring the world")
+                    .toSolve((Pair<Vec3,Vec3> posAndOrientation) -> {
+                        var agentSq = state.getGridPos(state.centerPos());
+                        List<DPos3> path = state.pathfinder.explore(state.getGrid(), agentSq);
+                        // the pathfinder cannot find a path to an unknown node, meaning the world is explored
+                        return path == null;
+                    })
+                    .withTactic(UUTacticLib.exploreTAC())
+                    .lift();
+        };
     }
 
     public static Function<UUSeAgentState,GoalStructure> closeTo(Vec3 targetLocation) {
@@ -166,13 +282,15 @@ public class UUGoalLib {
      * smart version of closeTo3DTo, that assumes the goal block is reachable, but not necessarily right now.
      * It may have to explore a bit or press a button to open a door.
      */
-    public static Function<UUSeAgentState, GoalStructure> smartClose3DTo(String blockType,
+    public static Function<UUSeAgentState, GoalStructure> smartClose3DTo(TestAgent agent,
+                                                                         String blockType,
                                                                          SEBlockFunctions.BlockSides side,
                                                                          float radius,
                                                                          float delta) {
         float sqradius = radius * radius ;
 
-        return smartCloseToBlock(blockType,
+        return smartCloseToBlock(agent,
+                blockType,
                 (UUSeAgentState state) -> (WorldEntity e)
                         ->
                         blockType.equals(e.getStringProperty("blockType"))
@@ -286,43 +404,6 @@ public class UUGoalLib {
 //                            + " ," + side, blockCenter)
             ) ;
         } ;
-    }
-
-    /**
-     * Smart version of close3DTo. Use this to target a block in 3D using a generic selector function.
-     * It assumes the goal block is reachable, but not necessarily right now, and it may have to explore a bit or
-     * press a button to open a door.
-     */
-    public static Function<UUSeAgentState, GoalStructure> smartClose3DTo(TestAgent agent,
-                                                                    String selectorDesc,
-                                                                    Function<UUSeAgentState, Predicate<WorldEntity>> selector,
-                                                                    SEBlockFunctions.BlockSides side,
-                                                                    float delta) {
-
-
-        return  (UUSeAgentState state) -> {
-
-            WorldEntity block = SEBlockFunctions.findClosestBlock(state.wom, selector.apply(state)) ;
-            if (block == null) return FAIL("Navigating autofail; no block can be found: " + selectorDesc);
-
-            Vec3 intermediatePosition = SEBlockFunctions.getSideCenterPoint(block, side, delta + 1.5f);
-            Vec3 goalPosition = SEBlockFunctions.getSideCenterPoint(block, side, delta);
-            Vec3 blockCenter = (Vec3) block.getProperty("centerPosition");
-
-            return SEQ((DEPLOYonce(agent,
-                            smartCloseTo("close to a block of property " + selectorDesc + " @"
-                                            + block.position
-                                            + " ," + side + ", targeting " + intermediatePosition,
-                                    intermediatePosition))),
-                    veryclose2DTo("very close to a block of property " + selectorDesc + " @"
-                                    + block.position
-                                    + " ," + side + ", targeting " + goalPosition,
-                            goalPosition),
-                    face2DToward("facing towards a block of property " + selectorDesc + " @"
-                            + block.position
-                            + " ," + side, blockCenter)
-            );
-        };
     }
 
     /**

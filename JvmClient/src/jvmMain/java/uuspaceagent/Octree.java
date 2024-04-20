@@ -181,6 +181,45 @@ public class Octree implements Explorable<Octree> {
     }
 
 
+    public void setUnknown(WorldEntity block) {
+        // If the node is already unknown, do nothing
+        if (this.label == Label.UNKNOWN)
+            return;
+
+        var blockBB = blockBB(block.position);
+
+        // If the node is entirely inside the removed block
+        if (blockBB.contains(this.boundary)) {
+            this.label = Label.UNKNOWN;
+            if (!children.isEmpty()) {
+                children = new ArrayList<>(0);
+            }
+            return;
+        }
+        // Otherwise, it is partially inside the removed block
+
+        // If we cannot subdivide further, force an open label
+        if (boundary.size() < MIN_NODE_SIZE) {
+            this.label = Label.UNKNOWN;
+            return;
+        }
+        // If not already subdivided, subdivide
+        if (this.label != Label.MIXED) {
+            this.subdivide(this.label);
+            this.label = Label.MIXED;
+        }
+
+        if (blockBB.intersects(this.boundary)) {
+            children.forEach(node -> node.removeObstacle(block));
+        }
+        // Check if every child-node is empty, then become open and throw them away.
+        if (children.stream().allMatch(node -> node.label == Label.UNKNOWN)) {
+            this.label = Label.UNKNOWN;
+            children = new ArrayList<>(0);
+        }
+    }
+
+
     /**
      *  Updates the octree using a list of obstacles (blocks) and a viewing range. (slow)
      */

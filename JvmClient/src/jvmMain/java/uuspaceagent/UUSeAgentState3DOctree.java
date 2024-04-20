@@ -110,9 +110,6 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
 
             System.out.println("========================================================");
 
-//            grid = new Octree(null, null, (byte) 0, Label.UNKNOWN);
-//            grid.initializeGrid(wom.position, OBSERVATION_RADIUS);
-
             // Check if the Octree needs to be expanded
             Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS + 2.5f)), 2 * OBSERVATION_RADIUS + 5);
             Octree newRoot = grid.checkAndExpand(observation_radius);
@@ -165,16 +162,33 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
         }
     }
 
+    @Override
+    public void updateDoors() {
+        doors.forEach(door -> grid.setUnknown(door));
+
+        // if any door is inside the viewing range, re-add all blocks
+        Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS + 2.5f)), 2 * OBSERVATION_RADIUS + 5);
+        if (doors.stream().anyMatch(door -> observation_radius.contains(door.position))) {
+            Observation rawGridsAndBlocksStates = env().getController().getObserver().observeBlocks();
+            WorldModel gridsAndBlocksStates = SeEnvironmentKt.toWorldModel(rawGridsAndBlocksStates);
+            for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
+                addToOctree(block);
+            }
+        }
+    }
+
     public void addToOctree(WorldEntity block) {
         Boolean isOpen = SEBlockFunctions.getSlideDoorState(block) ;
         // open-doors are more complicated. TODO.
         if (isOpen != null) {
             if (!isOpen)
                 grid.addObstacle(block);
-            doors.add(block);
+            if (!doors.contains(block))
+                doors.add(block);
         }
         else if(block.getStringProperty("blockType").contains("ButtonPanel")) {
-            buttons.add(block);
+            if (!buttons.contains(block))
+                buttons.add(block);
         }
         else
             grid.addObstacle(block);

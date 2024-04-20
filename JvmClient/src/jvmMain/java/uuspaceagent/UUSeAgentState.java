@@ -70,6 +70,8 @@ public abstract class UUSeAgentState<NodeId> extends State {
 
     }
 
+    public abstract void updateDoors();
+
     // bunch of getters:
 
     Vec3 orientationForward() {

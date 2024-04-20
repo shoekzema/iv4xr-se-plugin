@@ -144,15 +144,31 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
         }
     }
 
+    @Override
+    public void updateDoors() {
+        doors.forEach(door -> grid.setUnknown(door));
+
+        // if any door is inside the viewing range, re-add all blocks
+        Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS + 2.5f)), 2 * OBSERVATION_RADIUS + 5);
+        if (doors.stream().anyMatch(door -> observation_radius.contains(door.position))) {
+            Observation rawGridsAndBlocksStates = env().getController().getObserver().observeBlocks();
+            WorldModel gridsAndBlocksStates = SeEnvironmentKt.toWorldModel(rawGridsAndBlocksStates);
+            for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
+                addToGrid(block, wom.position);
+            }
+        }
+    }
+
     public void addToGrid(WorldEntity block, Vec3 pos) {
         Boolean isOpen = SEBlockFunctions.getSlideDoorState(block) ;
         // open-doors are more complicated. TODO.
         if (isOpen != null) {
             if (!isOpen)
                 grid.addObstacle(block, pos, OBSERVATION_RADIUS);
+            doors.add(block);
         }
         else if(block.getStringProperty("blockType").contains("ButtonPanel")) {
-            var test = 1;
+            buttons.add(block);
         }
         else
             grid.addObstacle(block, pos, OBSERVATION_RADIUS);

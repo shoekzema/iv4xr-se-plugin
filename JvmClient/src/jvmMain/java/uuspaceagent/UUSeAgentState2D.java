@@ -94,12 +94,6 @@ public class UUSeAgentState2D extends UUSeAgentState<DPos3> {
             // merges the woms, but cannot easily be used for exploration because everything outside the viewing distance
             // is thrown away out of the wom
 
-            wom.elements.forEach((key, value) -> {
-                System.out.println(value.elements.size());
-//                value.elements.forEach((key2, value2) -> {
-//                    System.out.println(value2.type + ": " + value2.position);
-//                });
-            });
             System.out.println("========================================================");
 
             // HOWEVER, some blocks and grids-of-blocks may have been destroyed, hence
@@ -124,7 +118,7 @@ public class UUSeAgentState2D extends UUSeAgentState<DPos3> {
             var blocksInWom =  SEBlockFunctions.getAllBlockIDs(wom) ;
             List<String> toBeRemoved = navgrid.allObstacleIDs.stream()
                     .filter(id -> !blocksInWom.contains(id))
-                    .collect(Collectors.toList());
+                    .toList();
             // first, removing obstacles that no longer exist:
             for(var id : toBeRemoved) {
                 navgrid.removeObstacle(id);
@@ -148,5 +142,10 @@ public class UUSeAgentState2D extends UUSeAgentState<DPos3> {
         }
         // updating dynamic blocking-state: (e.g. handling doors)
         // TODO!
+    }
+
+    @Override
+    public void updateDoors() {
+
     }
 }

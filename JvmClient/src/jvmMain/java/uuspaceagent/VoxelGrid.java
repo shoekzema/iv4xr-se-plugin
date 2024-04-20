@@ -109,7 +109,7 @@ public class VoxelGrid implements Explorable<DPos3> {
 
 
         // TODO: a more general approach for 3D. So not assuming y is the up-axis
-        // add some padding due to agent's body width:
+        // add some padding due to agent's body width/height:
         //      note: agent height = 1.8, about 0.5 above feet is the rotation point, so to prevent the agent from
         //            hitting their head, pad with (1.3 - 0.5 * voxelSize)
         //Vec3 hpadding = Vec3.mul(new Vec3(AGENT_WIDTH, 0, AGENT_WIDTH), 0.6f) ;
@@ -154,6 +154,14 @@ public class VoxelGrid implements Explorable<DPos3> {
         var obstructedCubes = getObstructedCubes(block) ;
         for(var voxel : obstructedCubes) {
             get(voxel).label = Label.OPEN;
+        }
+    }
+
+    public void setUnknown(WorldEntity block) {
+
+        var obstructedCubes = getObstructedCubes(block) ;
+        for(var voxel : obstructedCubes) {
+            get(voxel).label = Label.UNKNOWN;
         }
     }
 
