@@ -15,7 +15,7 @@ public class Octree implements Explorable<Octree> {
     byte label; // empty = 0, full = 1, mixed = 2, mixed-unknown = 3
     byte code; // 0-7, Morton code (Z) order
     public static float MIN_NODE_SIZE = 0.5f;
-    public static float AGENT_HEIGHT = 2f ;
+    public static float AGENT_HEIGHT = 1.8f ;
     public static float AGENT_WIDTH  = 1f ;
 
     static boolean exploring = false;
@@ -42,11 +42,11 @@ public class Octree implements Explorable<Octree> {
         // add some padding due to agent's body width/height:
         //      note: agent height = 1.8, about 0.5 above feet is the rotation point, so to prevent the agent from
         //            hitting their head, pad with (1.3 - 0.5 * MIN_NODE_SIZE)
-        float hpadding = 0; //AGENT_WIDTH * 0.5f;
-        float vpadding = 0; //1.3f - 0.5f * MIN_NODE_SIZE;
+        float hpadding = (AGENT_WIDTH - MIN_NODE_SIZE) * 0.5f;
+        float vpadding = (AGENT_HEIGHT - MIN_NODE_SIZE) * 0.5f;
 
         return new Boundary2(Vec3.sub(pos, new Vec3(1.25f + hpadding, 1.25f + vpadding, 1.25f + hpadding)),
-                             Vec3.add(pos, new Vec3(1.25f + hpadding, 1.25f,            1.25f + hpadding)));
+                             Vec3.add(pos, new Vec3(1.25f + hpadding, 1.25f + vpadding, 1.25f + hpadding)));
     }
 
 

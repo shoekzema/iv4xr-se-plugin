@@ -127,6 +127,10 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
 
                 var cubegridOld = cubeGridNew.getPreviousState();
 
+                if (cubegridOld == null) {
+                    continue;
+                }
+
                 // Then, we remove disappearing blocks (from grids that changed):
                 tobeRemoved.clear();
                 tobeRemoved = cubegridOld.elements.keySet().stream()
