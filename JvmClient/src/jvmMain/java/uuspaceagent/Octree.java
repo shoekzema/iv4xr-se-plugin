@@ -103,8 +103,7 @@ public class Octree implements Explorable<Octree> {
 
     public void addObstacle(WorldEntity block) {
         // If the node is already full, do nothing
-        if (this.label == Label.BLOCKED)
-            return;
+        if (this.label == Label.BLOCKED) return;
 
         var blockBB = blockBB(block.position);
 
@@ -116,28 +115,26 @@ public class Octree implements Explorable<Octree> {
             }
             return;
         }
-        // Otherwise, it is partially block/unknown
-
-        // If we cannot subdivide further, force a full label
-        if (boundary.size() < MIN_NODE_SIZE) {
-            this.label = Label.BLOCKED;
-            return;
-        }
-        // If not already subdivided, subdivide
-        if (this.label != Label.MIXED) {
-            this.subdivide(this.label);
-            this.label = Label.MIXED;
-        }
-
-        // If this block intersects
+        // Otherwise, if it is partially block/unknown
         if (blockBB.intersects(this.boundary)) {
+            // If we cannot subdivide further, force a full label
+            if (boundary.size() < MIN_NODE_SIZE) {
+                this.label = Label.BLOCKED;
+                return;
+            }
+            // If not already subdivided, subdivide
+            if (this.label != Label.MIXED) {
+                this.subdivide(this.label);
+                this.label = Label.MIXED;
+            }
             children.forEach(node ->
                     node.addObstacle(block));
-        }
-        // Check if every child-node is full, then become blocking and throw them away.
-        if (children.stream().allMatch(node -> node.label == Label.BLOCKED)) {
-            this.label = Label.BLOCKED;
-            children = new ArrayList<>(0);
+
+            // Check if every child-node is full, then become blocking and throw them away.
+            if (children.stream().allMatch(node -> node.label == Label.BLOCKED)) {
+                this.label = Label.BLOCKED;
+                children = new ArrayList<>(0);
+            }
         }
     }
 
