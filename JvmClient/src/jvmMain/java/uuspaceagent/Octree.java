@@ -14,7 +14,7 @@ public class Octree implements Explorable<Octree> {
     public Octree parent;
     byte label; // empty = 0, full = 1, mixed = 2, mixed-unknown = 3
     byte code; // 0-7, Morton code (Z) order
-    public static float MIN_NODE_SIZE = 0.5f;
+    public static float MIN_NODE_SIZE = 1f;
     public static float AGENT_HEIGHT = 1.8f ;
     public static float AGENT_WIDTH  = 1f ;
 
@@ -127,8 +127,7 @@ public class Octree implements Explorable<Octree> {
                 this.subdivide(this.label);
                 this.label = Label.MIXED;
             }
-            children.forEach(node ->
-                    node.addObstacle(block));
+            children.forEach(node -> node.addObstacle(block));
 
             // Check if every child-node is full, then become blocking and throw them away.
             if (children.stream().allMatch(node -> node.label == Label.BLOCKED)) {
@@ -138,6 +137,7 @@ public class Octree implements Explorable<Octree> {
         }
     }
 
+    // TODO: addDoor(), that takes into account the doorframe.
 
     public void removeObstacle(WorldEntity block) {
         // If the node is already open/unknown, do nothing
@@ -154,26 +154,26 @@ public class Octree implements Explorable<Octree> {
             }
             return;
         }
-        // Otherwise, it is partially inside the removed block
-
-        // If we cannot subdivide further, force an open label
-        if (boundary.size() < MIN_NODE_SIZE) {
-            this.label = Label.OPEN;
-            return;
-        }
-        // If not already subdivided, subdivide
-        if (this.label != Label.MIXED) {
-            this.subdivide(this.label);
-            this.label = Label.MIXED;
-        }
-
+        // Otherwise, if it is partially inside the removed block
         if (blockBB.intersects(this.boundary)) {
+            // If we cannot subdivide further, force an open label
+            if (boundary.size() < MIN_NODE_SIZE) {
+                this.label = Label.OPEN;
+                return;
+            }
+            // If not already subdivided, subdivide
+            if (this.label != Label.MIXED) {
+                this.subdivide(this.label);
+                this.label = Label.MIXED;
+            }
+
             children.forEach(node -> node.removeObstacle(block));
-        }
-        // Check if every child-node is empty, then become open and throw them away.
-        if (children.stream().allMatch(node -> node.label == Label.OPEN)) {
-            this.label = Label.OPEN;
-            children = new ArrayList<>(0);
+
+            // Check if every child-node is empty, then become open and throw them away.
+            if (children.stream().allMatch(node -> node.label == Label.OPEN)) {
+                this.label = Label.OPEN;
+                children = new ArrayList<>(0);
+            }
         }
     }
 
@@ -193,26 +193,26 @@ public class Octree implements Explorable<Octree> {
             }
             return;
         }
-        // Otherwise, it is partially inside the removed block
-
-        // If we cannot subdivide further, force an open label
-        if (boundary.size() < MIN_NODE_SIZE) {
-            this.label = Label.UNKNOWN;
-            return;
-        }
-        // If not already subdivided, subdivide
-        if (this.label != Label.MIXED) {
-            this.subdivide(this.label);
-            this.label = Label.MIXED;
-        }
-
+        // Otherwise, if it is partially inside the removed block
         if (blockBB.intersects(this.boundary)) {
+            // If we cannot subdivide further, force an open label
+            if (boundary.size() < MIN_NODE_SIZE) {
+                this.label = Label.UNKNOWN;
+                return;
+            }
+            // If not already subdivided, subdivide
+            if (this.label != Label.MIXED) {
+                this.subdivide(this.label);
+                this.label = Label.MIXED;
+            }
+
             children.forEach(node -> node.removeObstacle(block));
-        }
-        // Check if every child-node is empty, then become open and throw them away.
-        if (children.stream().allMatch(node -> node.label == Label.UNKNOWN)) {
-            this.label = Label.UNKNOWN;
-            children = new ArrayList<>(0);
+
+            // Check if every child-node is empty, then become open and throw them away.
+            if (children.stream().allMatch(node -> node.label == Label.UNKNOWN)) {
+                this.label = Label.UNKNOWN;
+                children = new ArrayList<>(0);
+            }
         }
     }
 
