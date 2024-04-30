@@ -1085,10 +1085,14 @@ public class Octree implements Explorable<Octree> {
                 return parent.getTopLeftNeighbour(codes);
             }
             case 2 -> { // top-right-front
-                return parent.children.get(0).getTopNeighbour(codes);
+                //return parent.children.get(0).getTopNeighbour(codes);
+                codes.push(2);
+                return parent.getTopNeighbour(codes);
             }
             case 3 -> { // bottom-left-front
-                return parent.children.get(0).getLeftNeighbour(codes);
+                //return parent.children.get(0).getLeftNeighbour(codes);
+                codes.push(1);
+                return parent.getLeftNeighbour(codes);
             }
             case 4 -> { // bottom-right-front
                 return parent.children.get(0).getBottomRightEdgeChildrenLeafs(codes);
@@ -1098,10 +1102,14 @@ public class Octree implements Explorable<Octree> {
                 return parent.getTopLeftNeighbour(codes);
             }
             case 6 -> { // top-right-back
-                return parent.children.get(4).getTopNeighbour(codes);
+                //return parent.children.get(4).getTopNeighbour(codes);
+                codes.push(6);
+                return parent.getTopNeighbour(codes);
             }
             case 7 -> { // bottom-left-back
-                return parent.children.get(4).getLeftNeighbour(codes);
+                //return parent.children.get(4).getLeftNeighbour(codes);
+                codes.push(5);
+                return parent.getLeftNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
                 return parent.children.get(4).getBottomRightEdgeChildrenLeafs(codes);
@@ -1112,7 +1120,9 @@ public class Octree implements Explorable<Octree> {
     public List<Octree> getTopRightNeighbour(Stack<Integer> codes) {
         switch (this.code) {
             case 1 -> { // top-left-front
-                return parent.children.get(1).getTopNeighbour(codes);
+                //return parent.children.get(1).getTopNeighbour(codes);
+                codes.push(3);
+                return parent.getTopNeighbour(codes);
             }
             case 2 -> { // top-right-front
                 codes.push(2);
@@ -1122,10 +1132,14 @@ public class Octree implements Explorable<Octree> {
                 return parent.children.get(1).getBottomLeftEdgeChildrenLeafs(codes);
             }
             case 4 -> { // bottom-right-front
-                return parent.children.get(1).getRightNeighbour(codes);
+                //return parent.children.get(1).getRightNeighbour(codes);
+                codes.push(0);
+                return parent.getRightNeighbour(codes);
             }
             case 5 -> { // top-left-back
-                return parent.children.get(5).getTopNeighbour(codes);
+                //return parent.children.get(5).getTopNeighbour(codes);
+                codes.push(7);
+                return parent.getTopNeighbour(codes);
             }
             case 6 -> { // top-right-back
                 codes.push(6);
@@ -1135,7 +1149,9 @@ public class Octree implements Explorable<Octree> {
                 return parent.children.get(5).getBottomLeftEdgeChildrenLeafs(codes);
             }
             case 8 -> { // bottom-right-back
-                return parent.children.get(5).getRightNeighbour(codes);
+                //return parent.children.get(5).getRightNeighbour(codes);
+                codes.push(4);
+                return parent.getRightNeighbour(codes);
             }
         }
         return null; // Should never happen
@@ -1143,7 +1159,9 @@ public class Octree implements Explorable<Octree> {
     public List<Octree> getBottomLeftNeighbour(Stack<Integer> codes) {
         switch (this.code) {
             case 1 -> { // top-left-front
-                return parent.children.get(2).getLeftNeighbour(codes);
+                //return parent.children.get(2).getLeftNeighbour(codes);
+                codes.push(3);
+                return parent.getLeftNeighbour(codes);
             }
             case 2 -> { // top-right-front
                 return parent.children.get(2).getTopRightEdgeChildrenLeafs(codes);
@@ -1153,10 +1171,14 @@ public class Octree implements Explorable<Octree> {
                 return parent.getBottomLeftNeighbour(codes);
             }
             case 4 -> { // bottom-right-front
-                return parent.children.get(2).getBottomNeighbour(codes);
+                //return parent.children.get(2).getBottomNeighbour(codes);
+                codes.push(0);
+                return parent.getBottomNeighbour(codes);
             }
             case 5 -> { // top-left-back
-                return parent.children.get(6).getLeftNeighbour(codes);
+                //return parent.children.get(6).getLeftNeighbour(codes);
+                codes.push(7);
+                return parent.getLeftNeighbour(codes);
             }
             case 6 -> { // top-right-back
                 return parent.children.get(6).getTopRightEdgeChildrenLeafs(codes);
@@ -1166,7 +1188,9 @@ public class Octree implements Explorable<Octree> {
                 return parent.getBottomLeftNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
-                return parent.children.get(6).getBottomNeighbour(codes);
+                //return parent.children.get(6).getBottomNeighbour(codes);
+                codes.push(4);
+                return parent.getBottomNeighbour(codes);
             }
         }
         return null; // Should never happen
@@ -1177,10 +1201,14 @@ public class Octree implements Explorable<Octree> {
                 return parent.children.get(3).getTopLeftEdgeChildrenLeafs(codes);
             }
             case 2 -> { // top-right-front
-                return parent.children.get(3).getRightNeighbour(codes);
+                //return parent.children.get(3).getRightNeighbour(codes);
+                codes.push(2);
+                return parent.getRightNeighbour(codes);
             }
             case 3 -> { // bottom-left-front
-                return parent.children.get(3).getBottomNeighbour(codes);
+                //return parent.children.get(3).getBottomNeighbour(codes);
+                codes.push(1);
+                return parent.getBottomNeighbour(codes);
             }
             case 4 -> { // bottom-right-front
                 codes.push(0);
@@ -1190,10 +1218,14 @@ public class Octree implements Explorable<Octree> {
                 return parent.children.get(7).getTopLeftEdgeChildrenLeafs(codes);
             }
             case 6 -> { // top-right-back
-                return parent.children.get(7).getRightNeighbour(codes);
+                //return parent.children.get(7).getRightNeighbour(codes);
+                codes.push(6);
+                return parent.getRightNeighbour(codes);
             }
             case 7 -> { // bottom-left-back
-                return parent.children.get(7).getBottomNeighbour(codes);
+                //return parent.children.get(7).getBottomNeighbour(codes);
+                codes.push(5);
+                return parent.getBottomNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
                 codes.push(4);
@@ -1210,23 +1242,31 @@ public class Octree implements Explorable<Octree> {
                 return parent.getLeftFrontNeighbour(codes);
             }
             case 2 -> { // top-right-front
-                return parent.children.get(0).getFrontNeighbour(codes);
+                //return parent.children.get(0).getFrontNeighbour(codes);
+                codes.push(4);
+                return parent.getFrontNeighbour(codes);
             }
             case 3 -> { // bottom-left-front
                 codes.push(7);
                 return parent.getLeftFrontNeighbour(codes);
             }
             case 4 -> { // bottom-right-front
-                return parent.children.get(2).getFrontNeighbour(codes);
+                //return parent.children.get(2).getFrontNeighbour(codes);
+                codes.push(6);
+                return parent.getFrontNeighbour(codes);
             }
             case 5 -> { // top-left-back
-                return parent.children.get(0).getLeftNeighbour(codes);
+                //return parent.children.get(0).getLeftNeighbour(codes);
+                codes.push(1);
+                return parent.getLeftNeighbour(codes);
             }
             case 6 -> { // top-right-back
                 return parent.children.get(0).getRightBackEdgeChildrenLeafs(codes);
             }
             case 7 -> { // bottom-left-back
-                return parent.children.get(2).getLeftNeighbour(codes);
+                //return parent.children.get(2).getLeftNeighbour(codes);
+                codes.push(3);
+                return parent.getLeftNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
                 return parent.children.get(2).getRightBackEdgeChildrenLeafs(codes);
@@ -1237,14 +1277,18 @@ public class Octree implements Explorable<Octree> {
     public List<Octree> getRightFrontNeighbour(Stack<Integer> codes) {
         switch (this.code) {
             case 1 -> { // top-left-front
-                return parent.children.get(1).getFrontNeighbour(codes);
+                //return parent.children.get(1).getFrontNeighbour(codes);
+                codes.push(5);
+                return parent.getFrontNeighbour(codes);
             }
             case 2 -> { // top-right-front
                 codes.push(4);
                 return parent.getRightFrontNeighbour(codes);
             }
             case 3 -> { // bottom-left-front
-                return parent.children.get(3).getFrontNeighbour(codes);
+                //return parent.children.get(3).getFrontNeighbour(codes);
+                codes.push(7);
+                return parent.getFrontNeighbour(codes);
             }
             case 4 -> { // bottom-right-front
                 codes.push(6);
@@ -1254,13 +1298,17 @@ public class Octree implements Explorable<Octree> {
                 return parent.children.get(1).getLeftBackEdgeChildrenLeafs(codes);
             }
             case 6 -> { // top-right-back
-                return parent.children.get(1).getRightNeighbour(codes);
+                //return parent.children.get(1).getRightNeighbour(codes);
+                codes.push(0);
+                return parent.getRightNeighbour(codes);
             }
             case 7 -> { // bottom-left-back
                 return parent.children.get(3).getLeftBackEdgeChildrenLeafs(codes);
             }
             case 8 -> { // bottom-right-back
-                return parent.children.get(3).getRightNeighbour(codes);
+                //return parent.children.get(3).getRightNeighbour(codes);
+                codes.push(2);
+                return parent.getRightNeighbour(codes);
             }
         }
         return null; // Should never happen
@@ -1268,13 +1316,17 @@ public class Octree implements Explorable<Octree> {
     public List<Octree> getLeftBackNeighbour(Stack<Integer> codes) {
         switch (this.code) {
             case 1 -> { // top-left-front
-                return parent.children.get(4).getLeftNeighbour(codes);
+                //return parent.children.get(4).getLeftNeighbour(codes);
+                codes.push(5);
+                return parent.getLeftNeighbour(codes);
             }
             case 2 -> { // top-right-front
                 return parent.children.get(4).getRightFrontEdgeChildrenLeafs(codes);
             }
             case 3 -> { // bottom-left-front
-                return parent.children.get(6).getLeftNeighbour(codes);
+                //return parent.children.get(6).getLeftNeighbour(codes);
+                codes.push(7);
+                return parent.getLeftNeighbour(codes);
             }
             case 4 -> { // bottom-right-front
                 return parent.children.get(6).getRightFrontEdgeChildrenLeafs(codes);
@@ -1284,14 +1336,18 @@ public class Octree implements Explorable<Octree> {
                 return parent.getLeftBackNeighbour(codes);
             }
             case 6 -> { // top-right-back
-                return parent.children.get(4).getBackNeighbour(codes);
+                //return parent.children.get(4).getBackNeighbour(codes);
+                codes.push(0);
+                return parent.getBackNeighbour(codes);
             }
             case 7 -> { // bottom-left-back
                 codes.push(3);
                 return parent.getLeftBackNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
-                return parent.children.get(6).getBackNeighbour(codes);
+                //return parent.children.get(6).getBackNeighbour(codes);
+                codes.push(2);
+                return parent.getBackNeighbour(codes);
             }
         }
         return null; // Should never happen
@@ -1302,23 +1358,31 @@ public class Octree implements Explorable<Octree> {
                 return parent.children.get(5).getLeftFrontEdgeChildrenLeafs(codes);
             }
             case 2 -> { // top-right-front
-                return parent.children.get(5).getRightNeighbour(codes);
+                //return parent.children.get(5).getRightNeighbour(codes);
+                codes.push(4);
+                return parent.getRightNeighbour(codes);
             }
             case 3 -> { // bottom-left-front
                 return parent.children.get(7).getLeftFrontEdgeChildrenLeafs(codes);
             }
             case 4 -> { // bottom-right-front
-                return parent.children.get(7).getRightNeighbour(codes);
+                //return parent.children.get(7).getRightNeighbour(codes);
+                codes.push(6);
+                return parent.getRightNeighbour(codes);
             }
             case 5 -> { // top-left-back
-                return parent.children.get(5).getBackNeighbour(codes);
+                //return parent.children.get(5).getBackNeighbour(codes);
+                codes.push(1);
+                return parent.getBackNeighbour(codes);
             }
             case 6 -> { // top-right-back
                 codes.push(0);
                 return parent.getRightBackNeighbour(codes);
             }
             case 7 -> { // bottom-left-back
-                return parent.children.get(7).getBackNeighbour(codes);
+                //return parent.children.get(7).getBackNeighbour(codes);
+                codes.push(3);
+                return parent.getBackNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
                 codes.push(2);
@@ -1339,16 +1403,24 @@ public class Octree implements Explorable<Octree> {
                 return parent.getTopFrontNeighbour(codes);
             }
             case 3 -> { // bottom-left-front
-                return parent.children.get(0).getFrontNeighbour(codes);
+                //return parent.children.get(0).getFrontNeighbour(codes);
+                codes.push(4);
+                return parent.getFrontNeighbour(codes);
             }
             case 4 -> { // bottom-right-front
-                return parent.children.get(1).getFrontNeighbour(codes);
+                //return parent.children.get(1).getFrontNeighbour(codes);
+                codes.push(5);
+                return parent.getFrontNeighbour(codes);
             }
             case 5 -> { // top-left-back
-                return parent.children.get(0).getTopNeighbour(codes);
+                //return parent.children.get(0).getTopNeighbour(codes);
+                codes.push(2);
+                return parent.getTopNeighbour(codes);
             }
             case 6 -> { // top-right-back
-                return parent.children.get(1).getTopNeighbour(codes);
+                //return parent.children.get(1).getTopNeighbour(codes);
+                codes.push(3);
+                return parent.getTopNeighbour(codes);
             }
             case 7 -> { // bottom-left-back
                 return parent.children.get(0).getBottomBackEdgeChildrenLeafs(codes);
@@ -1362,10 +1434,14 @@ public class Octree implements Explorable<Octree> {
     public List<Octree> getBottomFrontNeighbour(Stack<Integer> codes) {
         switch (this.code) {
             case 1 -> { // top-left-front
-                return parent.children.get(2).getFrontNeighbour(codes);
+                //return parent.children.get(2).getFrontNeighbour(codes);
+                codes.push(6);
+                return parent.getFrontNeighbour(codes);
             }
             case 2 -> { // top-right-front
-                return parent.children.get(3).getFrontNeighbour(codes);
+                //return parent.children.get(3).getFrontNeighbour(codes);
+                codes.push(7);
+                return parent.getFrontNeighbour(codes);
             }
             case 3 -> { // bottom-left-front
                 codes.push(4);
@@ -1382,10 +1458,14 @@ public class Octree implements Explorable<Octree> {
                 return parent.children.get(3).getTopBackEdgeChildrenLeafs(codes);
             }
             case 7 -> { // bottom-left-back
-                return parent.children.get(2).getBottomNeighbour(codes);
+                //return parent.children.get(2).getBottomNeighbour(codes);
+                codes.push(0);
+                return parent.getBottomNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
-                return parent.children.get(3).getBottomNeighbour(codes);
+                //return parent.children.get(3).getBottomNeighbour(codes);
+                codes.push(1);
+                return parent.getBottomNeighbour(codes);
             }
         }
         return null; // Should never happen
@@ -1393,10 +1473,14 @@ public class Octree implements Explorable<Octree> {
     public List<Octree> getTopBackNeighbour(Stack<Integer> codes) {
         switch (this.code) {
             case 1 -> { // top-left-front
-                return parent.children.get(4).getTopNeighbour(codes);
+                //return parent.children.get(4).getTopNeighbour(codes);
+                codes.push(6);
+                return parent.getTopNeighbour(codes);
             }
             case 2 -> { // top-right-front
-                return parent.children.get(5).getTopNeighbour(codes);
+                //return parent.children.get(5).getTopNeighbour(codes);
+                codes.push(7);
+                return parent.getTopNeighbour(codes);
             }
             case 3 -> { // bottom-left-front
                 return parent.children.get(4).getBottomFrontEdgeChildrenLeafs(codes);
@@ -1413,10 +1497,14 @@ public class Octree implements Explorable<Octree> {
                 return parent.getTopBackNeighbour(codes);
             }
             case 7 -> { // bottom-left-back
-                return parent.children.get(4).getBackNeighbour(codes);
+                //return parent.children.get(4).getBackNeighbour(codes);
+                codes.push(0);
+                return parent.getBackNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
-                return parent.children.get(5).getBackNeighbour(codes);
+                //return parent.children.get(5).getBackNeighbour(codes);
+                codes.push(1);
+                return parent.getBackNeighbour(codes);
             }
         }
         return null; // Should never happen
@@ -1430,16 +1518,24 @@ public class Octree implements Explorable<Octree> {
                 return parent.children.get(7).getTopFrontEdgeChildrenLeafs(codes);
             }
             case 3 -> { // bottom-left-front
-                return parent.children.get(6).getBottomNeighbour(codes);
+                //return parent.children.get(6).getBottomNeighbour(codes);
+                codes.push(4);
+                return parent.getBottomNeighbour(codes);
             }
             case 4 -> { // bottom-right-front
-                return parent.children.get(7).getBottomNeighbour(codes);
+                //return parent.children.get(7).getBottomNeighbour(codes);
+                codes.push(5);
+                return parent.getBottomNeighbour(codes);
             }
             case 5 -> { // top-left-back
-                return parent.children.get(6).getBackNeighbour(codes);
+                //return parent.children.get(6).getBackNeighbour(codes);
+                codes.push(2);
+                return parent.getBackNeighbour(codes);
             }
             case 6 -> { // top-right-back
-                return parent.children.get(7).getBackNeighbour(codes);
+                //return parent.children.get(7).getBackNeighbour(codes);
+                codes.push(3);
+                return parent.getBackNeighbour(codes);
             }
             case 7 -> { // bottom-left-back
                 codes.push(0);
@@ -1462,22 +1558,34 @@ public class Octree implements Explorable<Octree> {
                 return parent.getTopLeftFrontNeighbour(codes);
             }
             case 2 -> { // top-right-front
-                return parent.children.get(0).getTopFrontNeighbour(codes);
+                //return parent.children.get(0).getTopFrontNeighbour(codes);
+                codes.push(6);
+                return parent.getTopFrontNeighbour(codes);
             }
             case 3 -> { // bottom-left-front
-                return parent.children.get(0).getLeftFrontNeighbour(codes);
+                //return parent.children.get(0).getLeftFrontNeighbour(codes);
+                codes.push(5);
+                return parent.getLeftFrontNeighbour(codes);
             }
             case 4 -> { // bottom-right-front
-                return parent.children.get(0).getFrontNeighbour(codes);
+                //return parent.children.get(0).getFrontNeighbour(codes);
+                codes.push(4);
+                return parent.getFrontNeighbour(codes);
             }
             case 5 -> { // top-left-back
-                return parent.children.get(0).getTopLeftNeighbour(codes);
+                //return parent.children.get(0).getTopLeftNeighbour(codes);
+                codes.push(3);
+                return parent.getTopLeftNeighbour(codes);
             }
             case 6 -> { // top-right-back
-                return parent.children.get(0).getTopNeighbour(codes);
+                //return parent.children.get(0).getTopNeighbour(codes);
+                codes.push(2);
+                return parent.getTopNeighbour(codes);
             }
             case 7 -> { // bottom-left-back
-                return parent.children.get(0).getLeftNeighbour(codes);
+                //return parent.children.get(0).getLeftNeighbour(codes);
+                codes.push(1);
+                return parent.getLeftNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
                 return parent.children.get(0).getBottomRightBackEdgeChildrenLeafs();
@@ -1488,29 +1596,41 @@ public class Octree implements Explorable<Octree> {
     public List<Octree> getTopRightFrontNeighbour(Stack<Integer> codes) {
         switch (this.code) {
             case 1 -> { // top-left-front
-                return parent.children.get(1).getTopFrontNeighbour(codes);
+                //return parent.children.get(1).getTopFrontNeighbour(codes);
+                codes.push(7);
+                return parent.getTopFrontNeighbour(codes);
             }
             case 2 -> { // top-right-front
                 codes.push(6);
                 return parent.getTopRightFrontNeighbour(codes);
             }
             case 3 -> { // bottom-left-front
-                return parent.children.get(1).getFrontNeighbour(codes);
+                //return parent.children.get(1).getFrontNeighbour(codes);
+                codes.push(5);
+                return parent.getFrontNeighbour(codes);
             }
             case 4 -> { // bottom-right-front
-                return parent.children.get(1).getRightFrontNeighbour(codes);
+                //return parent.children.get(1).getRightFrontNeighbour(codes);
+                codes.push(4);
+                return parent.getRightFrontNeighbour(codes);
             }
             case 5 -> { // top-left-back
-                return parent.children.get(1).getTopNeighbour(codes);
+                //return parent.children.get(1).getTopNeighbour(codes);
+                codes.push(3);
+                return parent.getTopNeighbour(codes);
             }
             case 6 -> { // top-right-back
-                return parent.children.get(1).getTopRightNeighbour(codes);
+                //return parent.children.get(1).getTopRightNeighbour(codes);
+                codes.push(2);
+                return parent.getTopRightNeighbour(codes);
             }
             case 7 -> { // bottom-left-back
                 return parent.children.get(1).getBottomLeftBackEdgeChildrenLeafs();
             }
             case 8 -> { // bottom-right-back
-                return parent.children.get(1).getRightNeighbour(codes);
+                //return parent.children.get(1).getRightNeighbour(codes);
+                codes.push(0);
+                return parent.getRightNeighbour(codes);
             }
         }
         return null; // Should never happen
@@ -1518,29 +1638,41 @@ public class Octree implements Explorable<Octree> {
     public List<Octree> getBottomLeftFrontNeighbour(Stack<Integer> codes) {
         switch (this.code) {
             case 1 -> { // top-left-front
-                return parent.children.get(2).getLeftFrontNeighbour(codes);
+                //return parent.children.get(2).getLeftFrontNeighbour(codes);
+                codes.push(7);
+                return parent.getLeftFrontNeighbour(codes);
             }
             case 2 -> { // top-right-front
-                return parent.children.get(2).getFrontNeighbour(codes);
+                //return parent.children.get(2).getFrontNeighbour(codes);
+                codes.push(6);
+                return parent.getFrontNeighbour(codes);
             }
             case 3 -> { // bottom-left-front
                 codes.push(5);
                 return parent.getBottomLeftFrontNeighbour(codes);
             }
             case 4 -> { // bottom-right-front
-                return parent.children.get(2).getBottomFrontNeighbour(codes);
+                //return parent.children.get(2).getBottomFrontNeighbour(codes);
+                codes.push(4);
+                return parent.getBottomFrontNeighbour(codes);
             }
             case 5 -> { // top-left-back
-                return parent.children.get(2).getLeftNeighbour(codes);
+                //return parent.children.get(2).getLeftNeighbour(codes);
+                codes.push(3);
+                return parent.getLeftNeighbour(codes);
             }
             case 6 -> { // top-right-back
                 return parent.children.get(2).getTopRightBackEdgeChildrenLeafs();
             }
             case 7 -> { // bottom-left-back
-                return parent.children.get(2).getBottomLeftNeighbour(codes);
+                //return parent.children.get(2).getBottomLeftNeighbour(codes);
+                codes.push(1);
+                return parent.getBottomLeftNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
-                return parent.children.get(2).getBottomNeighbour(codes);
+                //return parent.children.get(2).getBottomNeighbour(codes);
+                codes.push(0);
+                return parent.getBottomNeighbour(codes);
             }
         }
         return null; // Should never happen
@@ -1548,13 +1680,19 @@ public class Octree implements Explorable<Octree> {
     public List<Octree> getBottomRightFrontNeighbour(Stack<Integer> codes) {
         switch (this.code) {
             case 1 -> { // top-left-front
-                return parent.children.get(3).getFrontNeighbour(codes);
+                //return parent.children.get(3).getFrontNeighbour(codes);
+                codes.push(7);
+                return parent.getFrontNeighbour(codes);
             }
             case 2 -> { // top-right-front
-                return parent.children.get(3).getRightFrontNeighbour(codes);
+                //return parent.children.get(3).getRightFrontNeighbour(codes);
+                codes.push(6);
+                return parent.getRightFrontNeighbour(codes);
             }
             case 3 -> { // bottom-left-front
-                return parent.children.get(3).getBottomFrontNeighbour(codes);
+                //return parent.children.get(3).getBottomFrontNeighbour(codes);
+                codes.push(5);
+                return parent.getBottomFrontNeighbour(codes);
             }
             case 4 -> { // bottom-right-front
                 codes.push(4);
@@ -1564,13 +1702,19 @@ public class Octree implements Explorable<Octree> {
                 return parent.children.get(3).getTopLeftBackEdgeChildrenLeafs();
             }
             case 6 -> { // top-right-back
-                return parent.children.get(3).getRightNeighbour(codes);
+                //return parent.children.get(3).getRightNeighbour(codes);
+                codes.push(2);
+                return parent.getRightNeighbour(codes);
             }
             case 7 -> { // bottom-left-back
-                return parent.children.get(3).getBottomNeighbour(codes);
+                //return parent.children.get(3).getBottomNeighbour(codes);
+                codes.push(1);
+                return parent.getBottomNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
-                return parent.children.get(3).getBottomRightNeighbour(codes);
+                //return parent.children.get(3).getBottomRightNeighbour(codes);
+                codes.push(0);
+                return parent.getBottomRightNeighbour(codes);
             }
         }
         return null; // Should never happen
@@ -1579,13 +1723,19 @@ public class Octree implements Explorable<Octree> {
     public List<Octree> getTopLeftBackNeighbour(Stack<Integer> codes) {
         switch (this.code) {
             case 1 -> { // top-left-front
-                return parent.children.get(4).getTopLeftNeighbour(codes);
+                //return parent.children.get(4).getTopLeftNeighbour(codes);
+                codes.push(7);
+                return parent.getTopLeftNeighbour(codes);
             }
             case 2 -> { // top-right-front
-                return parent.children.get(4).getTopNeighbour(codes);
+                //return parent.children.get(4).getTopNeighbour(codes);
+                codes.push(6);
+                return parent.getTopNeighbour(codes);
             }
             case 3 -> { // bottom-left-front
-                return parent.children.get(4).getLeftNeighbour(codes);
+                //return parent.children.get(4).getLeftNeighbour(codes);
+                codes.push(5);
+                return parent.getLeftNeighbour(codes);
             }
             case 4 -> { // bottom-right-front
                 return parent.children.get(4).getBottomRightFrontEdgeChildrenLeafs();
@@ -1595,13 +1745,19 @@ public class Octree implements Explorable<Octree> {
                 return parent.getTopLeftBackNeighbour(codes);
             }
             case 6 -> { // top-right-back
-                return parent.children.get(4).getTopBackNeighbour(codes);
+                //return parent.children.get(4).getTopBackNeighbour(codes);
+                codes.push(2);
+                return parent.getTopBackNeighbour(codes);
             }
             case 7 -> { // bottom-left-back
-                return parent.children.get(4).getLeftBackNeighbour(codes);
+                //return parent.children.get(4).getLeftBackNeighbour(codes);
+                codes.push(1);
+                return parent.getLeftBackNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
-                return parent.children.get(4).getBackNeighbour(codes);
+                //return parent.children.get(4).getBackNeighbour(codes);
+                codes.push(0);
+                return parent.getBackNeighbour(codes);
             }
         }
         return null; // Should never happen
@@ -1609,29 +1765,41 @@ public class Octree implements Explorable<Octree> {
     public List<Octree> getTopRightBackNeighbour(Stack<Integer> codes) {
         switch (this.code) {
             case 1 -> { // top-left-front
-                return parent.children.get(5).getTopNeighbour(codes);
+                //return parent.children.get(5).getTopNeighbour(codes);
+                codes.push(7);
+                return parent.getTopNeighbour(codes);
             }
             case 2 -> { // top-right-front
-                return parent.children.get(5).getTopRightNeighbour(codes);
+                //return parent.children.get(5).getTopRightNeighbour(codes);
+                codes.push(6);
+                return parent.getTopRightNeighbour(codes);
             }
             case 3 -> { // bottom-left-front
                 return parent.children.get(5).getBottomLeftFrontEdgeChildrenLeafs();
             }
             case 4 -> { // bottom-right-front
-                return parent.children.get(5).getRightNeighbour(codes);
+                //return parent.children.get(5).getRightNeighbour(codes);
+                codes.push(4);
+                return parent.getRightNeighbour(codes);
             }
             case 5 -> { // top-left-back
-                return parent.children.get(5).getTopBackNeighbour(codes);
+                //return parent.children.get(5).getTopBackNeighbour(codes);
+                codes.push(3);
+                return parent.getTopBackNeighbour(codes);
             }
             case 6 -> { // top-right-back
                 codes.push(2);
                 return parent.getTopRightBackNeighbour(codes);
             }
             case 7 -> { // bottom-left-back
-                return parent.children.get(5).getBackNeighbour(codes);
+                //return parent.children.get(5).getBackNeighbour(codes);
+                codes.push(1);
+                return parent.getBackNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
-                return parent.children.get(5).getRightBackNeighbour(codes);
+                //return parent.children.get(5).getRightBackNeighbour(codes);
+                codes.push(0);
+                return parent.getRightBackNeighbour(codes);
             }
         }
         return null; // Should never happen
@@ -1639,29 +1807,41 @@ public class Octree implements Explorable<Octree> {
     public List<Octree> getBottomLeftBackNeighbour(Stack<Integer> codes) {
         switch (this.code) {
             case 1 -> { // top-left-front
-                return parent.children.get(6).getLeftNeighbour(codes);
+                //return parent.children.get(6).getLeftNeighbour(codes);
+                codes.push(7);
+                return parent.getLeftNeighbour(codes);
             }
             case 2 -> { // top-right-front
                 return parent.children.get(6).getTopRightFrontEdgeChildrenLeafs();
             }
             case 3 -> { // bottom-left-front
-                return parent.children.get(6).getBottomLeftNeighbour(codes);
+                //return parent.children.get(6).getBottomLeftNeighbour(codes);
+                codes.push(5);
+                return parent.getBottomLeftNeighbour(codes);
             }
             case 4 -> { // bottom-right-front
-                return parent.children.get(6).getBottomNeighbour(codes);
+                //return parent.children.get(6).getBottomNeighbour(codes);
+                codes.push(4);
+                return parent.getBottomNeighbour(codes);
             }
             case 5 -> { // top-left-back
-                return parent.children.get(6).getLeftBackNeighbour(codes);
+                //return parent.children.get(6).getLeftBackNeighbour(codes);
+                codes.push(3);
+                return parent.getLeftBackNeighbour(codes);
             }
             case 6 -> { // top-right-back
-                return parent.children.get(6).getBackNeighbour(codes);
+                //return parent.children.get(6).getBackNeighbour(codes);
+                codes.push(2);
+                return parent.getBackNeighbour(codes);
             }
             case 7 -> { // bottom-left-back
                 codes.push(1);
                 return parent.getBottomLeftBackNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
-                return parent.children.get(6).getBottomBackNeighbour(codes);
+                //return parent.children.get(6).getBottomBackNeighbour(codes);
+                codes.push(0);
+                return parent.getBottomBackNeighbour(codes);
             }
         }
         return null; // Should never happen
@@ -1672,22 +1852,34 @@ public class Octree implements Explorable<Octree> {
                 return parent.children.get(7).getTopLeftFrontEdgeChildrenLeafs();
             }
             case 2 -> { // top-right-front
-                return parent.children.get(7).getRightNeighbour(codes);
+                //return parent.children.get(7).getRightNeighbour(codes);
+                codes.push(6);
+                return parent.getRightNeighbour(codes);
             }
             case 3 -> { // bottom-left-front
-                return parent.children.get(7).getBottomNeighbour(codes);
+                //return parent.children.get(7).getBottomNeighbour(codes);
+                codes.push(5);
+                return parent.getBottomNeighbour(codes);
             }
             case 4 -> { // bottom-right-front
-                return parent.children.get(7).getBottomRightNeighbour(codes);
+                //return parent.children.get(7).getBottomRightNeighbour(codes);
+                codes.push(4);
+                return parent.getBottomRightNeighbour(codes);
             }
             case 5 -> { // top-left-back
-                return parent.children.get(7).getBackNeighbour(codes);
+                //return parent.children.get(7).getBackNeighbour(codes);
+                codes.push(3);
+                return parent.getBackNeighbour(codes);
             }
             case 6 -> { // top-right-back
-                return parent.children.get(7).getRightBackNeighbour(codes);
+                //return parent.children.get(7).getRightBackNeighbour(codes);
+                codes.push(2);
+                return parent.getRightBackNeighbour(codes);
             }
             case 7 -> { // bottom-left-back
-                return parent.children.get(7).getBottomBackNeighbour(codes);
+                //return parent.children.get(7).getBottomBackNeighbour(codes);
+                codes.push(1);
+                return parent.getBottomBackNeighbour(codes);
             }
             case 8 -> { // bottom-right-back
                 codes.push(0);
