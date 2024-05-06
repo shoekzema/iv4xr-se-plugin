@@ -45,8 +45,8 @@ public class Octree implements Explorable<Octree> {
         float hpadding = (AGENT_WIDTH - MIN_NODE_SIZE) * 0.5f;
         float vpadding = (AGENT_HEIGHT - MIN_NODE_SIZE) * 0.5f;
 
-        return new Boundary2(Vec3.sub(pos, new Vec3(1.25f + hpadding, 1.25f + vpadding, 1.25f + hpadding)),
-                             Vec3.add(pos, new Vec3(1.25f + hpadding, 1.25f + vpadding, 1.25f + hpadding)));
+        return new Boundary2(Vec3.sub(pos, new Vec3(1.25f + vpadding, 1.25f + vpadding, 1.25f + vpadding)),
+                             Vec3.add(pos, new Vec3(1.25f + vpadding, 1.25f + vpadding, 1.25f + vpadding)));
     }
 
 
@@ -213,75 +213,6 @@ public class Octree implements Explorable<Octree> {
                 this.label = Label.UNKNOWN;
                 children = new ArrayList<>(0);
             }
-        }
-    }
-
-
-    /**
-     *  Updates the octree using a list of obstacles (blocks) and a viewing range. (slow)
-     */
-    public void update(List<WorldEntity> blocks, Boundary range) {
-        // If the quad is fully outside viewing distance
-        if (!range.intersects(this.boundary)) {
-            return;
-        }
-        // If the quad has children
-        if (!this.children.isEmpty()) {
-            children.forEach(node ->
-                    node.update(blocks, range));
-
-            // If every child-node is full, become blocking and throw them away.
-            if (children.stream().allMatch(node -> node.label == Label.BLOCKED)) {
-                this.label = Label.BLOCKED;
-                children = new ArrayList<>(0);
-            }
-            // If every child-node is empty, become empty and throw them away.
-            else if (children.stream().allMatch(q -> q.label == Label.OPEN)) {
-                this.label = Label.OPEN;
-                children = new ArrayList<>(0);
-            }
-            return;
-        }
-        // Else
-        // If the quad is entirely wall
-        if (blocks.stream().anyMatch(block -> new Boundary(Vec3.sub(block.position, new Vec3(1.25f)), 2.5f).contains(this.boundary))) {
-            this.label = Label.BLOCKED;
-            if (!children.isEmpty()) {
-                children = new ArrayList<>(0);
-            }
-            return;
-        }
-        // If the quad is fully empty
-        if (blocks.stream().noneMatch(block -> new Boundary(Vec3.sub(block.position, new Vec3(1.25f)), 2.5f).intersects(this.boundary))) {
-            this.label = Label.OPEN;
-            if (!children.isEmpty()) {
-                children = new ArrayList<>(0);
-            }
-            return;
-        }
-        // Otherwise, it is partially wall/unknown
-
-        // If we cannot subdivide further, force a full label
-        if (boundary.size() < MIN_NODE_SIZE) {
-            this.label = Label.BLOCKED;
-            return;
-        }
-        // If not already subdivided, subdivide
-        if (this.label != Label.MIXED) {
-            this.subdivide(this.label);
-            this.label = Label.MIXED;
-        }
-        for (var block : blocks) {
-            // If this wall intersects
-            if (new Boundary(Vec3.sub(block.position, new Vec3(1.25f)), 2.5f).intersects(this.boundary)) {
-                children.forEach(node ->
-                        node.update(blocks, range));
-            }
-        }
-        // Check if every child-node is full, then become blocking and throw them away.
-        if (children.stream().allMatch(node -> node.label == Label.BLOCKED)) {
-            this.label = Label.BLOCKED;
-            children = new ArrayList<>(0);
         }
     }
 
@@ -2255,7 +2186,28 @@ public class Octree implements Explorable<Octree> {
         }
         // If partially inside the observation radius
         if (this.boundary.sphereIntersects(pos, observation_radius)) {
+            // If we cannot subdivide further, force an open label
+            if (boundary.size() < MIN_NODE_SIZE) {
+                this.label = Label.OPEN;
+                return;
+            }
+            // If not already subdivided, subdivide
+            if (this.label != Label.MIXED) {
+                this.subdivide(this.label);
+                this.label = Label.MIXED;
+            }
             children.forEach(node -> node.updateUnknown(pos, observation_radius));
+
+            // If every child-node is open, become open and throw away the children.
+            if (children.stream().allMatch(node -> node.label == Label.OPEN)) {
+                this.label = Label.OPEN;
+                children = new ArrayList<>(0);
+            }
+            // If every child-node is unknown, become unknown and throw away the children.
+            else if (children.stream().allMatch(node -> node.label == Label.UNKNOWN)) {
+                this.label = Label.UNKNOWN;
+                children = new ArrayList<>(0);
+            }
         }
     }
 
