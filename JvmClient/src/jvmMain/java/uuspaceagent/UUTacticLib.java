@@ -182,16 +182,10 @@ public class UUTacticLib {
                 + ", rel-direction: " + destinationRelativeLocation);
         System.out.println("    forward-vector: " + agentState.orientationForward());
 
-        Vec3 forwardFly = Vec3.mul(FORWARDV3, FLY_SPEED) ;
-
         // adjust the forward vector to make it angled towards the destination
-        forwardFly = Rotation.rotate(forwardFly, agentState.orientationForward(), destinationRelativeLocation) ;
-        // apply correction on the y-component, taking advantage that we know
-        // the agent's forward orientation has its y-component 0.
-        forwardFly.y = Math.abs(forwardFly.y) ;
-        if (destinationRelativeLocation.y < 0) {
-            forwardFly.y = - forwardFly.y ;
-        }
+        Vec3 forwardFly = Rotation.rotate3d(agentState.orientationForward(), agentState.orientationUp(), destinationRelativeLocation);
+        forwardFly = Vec3.mul(forwardFly.normalized(), FLY_SPEED);
+
         System.out.println(">>> forwardFly: " + forwardFly);
 
         // now move... sustain it for the given duration:
@@ -223,21 +217,13 @@ public class UUTacticLib {
 
         // Decide if we should fly slow or fast:
         boolean running = true ;
-        Vec3 forwardFly     = Vec3.mul(FORWARDV3, FLY_SPEED) ;
-        Vec3 forwardFlySlow = Vec3.mul(FORWARDV3, FLY_SPEED) ;
         if (sqDistance <= 1) running = false ;
 
         // adjust the forward vector to make it angled towards the destination
-        forwardFly     = Rotation.rotate(forwardFly, agentState.orientationForward(), destinationRelativeLocation) ;
-        forwardFlySlow = Rotation.rotate(forwardFlySlow, agentState.orientationForward(), destinationRelativeLocation) ;
-        // apply correction on the y-component, taking advantage that we know
-        // the agent's forward orientation has its y-component 0.
-        forwardFly.y     = Math.abs(forwardFly.y) ;
-        forwardFlySlow.y = Math.abs(forwardFlySlow.y) ;
-        if (destinationRelativeLocation.y < 0) {
-            forwardFly.y     = - forwardFly.y ;
-            forwardFlySlow.y = - forwardFlySlow.y ;
-        }
+        Vec3 forwardFly     = Rotation.rotate3d(agentState.orientationForward(), agentState.orientationUp(), destinationRelativeLocation);
+        Vec3 forwardFlySlow = Vec3.mul(forwardFly.normalized(), FLY_SPEED * 0.5f);
+        forwardFly = Vec3.mul(forwardFly.normalized(), FLY_SPEED);
+
         System.out.println(">>> forwardFly: " + forwardFly);
 
         // now move... sustain it for the given duration:
@@ -277,22 +263,25 @@ public class UUTacticLib {
      */
     public static CharacterObservation yTurnTowardACT(UUSeAgentState agentState, Vec3 destination, float cosAlphaThreshold, Integer duration) {
         // direction vector to the next node:
-        Vec3 dirToGo = Vec3.sub(destination,agentState.wom.position) ;
+        Vec3 dirToGo = Vec3.sub(destination, agentState.wom.position) ;
         Vec3 agentHdir = agentState.orientationForward() ;
-        // for calculating 2D rotation we ignore the y-value:
-        dirToGo.y = 0 ;
-        agentHdir.y = 0 ;
+
+        // for calculating 2D rotation we ignore the up-vector:
+        Vec3 upVec = agentState.orientationUp();
+        // project the two vectors to the plane perpendicular to the up-vector
+        dirToGo   = Vec3.sub(dirToGo,   Vec3.mul(upVec, Vec3.dot(dirToGo,   upVec) / Vec3.dot(upVec, upVec)));
+        agentHdir = Vec3.sub(agentHdir, Vec3.mul(upVec, Vec3.dot(agentHdir, upVec) / Vec3.dot(upVec, upVec)));
 
         if(dirToGo.lengthSq() < 1) {
-            // the destination is too close within the agent's y-cylinder;
+            // the destination is too close within the agent's up-cylinder;
             // don't bother to rotate then
-            return  null ;
+            return null ;
         }
 
         dirToGo = dirToGo.normalized() ;
         agentHdir = agentHdir.normalized() ;
         // angle between the dir-to-go and the agent's own direction (expressed as cos(angle)):
-        var cos_alpha = Vec3.dot(agentHdir,dirToGo) ;
+        var cos_alpha = Vec3.dot(agentHdir, dirToGo) ;
         //if(1 - cos_alpha < 0.01) {
         if(cos_alpha > cosAlphaThreshold) {
             // the angle is already quite aligned to the direction of where we have to go, no turning.
@@ -302,16 +291,16 @@ public class UUTacticLib {
         float turningSpeed = TURNING_SPEED ;
         boolean fastturning = true ;
 
-        Vec3 normalVector = Vec3.cross(agentHdir,dirToGo) ;
+        Vec3 normalVector = Vec3.cross(agentHdir,dirToGo);
 
-        if(cos_alpha >= THRESHOLD_ANGLE_TO_SLOW_TURNING) {
+        if(cos_alpha >= cosAlphaThreshold * THRESHOLD_ANGLE_TO_SLOW_TURNING) {
             // the angle between the agent's own direction and target direction is less than 10-degree
             // we reduce the turning-speed:
             turningSpeed = TURNING_SPEED * 0.25f ;
             fastturning = false ;
         }
         // check if we have to turn clockwise or counter-clockwise
-        if (normalVector.y > 0) {
+        if (Vec3.dot(normalVector, upVec) > 0) {
             // The agent should then turn clock-wise; for SE this means giving
             // a negative turning speed. Else positive turning speed.
             turningSpeed = -turningSpeed ;
@@ -330,9 +319,11 @@ public class UUTacticLib {
                     0, 1) ; // "roll" and "tick" ... using default values;
             dirToGo = Vec3.sub(destination,SEBlockFunctions.fromSEVec3(obs.getPosition())) ;
             agentHdir = SEBlockFunctions.fromSEVec3(obs.getOrientationForward()) ;
-            // for calculating 2D rotation we ignore the y-value:
-            dirToGo.y = 0 ;
-            agentHdir.y = 0 ;
+            // for calculating 2D rotation we ignore the up-vector:
+            upVec = SEBlockFunctions.fromSEVec3(obs.getOrientationUp());
+            // project the two vectors to the plane perpendicular to the up-vector
+            dirToGo   = Vec3.sub(dirToGo,   Vec3.mul(upVec, Vec3.dot(dirToGo,   upVec) / Vec3.dot(upVec, upVec)));
+            agentHdir = Vec3.sub(agentHdir, Vec3.mul(upVec, Vec3.dot(agentHdir, upVec) / Vec3.dot(upVec, upVec)));
 
             if(dirToGo.lengthSq() < 1) {
                 // the destination is too close within the agent's y-cylinder;
@@ -585,6 +576,8 @@ public class UUTacticLib {
                     if(cos_alpha >= cosAlphaThreshold) { // the angle is quite aligned, the action is disabled
                         return cos_alpha ;
                     }
+                    // TODO: make alternative yTurnTowardsACT because this one will not rotate if the goal is too close (or move the goal further away)
+                    // note: sometimes happens at facing towards a button panel
                     CharacterObservation obs = yTurnTowardACT(state, destination, cosAlphaThreshold_, 10) ;
                     if(obs == null) {
                         return cos_alpha ;
@@ -774,7 +767,7 @@ public class UUTacticLib {
                     }
                     CharacterObservation obs = null ;
                     // disabling rotation for now
-                    obs = yTurnTowardACT(state, nextNodePos, 0.8f, 10) ;
+                    obs = yTurnTowardACT(state, nextNodePos, 0.9f, 10) ;
                     if (obs != null) {
                         // we did turning, we won't move.
                         return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward())) ;
@@ -1038,12 +1031,12 @@ public class UUTacticLib {
             float cos_alpha = Vec3.dot(gradient_v1v2, gradient_v2v3) ;
 
             float threshold = 0.9f; // 0.91 == dot when v1 and v3 have around an angle of 25 degrees (for 3D cases)
-            // If effectively a 2D angle
-            if ((v1.x == v2.x && v2.x == v3.x) ||
-                (v1.y == v2.y && v2.y == v3.y) ||
-                (v1.z == v2.z && v2.z == v3.z)) {
-                threshold = 0.7f; // 0.71 == dot when v1 and v3 have around an angle of 45 degrees (for 2D cases)
-            }
+//            // If effectively a 2D angle
+//            if ((v1.x == v2.x && v2.x == v3.x) ||
+//                (v1.y == v2.y && v2.y == v3.y) ||
+//                (v1.z == v2.z && v2.z == v3.z)) {
+//                threshold = 0.7f; // 0.71 == dot when v1 and v3 have around an angle of 45 degrees (for 2D cases)
+//            }
 
             if (cos_alpha >= threshold) {
                 // the gradients v1-->v2 and v2-->v3 are the same or almost the same,
@@ -1094,10 +1087,8 @@ public class UUTacticLib {
                         ) {
                             state.env().getController().getCharacter().turnOffJetpack();
                         } else {
-                            if (path.get(0).y > 0 && !state.jetpackRunning()) {
+                            if (path.get(0).y > 0 && !state.jetpackRunning())
                                 state.env().getController().getCharacter().turnOnJetpack();
-                                //state.env().getController().getAdmin().getCharacter().use();
-                            }
                         }
                     } else if (state instanceof UUSeAgentState3DVoxelGrid || state instanceof UUSeAgentState3DOctree) {
                         // turn on jetpack if not already on
