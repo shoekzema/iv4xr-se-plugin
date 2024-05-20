@@ -417,6 +417,11 @@ public class NavGrid implements Explorable<DPos3> {
     }
 
     @Override
+    public DPos3 phantom_neighbour(DPos3 node, DPos3 real_neighbour) {
+        return real_neighbour;
+    }
+
+    @Override
     public boolean isUnknown(DPos3 node) {
         return false;
     }

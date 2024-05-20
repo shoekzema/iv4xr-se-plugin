@@ -36,13 +36,16 @@ public class Octree implements Explorable<Octree> {
     }
 
 
+    /**
+     * Create block (size 2.5), and add some padding
+     * @param pos: center position of block
+     * @return block boundary with padding
+     */
     Boundary2 blockBB(Vec3 pos) {
-        // Create block (size 2.5), but add some padding
-        // TODO: a more general approach for 3D. So not assuming y is the up-axis
         // add some padding due to agent's body width/height:
         //      note: agent height = 1.8, about 0.5 above feet is the rotation point, so to prevent the agent from
         //            hitting their head, pad with (1.3 - 0.5 * MIN_NODE_SIZE)
-        float hpadding = (AGENT_WIDTH - MIN_NODE_SIZE) * 0.5f;
+        float hpadding = (AGENT_WIDTH  - MIN_NODE_SIZE) * 0.5f;
         float vpadding = (AGENT_HEIGHT - MIN_NODE_SIZE) * 0.5f;
 
         return new Boundary2(Vec3.sub(pos, new Vec3(1.25f + vpadding, 1.25f + vpadding, 1.25f + vpadding)),
@@ -2135,6 +2138,75 @@ public class Octree implements Explorable<Octree> {
         return candidates;
     }
 
+    /**
+     * Gets in what direction a node is compared to another.
+     * @param from: the node to check for
+     * @param to: the neighbour node
+     * @return A directional vec3 with values 0, 1 or -1 for xyz
+     */
+    public Vec3 neighbour_direction(Octree from, Octree to) {
+        if (from == to) return new Vec3(0,0,0);
+
+        // Directional
+        List<Octree> temp = from.getTopNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(0, 1, 0);
+        temp = from.getRightNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(1, 0, 0);
+        temp = from.getBottomNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(0, -1, 0);
+        temp = from.getLeftNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(-1, 0, 0);
+        temp = from.getFrontNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(0, 0, -1);
+        temp = from.getBackNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(0, 0, 1);
+
+        // Diagonal
+        temp = from.getTopLeftNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(-1, 1, 0);
+        temp = from.getTopRightNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(1, 1, 0);
+        temp = from.getTopFrontNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(0, 1, -1);
+        temp = from.getTopBackNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(0, 1, 1);
+        temp = from.getBottomLeftNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(-1, -1, 0);
+        temp = from.getBottomRightNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(1, -1, 0);
+        temp = from.getBottomFrontNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(0, -1, -1);
+        temp = from.getBottomBackNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(0, -1, 1);
+        temp = from.getLeftFrontNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(-1, 0, -1);
+        temp = from.getLeftBackNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(-1, 0, 1);
+        temp = from.getRightFrontNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(1, 0, -1);
+        temp = from.getRightBackNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(1, 0, 1);
+
+        temp = from.getTopLeftFrontNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(-1, 1, -1);
+        temp = from.getTopLeftBackNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(-1, 1, 1);
+        temp = from.getTopRightFrontNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(1, 1, -1);
+        temp = from.getTopRightBackNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(1, 1, 1);
+        temp = from.getBottomLeftFrontNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(-1, -1, -1);
+        temp = from.getBottomLeftBackNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(-1, -1, 1);
+        temp = from.getBottomRightFrontNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(1, -1, -1);
+        temp = from.getBottomRightBackNeighbour(new Stack<>());
+        if (temp != null) if (temp.contains(to)) return new Vec3(1, -1, 1);
+
+        return new Vec3(0,0,0);
+    }
+
     @Override
     public Iterable<Octree> neighbours_explore(Octree node) {
         exploring = true;
@@ -2156,6 +2228,20 @@ public class Octree implements Explorable<Octree> {
         return Math.abs(to.boundary.center().x - from.boundary.center().x)
                 + Math.abs(to.boundary.center().y - from.boundary.center().y)
                 + Math.abs(to.boundary.center().z - from.boundary.center().z);
+    }
+
+    @Override
+    public Octree phantom_neighbour(Octree node, Octree real_neighbour) {
+        if (real_neighbour.boundary.size <= node.boundary.size)
+            return real_neighbour;
+
+        // neighbour_direction gets the direction node is compared to real_neighbour, reverses the vector,
+        // multiplies it with the node size and adds it to the node pos.
+        // (reversal needed because neighbour_direction can differ with different node sizes, so we get the one only
+        //  possible one from the larger to the smaller)
+        Vec3 newPos = Vec3.add(node.boundary.position, Vec3.mul(neighbour_direction(real_neighbour, node), -node.boundary.size));
+        Boundary newB = new Boundary(newPos, node.boundary.size);
+        return new Octree(newB, real_neighbour, (byte) 0, (byte) 0);
     }
 
     @Override

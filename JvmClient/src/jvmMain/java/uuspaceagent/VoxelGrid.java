@@ -331,6 +331,11 @@ public class VoxelGrid implements Explorable<DPos3> {
     }
 
     @Override
+    public DPos3 phantom_neighbour(DPos3 node, DPos3 real_neighbour) {
+        return real_neighbour;
+    }
+
+    @Override
     public boolean isUnknown(DPos3 node) {
         if (node.x < 0 || node.y < 0 || node.z < 0 || node.x >= size().x || node.y >= size().y || node.z >= size().z)
             return true; // if outside the grid, it must be unknown

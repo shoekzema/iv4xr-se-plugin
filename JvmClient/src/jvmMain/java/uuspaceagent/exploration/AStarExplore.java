@@ -1,6 +1,7 @@
 package uuspaceagent.exploration;
 
 import eu.iv4xr.framework.extensions.pathfinding.*;
+import uuspaceagent.Octree;
 
 import java.util.*;
 import java.util.function.BiFunction;
@@ -143,13 +144,15 @@ public class AStarExplore<NodeId> implements PathExplorer<NodeId> {
 
                 // Check if an unknown node is reached, the search stops, and the path to it is returned.
                 // In particular note that we don't search further e.g. to find a better path.
-                if (graph.isUnknown(next)) {
+                if (graph.isUnknown(next) && current != start) {
                     // Reconstruct path backwards
                     var path = new ArrayList<NodeId>();
-                    path.add(current);  // this one is unknown, so in case it is a wall, we do not add it to the path
+                    // current node is unknown, so we create a new one (if necessary) next to it, in case it is a wall.
+                    NodeId newNode = graph.phantom_neighbour(next, current);
+                    if (newNode != current) path.add(newNode);
                     while (! current.equals(start)) {
-                        current = paths.get(current);
                         path.add(current);
+                        current = paths.get(current);
                     }
                     // Reverse path to get correct direction
                     Collections.reverse(path);
