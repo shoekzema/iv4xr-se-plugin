@@ -80,14 +80,6 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
             newWom.elements.put(e.getKey(), e.getValue()) ;
         }
 
-//        newWom.elements.forEach((k, v) -> {
-//            if (!Objects.equals(k, "se0")) {
-//                v.elements.forEach((k2, v2) -> {
-//                    System.out.println((String) v2.properties.get("blockType") + ": " + (int)(v2.position.x) + " " + (int)(v2.position.y) + " " + (int)(v2.position.z));
-//                });
-//            }
-//        });
-
         // updating the count:
         updateCount++ ;
 
@@ -149,7 +141,7 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
                         for (var block2 : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
                             addToOctree(block2);
                         }
-                        grid.updateUnknown(centerPos(), OBSERVATION_RADIUS);
+                        //grid.updateUnknown(centerPos(), OBSERVATION_RADIUS);
                     }
                 }
                 if (!rebuild) {
@@ -160,7 +152,7 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
                     for (var blockId : tobeAdded) {
                         addToOctree(cubeGridNew.elements.get(blockId));
                     }
-                    grid.updateUnknown(centerPos(), OBSERVATION_RADIUS);
+                    //grid.updateUnknown(centerPos(), OBSERVATION_RADIUS);
                 }
             }
         }

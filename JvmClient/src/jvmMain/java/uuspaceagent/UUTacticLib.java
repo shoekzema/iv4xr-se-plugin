@@ -299,7 +299,6 @@ public class UUTacticLib {
             turningSpeed = TURNING_SPEED * 0.25f ;
             fastturning = false ;
         }
-        // check if we have to turn clockwise or counter-clockwise
         if (Vec3.dot(normalVector, upVec) > 0) {
             // The agent should then turn clock-wise; for SE this means giving
             // a negative turning speed. Else positive turning speed.
@@ -1184,15 +1183,17 @@ public class UUTacticLib {
                         return new Pair<>(state.wom.position, state.orientationForward());
                     }
 
-                    var agentSq = state.getGridPos(state.centerPos());
-                    for (var next : state.getGrid().neighbours_explore(agentSq)) {
-                        if (state.getGrid().isUnknown(next)) {
-                            //state.getGrid().updateUnknown(state.centerPos(), OBSERVATION_RADIUS);
+                    // set currentPathToFollow:
+                    state.currentPathToFollow = path ;
 
-                            state.currentPathToFollow.clear();
-                            return new Pair<>(state.centerPos(), state.orientationForward());
-                            //return new Pair<>(true, true);
-                        }
+                    var lastNode = state.currentPathToFollow.get(path.size() - 1);
+                    var lastNodePos = state.getBlockCenter(lastNode);
+                    if (Vec3.sub(lastNodePos, state.centerPos()).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
+                        state.getGrid().updateUnknown(state.centerPos(), OBSERVATION_RADIUS);
+
+                        state.currentPathToFollow.clear();
+                        return new Pair<>(state.centerPos(), state.orientationForward());
+                        //return new Pair<>(true, true);
                     }
                     // else we are not at the destination yet...
 
@@ -1213,9 +1214,6 @@ public class UUTacticLib {
                         if (!state.jetpackRunning())
                             state.env().getController().getCharacter().turnOnJetpack();
                     }
-
-                    // set currentPathToFollow:
-                    state.currentPathToFollow = path ;
 
                     // follow the path, direct the agent to the next node in the path (actually, the first
                     // node in the path, since we remove a node if it is passed):
