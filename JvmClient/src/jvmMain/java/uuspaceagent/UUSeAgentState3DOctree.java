@@ -179,12 +179,16 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
         if (isOpen != null) {
             if (!isOpen)
                 grid.addObstacle(block);
-            if (!doors.contains(block))
+            if (doors.stream().noneMatch(d -> Objects.equals(d.id, block.id))) {
+                System.out.println("Found a door: " + block.id);
                 doors.add(block);
+            }
         }
         else if(block.getStringProperty("blockType").contains("ButtonPanel")) {
-            if (!buttons.contains(block))
+            if (buttons.stream().noneMatch(b -> Objects.equals(b.id, block.id))) {
+                System.out.println("Found a button-panel: " + block.id);
                 buttons.add(block);
+            }
         }
         else
             grid.addObstacle(block);
