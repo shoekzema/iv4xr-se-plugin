@@ -561,11 +561,15 @@ public class UUTacticLib {
                 .on((UUSeAgentState state) ->{
                     Vec3 dirToGo = Vec3.sub(destination,state.wom.position) ;
                     Vec3 forwardOrientation = state.orientationForward() ;
-                    dirToGo.y = 0 ;
-                    forwardOrientation.y = 0 ;
+
+                    // for calculating 2D rotation we ignore the up-vector:
+                    Vec3 upVec = state.orientationUp();
+                    // project the dirToGo to the plane perpendicular to the up-vector
+                    dirToGo = Vec3.sub(dirToGo, Vec3.mul(upVec, Vec3.dot(dirToGo, upVec) / Vec3.dot(upVec, upVec)));
+
                     dirToGo = dirToGo.normalized() ;
                     forwardOrientation = forwardOrientation.normalized() ;
-                    var cos_alpha = Vec3.dot(forwardOrientation,dirToGo) ;
+                    var cos_alpha = Vec3.dot(forwardOrientation, dirToGo) ;
 //                    if(cos_alpha >= cosAlphaThreshold) { // the angle is quite aligned, the action is disabled
 //                        return null ;
 //                    }
@@ -583,11 +587,15 @@ public class UUTacticLib {
                     }
                     Vec3 dirToGo = Vec3.sub(destination,state.wom.position) ;
                     Vec3 forwardOrientation = SEBlockFunctions.fromSEVec3(obs.getOrientationForward()) ;
-                    dirToGo.y = 0 ;
-                    forwardOrientation.y = 0 ;
+
+                    // for calculating 2D rotation we ignore the up-vector:
+                    Vec3 upVec = state.orientationUp();
+                    // project the dirToGo to the plane perpendicular to the up-vector
+                    dirToGo = Vec3.sub(dirToGo, Vec3.mul(upVec, Vec3.dot(dirToGo, upVec) / Vec3.dot(upVec, upVec)));
+
                     dirToGo = dirToGo.normalized() ;
                     forwardOrientation = forwardOrientation.normalized() ;
-                    cos_alpha = Vec3.dot(forwardOrientation,dirToGo) ;
+                    cos_alpha = Vec3.dot(forwardOrientation, dirToGo) ;
                     return cos_alpha ;
                 }) ;
     }
