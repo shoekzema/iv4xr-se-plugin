@@ -1177,10 +1177,7 @@ public class UUTacticLib {
 
                     if (arrivedAtDestination) {
                         state.currentPathToFollow.clear();
-                        if (state instanceof UUSeAgentState3DVoxelGrid || state instanceof UUSeAgentState3DOctree) {
-                            return new Pair<>(state.centerPos(), state.orientationForward());
-                        }
-                        return new Pair<>(state.wom.position, state.orientationForward());
+                        return true;
                     }
 
                     // set currentPathToFollow:
@@ -1192,8 +1189,7 @@ public class UUTacticLib {
                         state.getGrid().updateUnknown(state.centerPos(), OBSERVATION_RADIUS);
 
                         state.currentPathToFollow.clear();
-                        return new Pair<>(state.centerPos(), state.orientationForward());
-                        //return new Pair<>(true, true);
+                        return false;
                     }
                     // else we are not at the destination yet...
 
@@ -1223,7 +1219,7 @@ public class UUTacticLib {
                         // agent is already in the same square as the next-node destination-square. Mark the node
                         // as reached (so, we remove it from the plan):
                         state.currentPathToFollow.remove(0) ;
-                        return new Pair<>(state.centerPos(), state.orientationForward()) ;
+                        return false;
                     }
 
                     CharacterObservation obs;
@@ -1231,41 +1227,41 @@ public class UUTacticLib {
                     obs = yTurnTowardACT(state, nextNodePos, 0.8f, 10) ;
                     if (obs != null) {
                         // we did turning, we won't move.
-                        return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward())) ;
+                        return false;
                     }
 
                     if (state instanceof UUSeAgentState3DVoxelGrid) {
-                        obs = moveToward((UUSeAgentState3DVoxelGrid) state, nextNodePos, 20);
+                        moveToward((UUSeAgentState3DVoxelGrid) state, nextNodePos, 20);
                     } else if (state instanceof UUSeAgentState3DOctree) {
-                        obs = moveToward((UUSeAgentState3DOctree) state, nextNodePos, 20);
+                        moveToward((UUSeAgentState3DOctree) state, nextNodePos, 20);
                     } else {
-                        obs = moveToward(state, nextNodePos, 20);
+                        moveToward(state, nextNodePos, 20);
                     }
-
-                    return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward()));
+                    return false;
                 })
                 .on((UUSeAgentState state) -> {
                     if (state.wom==null) return null ;
                     var agentSq = state.getGridPos(state.centerPos());
 
-                    // if the target block is a reachable location, then the tactic is then not enabled
-                    WorldEntity block = SEBlockFunctions.findClosestBlock(state.wom, selector.apply(state));
-                    if (block != null) {
-                        Vec3 targetLocation = SEBlockFunctions.getSideCenterPoint(block, side, delta + 1.5f);
-                        var destinationSq = state.getGridPos(targetLocation);
-                        if (!state.getGrid().isUnknown(destinationSq)) {
-
-                            var path = state.pathfinder.findPath(state.getGrid(), agentSq, destinationSq);
-                            if (path != null) {
-                                System.out.println("### found a path to the goal");
-                                return new Pair<>(null, true);
-                            }
-                        }
-                    }
-
                     int currentPathLength = state.currentPathToFollow.size() ;
                     if (currentPathLength == 0)
                     {  // there is no path planned, or there is an ongoing path, but it goes to a different target
+
+                        // if the target block is a reachable location, then the tactic is not enabled
+                        WorldEntity block = SEBlockFunctions.findClosestBlock(state.wom, selector.apply(state));
+                        if (block != null) {
+                            Vec3 targetLocation = SEBlockFunctions.getSideCenterPoint(block, side, delta + 1.5f);
+                            var destinationSq = state.getGridPos(targetLocation);
+                            if (!state.getGrid().isUnknown(destinationSq)) {
+
+                                var path = state.pathfinder.findPath(state.getGrid(), agentSq, destinationSq);
+                                if (path != null) {
+                                    System.out.println("### found a path to the goal");
+                                    return new Pair<>(null, true);
+                                }
+                            }
+                        }
+                        // otherwise, plan a new explore path
                         if (state instanceof UUSeAgentState3DOctree) {
                             List<Octree> path = state.pathfinder.explore(state.getGrid(), agentSq);
                             if (path == null) {
