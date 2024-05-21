@@ -177,7 +177,6 @@ public class UUGoalLib {
      * A goal that is solved when the agent has no reachable unknown locations or the target block becomes reachable.
      * If an unknown location is reachable from the agents current position, use the tactic exploreTAC.
      * The goal is aborted if all reachable unexplored nodes have been explored.
-     * TODO: For octrees: if the octree node is too big, it cannot fit inside the viewing range fully and it will get stuck
      */
     public static Function<UUSeAgentState,GoalStructure> explore(String targetBlockName,
                                                                  Function<UUSeAgentState, Predicate<WorldEntity>> selector,
@@ -185,22 +184,7 @@ public class UUGoalLib {
                                                                  float delta) {
         return (UUSeAgentState state) -> {
             GoalStructure G = goal("exploring the world to find " + targetBlockName)
-                    .toSolve((Pair<Vec3,Vec3> posAndOrientation) -> {
-                        var agentSq = state.getGridPos(state.centerPos());
-
-                        WorldEntity block = SEBlockFunctions.findClosestBlock(state.wom, selector.apply(state));
-                        if (block != null) {
-                            Vec3 targetLocation = SEBlockFunctions.getSideCenterPoint(block, side, delta + 1.5f);
-                            var destinationSq = state.getGridPos(targetLocation);
-
-                            List<Octree> path = state.pathfinder.findPath(state.getGrid(), agentSq, destinationSq);
-                            if (path != null) return true;
-                        }
-
-                        var path = state.pathfinder.explore(state.getGrid(), agentSq);
-                        // the pathfinder cannot find a path to an unknown node, meaning the world is explored
-                        return path == null;
-                    })
+                    .toSolve((Boolean success) -> success)
                     .withTactic(
                             FIRSTof(UUTacticLib.exploreTAC(selector, side, delta), ABORT()) )
                     .lift();
@@ -212,7 +196,6 @@ public class UUGoalLib {
      * A goal that is solved when the agent has no reachable unknown locations.
      * If an unknown location is reachable from the agents current position, use the tactic exploreTAC.
      * The goal is aborted if all reachable unexplored nodes have been explored.
-     * TODO: For octrees: if the octree node is too big, it cannot fit inside the viewing range fully and it will get stuck
      */
     public static Function<UUSeAgentState,GoalStructure> explore() {
         return (UUSeAgentState state) -> {
