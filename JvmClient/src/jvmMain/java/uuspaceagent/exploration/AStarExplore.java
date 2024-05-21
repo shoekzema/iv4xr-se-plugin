@@ -45,7 +45,7 @@ public class AStarExplore<NodeId> implements PathExplorer<NodeId> {
         open.add(new Priotisable<>(start, fDistance_ofStart));
         closed.put(start, 0f);
 
-        while (open.size() > 0) {
+        while (!open.isEmpty()) {
             // remove the node with the lowest "priority" from the open-list.
             NodeId current = open.remove().item ;
 
@@ -64,7 +64,7 @@ public class AStarExplore<NodeId> implements PathExplorer<NodeId> {
                 return path;
             }
 
-            var distToCurrent = closed.get(current).floatValue();
+            var distToCurrent = closed.get(current);
 
             for (NodeId next : graph.neighbours(current)) {
 
@@ -87,7 +87,7 @@ public class AStarExplore<NodeId> implements PathExplorer<NodeId> {
                 if (!closed.containsKey(next)) {
                     // Unexplored node
                     closed.put(next, distToNext);
-                } else if (distToNext < closed.get(next).floatValue()) {
+                } else if (distToNext < closed.get(next)) {
                     // Already explored, but shorter route
                     closed.replace(next, distToNext);
                 } else {
@@ -107,7 +107,7 @@ public class AStarExplore<NodeId> implements PathExplorer<NodeId> {
                     default : /* heuristic-mode */ fDistance = distToNext + heurFromNext ;
                 }
 
-                if (!open.stream().anyMatch(p -> p.item.equals(next))
+                if (open.stream().noneMatch(p -> p.item.equals(next))
                         || open.removeIf(p -> p.item.equals(next) && p.priority > fDistance)) {
                     // If not in open set, or already in open set with longer distance...
                     // put next neighbour in the open set
@@ -134,11 +134,11 @@ public class AStarExplore<NodeId> implements PathExplorer<NodeId> {
         open.add(new Priotisable<>(start, fDistance_ofStart));
         closed.put(start, 0f);
 
-        while (open.size() > 0) {
+        while (!open.isEmpty()) {
             // remove the node with the lowest "priority" from the open-list.
             NodeId current = open.remove().item ;
 
-            var distToCurrent = closed.get(current).floatValue();
+            var distToCurrent = closed.get(current);
 
             for (NodeId next : graph.neighbours_explore(current)) {
 
@@ -175,7 +175,7 @@ public class AStarExplore<NodeId> implements PathExplorer<NodeId> {
                 if (!closed.containsKey(next)) {
                     // Unexplored node
                     closed.put(next, distToNext);
-                } else if (distToNext < closed.get(next).floatValue()) {
+                } else if (distToNext < closed.get(next)) {
                     // Already explored, but shorter route
                     closed.replace(next, distToNext);
                 } else {
@@ -193,7 +193,7 @@ public class AStarExplore<NodeId> implements PathExplorer<NodeId> {
                 // Because there is no heuristic, Dijkstra is always used
                 fDistance = distToNext ;
 
-                if (!open.stream().anyMatch(p -> p.item.equals(next))
+                if (open.stream().noneMatch(p -> p.item.equals(next))
                         || open.removeIf(p -> p.item.equals(next) && p.priority > fDistance)) {
                     // If not in open set, or already in open set with longer distance...
                     // put next neighbour in the open set
