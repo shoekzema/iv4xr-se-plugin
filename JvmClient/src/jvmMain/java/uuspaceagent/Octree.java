@@ -14,7 +14,8 @@ public class Octree implements Explorable<Octree> {
     public Octree parent;
     byte label; // empty = 0, full = 1, mixed = 2, mixed-unknown = 3
     byte code; // 0-7, Morton code (Z) order
-    public static float MIN_NODE_SIZE = 1f;
+    public static float MIN_NODE_SIZE = 2 * 0.624f; // is used a MIN_SUBDIVIDE_SIZE, so we double it here
+    // 0.624 guarantees the center of a block of size 2.5 will be open (2*0.625 = 1.25, which worst case is on the neighbour blocks center, so 0.624)
     public static float AGENT_HEIGHT = 1.8f ;
     public static float AGENT_WIDTH  = 1f ;
 
@@ -209,7 +210,7 @@ public class Octree implements Explorable<Octree> {
                 this.label = Label.MIXED;
             }
 
-            children.forEach(node -> node.removeObstacle(block));
+            children.forEach(node -> node.setUnknown(block));
 
             // Check if every child-node is empty, then become open and throw them away.
             if (children.stream().allMatch(node -> node.label == Label.UNKNOWN)) {
