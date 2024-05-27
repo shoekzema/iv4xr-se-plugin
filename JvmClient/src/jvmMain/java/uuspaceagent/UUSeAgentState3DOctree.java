@@ -160,10 +160,16 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
 
     @Override
     public void updateDoors() {
-        doors.forEach(door -> grid.setUnknown(door));
-
-        // if any door is inside the viewing range, re-add all blocks
         Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS + 2.5f)), 2 * OBSERVATION_RADIUS + 5);
+        doors.forEach(door -> {
+            if (observation_radius.contains(door.position)) {
+                grid.setOpen(door);
+            } else {
+                grid.setUnknown(door);
+            }
+        });
+
+        // if any door was inside the viewing range, re-add all blocks
         if (doors.stream().anyMatch(door -> observation_radius.contains(door.position))) {
             Observation rawGridsAndBlocksStates = env().getController().getObserver().observeBlocks();
             WorldModel gridsAndBlocksStates = SeEnvironmentKt.toWorldModel(rawGridsAndBlocksStates);
