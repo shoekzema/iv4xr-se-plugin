@@ -1,14 +1,19 @@
 package uuspaceagent;
 
 import eu.iv4xr.framework.mainConcepts.TestAgent;
+import eu.iv4xr.framework.mainConcepts.WorldEntity;
+import eu.iv4xr.framework.spatial.Vec3;
 import nl.uu.cs.aplib.mainConcepts.GoalStructure;
 import nl.uu.cs.aplib.utils.Pair;
 import org.junit.jupiter.api.Test;
+import spaceEngineers.controller.useobject.UseObjectExtensions;
+import spaceEngineers.model.Block;
 
-import static nl.uu.cs.aplib.AplibEDSL.DEPLOYonce;
+import static nl.uu.cs.aplib.AplibEDSL.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static uuspaceagent.PrintInfos.showWOMAgent;
 import static uuspaceagent.TestUtils.*;
+import static uuspaceagent.UUGoalLib.*;
 
 public class Test_Navigate3D {
     public Pair<TestAgent, UUSeAgentState3DOctree> deployAgent(String worldname) throws InterruptedException {
@@ -21,7 +26,7 @@ public class Test_Navigate3D {
         return new Pair<>(agent, state);
     }
 
-    public void test_Goal(TestAgent agent, UUSeAgentState3DOctree state, GoalStructure G) throws  InterruptedException {
+    public void test_Goal(TestAgent agent, UUSeAgentState3DOctree state, GoalStructure G) throws InterruptedException {
         agent.setGoal(G);
         int turn = 0;
         while (G.getStatus().inProgress()) {
@@ -29,10 +34,9 @@ public class Test_Navigate3D {
             agent.update();
             //Thread.sleep(50);
             turn++;
-            if (turn >= 1400) break;
+            if (turn >= 10000) break;
         }
         state.exportGrid();
-        state.exportManualProfileShit();
         TestUtils.closeConnectionToSE(state);
     }
 
@@ -103,12 +107,85 @@ public class Test_Navigate3D {
         TestAgent agent = agentAndState.fst;
         // var state = agentAndState.snd;
 
-        GoalStructure G = DEPLOYonce(agent, UUGoalLib.smartClose3DTo(agent,
+        GoalStructure G = DEPLOYonce(agent, UUGoalLib.smartClose3DTo(
+                agent,
                 "LargeBlockBatteryBlock",
                 SEBlockFunctions.BlockSides.FRONT,
                 20f,
                 0.5f));
-        test_Goal(agentAndState.fst, agentAndState.snd, G);
+        test_Goal(agent, agentAndState.snd, G);
+        G.printGoalStructureStatus();
+        assertTrue(G.getStatus().success());
+    }
+
+    @Test
+    public void test_open_area() throws InterruptedException {
+        console("*** start test...");
+        var agentAndState = deployAgent("Glass box");
+        TestAgent agent = agentAndState.fst;
+
+        GoalStructure G = DEPLOYonce(agent, UUGoalLib.smartClose3DTo(
+                agent,
+                "TargetDummy",
+                SEBlockFunctions.BlockSides.BACK,
+                20f,
+                0.5f));
+        test_Goal(agent, agentAndState.snd, G);
+        G.printGoalStructureStatus();
+        assertTrue(G.getStatus().success());
+    }
+
+    @Test
+    public void test_labrecruits_level() throws InterruptedException {
+        console("*** start test...");
+        var agentAndState = deployAgent("CR3_3_3_M");
+        // agent start location = <0, 0, 0>, forward = <0, 1, 0>, up = <0, 0, 1>
+        TestAgent agent = agentAndState.fst;
+        // var state = agentAndState.snd;
+
+        GoalStructure G = SEQ(
+                DEPLOYonce(agent, closeToButton(0)),
+                lift((UUSeAgentState S) -> {
+                    UseObjectExtensions useUtil = new UseObjectExtensions(S.env().getController().getSpaceEngineers());
+                    WorldEntity button = (WorldEntity) S.buttons.get(0);
+                    if (button == null) return false;
+                    Block targetBlock = S.env().getBlock(button.id); //S.env().getController().getObserver().observe().getTargetBlock();
+                    useUtil.pressButton(targetBlock, 0);
+                    S.updateDoors();
+                    return true;
+                }),
+                DEPLOYonce(agent, closeToButton(1)),
+                lift((UUSeAgentState S) -> {
+                    UseObjectExtensions useUtil = new UseObjectExtensions(S.env().getController().getSpaceEngineers());
+                    WorldEntity button = (WorldEntity) S.buttons.get(1);
+                    if (button == null) return false;
+                    Block targetBlock = S.env().getBlock(button.id); //S.env().getController().getObserver().observe().getTargetBlock();
+                    useUtil.pressButton(targetBlock, 2);
+                    S.updateDoors();
+                    return true;
+                }),
+                DEPLOYonce(agent, closeToButton(3)),
+                lift((UUSeAgentState S) -> {
+                    UseObjectExtensions useUtil = new UseObjectExtensions(S.env().getController().getSpaceEngineers());
+                    WorldEntity button = (WorldEntity) S.buttons.get(3);
+                    if (button == null) return false;
+                    Block targetBlock = S.env().getBlock(button.id); //S.env().getController().getObserver().observe().getTargetBlock();
+                    useUtil.pressButton(targetBlock, 3);
+                    S.updateDoors();
+                    return true;
+                }),
+                DEPLOYonce(agent, closeTo(
+                        agent,
+                        "TargetDummy",
+                        (UUSeAgentState state) -> (WorldEntity e)
+                                ->
+                                "TargetDummy".equals(e.getStringProperty("blockType"))
+                                        && Vec3.sub(e.position, state.wom.position).lengthSq() <= 400,
+                        SEBlockFunctions.BlockSides.BACK,
+                        0.5f
+                ))
+        );
+        test_Goal(agent, agentAndState.snd, G);
         G.printGoalStructureStatus();
         assertTrue(G.getStatus().success());
     }
