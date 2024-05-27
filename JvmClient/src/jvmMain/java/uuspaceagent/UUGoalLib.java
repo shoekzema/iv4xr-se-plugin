@@ -78,13 +78,13 @@ public class UUGoalLib {
         } ;
     }
 
-    public static Function<UUSeAgentState,GoalStructure> closeToButton() {
+    public static Function<UUSeAgentState,GoalStructure> closeToButton(int buttonNr) {
 
         return (UUSeAgentState state) -> {
             if (state.doors.isEmpty()) return FAIL();
             if (state.buttons.isEmpty()) return FAIL();
 
-            WorldEntity button = (WorldEntity) state.buttons.get(0);
+            WorldEntity button = (WorldEntity) state.buttons.get(buttonNr);
 
             Vec3 blockCenter = (Vec3) button.getProperty("centerPosition");
             Vec3 buttonPanelCenter = blockCenter.copy();
@@ -155,7 +155,7 @@ public class UUGoalLib {
                     ),
                     SEQ( // if still not possible, go to a button and press it
                         //closeToBlock("ButtonPanelLarge", buttonSelector, SEBlockFunctions.BlockSides.FRONT, 0).apply(state),
-                        DEPLOYonce(agent, closeToButton()),
+                        DEPLOYonce(agent, closeToButton(0)),
                         lift((UUSeAgentState S) -> {
                             UseObjectExtensions useUtil = new UseObjectExtensions(S.env().getController().getSpaceEngineers());
                             WorldEntity button = (WorldEntity) S.buttons.get(0);
