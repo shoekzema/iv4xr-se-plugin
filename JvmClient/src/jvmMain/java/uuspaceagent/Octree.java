@@ -182,6 +182,45 @@ public class Octree implements Explorable<Octree> {
     }
 
 
+    public void setOpen(WorldEntity block) {
+        // If the node is already open, do nothing
+        if (this.label == Label.OPEN)
+            return;
+
+        var blockBB = blockBB(block.position);
+
+        // If the node is entirely inside the removed block
+        if (blockBB.contains(this.boundary)) {
+            this.label = Label.OPEN;
+            if (!children.isEmpty()) {
+                children = new ArrayList<>(0);
+            }
+            return;
+        }
+        // Otherwise, if it is partially inside the removed block
+        if (blockBB.intersects(this.boundary)) {
+            // If we cannot subdivide further, force an open label
+            if (boundary.size() < MIN_NODE_SIZE) {
+                this.label = Label.OPEN;
+                return;
+            }
+            // If not already subdivided, subdivide
+            if (this.label != Label.MIXED) {
+                this.subdivide(this.label);
+                this.label = Label.OPEN;
+            }
+
+            children.forEach(node -> node.setOpen(block));
+
+            // Check if every child-node is empty, then become open and throw them away.
+            if (children.stream().allMatch(node -> node.label == Label.OPEN)) {
+                this.label = Label.OPEN;
+                children = new ArrayList<>(0);
+            }
+        }
+    }
+
+
     public void setUnknown(WorldEntity block) {
         // If the node is already unknown, do nothing
         if (this.label == Label.UNKNOWN)
@@ -199,7 +238,7 @@ public class Octree implements Explorable<Octree> {
         }
         // Otherwise, if it is partially inside the removed block
         if (blockBB.intersects(this.boundary)) {
-            // If we cannot subdivide further, force an open label
+            // If we cannot subdivide further, force an unknown label
             if (boundary.size() < MIN_NODE_SIZE) {
                 this.label = Label.UNKNOWN;
                 return;
