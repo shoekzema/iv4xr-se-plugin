@@ -19,7 +19,7 @@ public class VoxelGrid implements Explorable<DPos3> {
      * The assumed height of the player characters. It is 1.8, we conservatively
      * assume it is 2f.
      */
-    public static float AGENT_HEIGHT = 2f ;
+    public static float AGENT_HEIGHT = 1.8f ;
     public static float AGENT_WIDTH  = 1f ;
     public static float BLOCK_SIZE   = 2.5f ;
 
