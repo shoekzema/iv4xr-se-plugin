@@ -14,6 +14,7 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
@@ -146,10 +147,16 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
 
     @Override
     public void updateDoors() {
-        doors.forEach(door -> grid.setUnknown(door));
+        Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS + 2.5f)), 2 * OBSERVATION_RADIUS + 5);
+        doors.forEach(door -> {
+            if (observation_radius.contains(door.position)) {
+                grid.setOpen(door);
+            } else {
+                grid.setUnknown(door);
+            }
+        });
 
         // if any door is inside the viewing range, re-add all blocks
-        Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS + 2.5f)), 2 * OBSERVATION_RADIUS + 5);
         if (doors.stream().anyMatch(door -> observation_radius.contains(door.position))) {
             Observation rawGridsAndBlocksStates = env().getController().getObserver().observeBlocks();
             WorldModel gridsAndBlocksStates = SeEnvironmentKt.toWorldModel(rawGridsAndBlocksStates);
@@ -165,10 +172,16 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
         if (isOpen != null) {
             if (!isOpen)
                 grid.addObstacle(block, pos, OBSERVATION_RADIUS);
-            doors.add(block);
+            if (doors.stream().noneMatch(d -> Objects.equals(d.id, block.id))) {
+                System.out.println("Found a door: " + block.id);
+                doors.add(block);
+            }
         }
         else if(block.getStringProperty("blockType").contains("ButtonPanel")) {
-            buttons.add(block);
+            if (buttons.stream().noneMatch(b -> Objects.equals(b.id, block.id))) {
+                System.out.println("Found a button-panel: " + block.id);
+                buttons.add(block);
+            }
         }
         else
             grid.addObstacle(block, pos, OBSERVATION_RADIUS);

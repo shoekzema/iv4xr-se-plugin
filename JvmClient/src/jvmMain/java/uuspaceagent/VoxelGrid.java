@@ -108,15 +108,14 @@ public class VoxelGrid implements Explorable<DPos3> {
         Vec3 minCorner = SEBlockFunctions.getBaseMinCorner(block) ; // should add rotation if it is not a cube. TODO.
 
 
-        // TODO: a more general approach for 3D. So not assuming y is the up-axis
         // add some padding due to agent's body width/height:
         //      note: agent height = 1.8, about 0.5 above feet is the rotation point, so to prevent the agent from
         //            hitting their head, pad with (1.3 - 0.5 * voxelSize)
         //Vec3 hpadding = Vec3.mul(new Vec3(AGENT_WIDTH, 0, AGENT_WIDTH), 0.6f) ;
-        Vec3 vpadding = new Vec3(0, 1.3f - 0.5f * voxelSize, 0) ;
+        Vec3 vpadding = new Vec3((AGENT_HEIGHT - voxelSize) * 0.5f) ;
         //minCorner = Vec3.sub(minCorner, hpadding) ;
         minCorner = Vec3.sub(minCorner, vpadding) ;
-        //maxCorner = Vec3.add(maxCorner, hpadding) ;
+        maxCorner = Vec3.add(maxCorner, vpadding) ;
 
         var corner1 = gridProjectedLocation(minCorner) ;
         var corner2 = gridProjectedLocation(maxCorner) ;
@@ -162,6 +161,14 @@ public class VoxelGrid implements Explorable<DPos3> {
         var obstructedCubes = getObstructedCubes(block) ;
         for(var voxel : obstructedCubes) {
             get(voxel).label = Label.UNKNOWN;
+        }
+    }
+
+    public void setOpen(WorldEntity block) {
+
+        var obstructedCubes = getObstructedCubes(block) ;
+        for(var voxel : obstructedCubes) {
+            get(voxel).label = Label.OPEN;
         }
     }
 
