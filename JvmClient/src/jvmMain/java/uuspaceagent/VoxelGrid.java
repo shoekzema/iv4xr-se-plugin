@@ -40,7 +40,7 @@ public class VoxelGrid implements Explorable<DPos3> {
     public VoxelGrid(float voxelSize) {
         this.voxelSize = voxelSize;
         squareDiagonalLength = new Vec3(0,voxelSize,voxelSize).length();
-        cubeDiagonalLength = new Vec3(voxelSize,voxelSize,voxelSize).length() ;
+        cubeDiagonalLength = new Vec3(voxelSize,voxelSize,voxelSize).length();
     }
 
     /**
@@ -52,16 +52,16 @@ public class VoxelGrid implements Explorable<DPos3> {
         Vec3 lowerB = Vec3.sub(pos, new Vec3(observation_radius + BLOCK_SIZE));
         boundary = new Boundary(lowerB, 2 * (observation_radius + BLOCK_SIZE));
 
-        int initialSize = (int) ((boundary.upperBounds().x - boundary.position.x) / voxelSize);
+        int initialSize = (int) ((boundary.upperBounds().x - boundary.x) / voxelSize);
         grid = new ArrayList<>(initialSize);
         for (int x = 0; x < initialSize; x++) {
             grid.add(x, new ArrayList<>(initialSize));
             for (int y = 0; y < initialSize; y++) {
                 grid.get(x).add(y, new ArrayList<>(initialSize));
                 for (int z = 0; z < initialSize; z++) {
-                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.position.x,
-                                                             y * voxelSize + boundary.position.y,
-                                                             z * voxelSize + boundary.position.z));
+                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.x,
+                                                             y * voxelSize + boundary.y,
+                                                             z * voxelSize + boundary.z));
                     grid.get(x).get(y).add(z, new Voxel(distance <= observation_radius ? Label.OPEN : Label.UNKNOWN));
                 }
             }
@@ -72,7 +72,7 @@ public class VoxelGrid implements Explorable<DPos3> {
      * Calculate the unit-cube that contains a point p.
      */
     public DPos3 gridProjectedLocation(Vec3 p) {
-        p = Vec3.sub(p, boundary.position) ;
+        p = Vec3.sub(p, boundary.pos()) ;
         /*
         int x = (int) (Math.floor(p.x / CUBE_SIZE)) ;
         int y = (int) (Math.floor(p.y / CUBE_SIZE)) ;
@@ -90,9 +90,9 @@ public class VoxelGrid implements Explorable<DPos3> {
      * as a 3D position in the space.
      */
     public Vec3 getCubeCenterLocation(DPos3 cube) {
-        float x = (((float) cube.x) + 0.5f) * voxelSize + boundary.position.x ;
-        float y = (((float) cube.y) + 0.5f) * voxelSize + boundary.position.y ;
-        float z = (((float) cube.z) + 0.5f) * voxelSize + boundary.position.z ;
+        float x = (((float) cube.x) + 0.5f) * voxelSize + boundary.x ;
+        float y = (((float) cube.y) + 0.5f) * voxelSize + boundary.y ;
+        float z = (((float) cube.z) + 0.5f) * voxelSize + boundary.z ;
         return new Vec3(x,y,z) ;
     }
 
@@ -194,7 +194,7 @@ public class VoxelGrid implements Explorable<DPos3> {
                         .limit(gridSize.y)
                         .collect(Collectors.toCollection(ArrayList::new));
                 grid.add(0, newX);
-                boundary.position.x -= voxelSize;
+                boundary.x -= voxelSize;
                 retVal.x += diff;
             }
         }
@@ -218,7 +218,7 @@ public class VoxelGrid implements Explorable<DPos3> {
                     grid.get(x).add(0, newY);
                 }
             }
-            boundary.position.y -= voxelSize;
+            boundary.y -= voxelSize;
             retVal.y++;
         }
         else if (voxel.y >= gridSize.y) {
@@ -243,7 +243,7 @@ public class VoxelGrid implements Explorable<DPos3> {
                     }
                 }
             }
-            boundary.position.z -= voxelSize;
+            boundary.z -= voxelSize;
             retVal.z++;
         }
         else if (voxel.z >= gridSize.z) {
@@ -359,9 +359,9 @@ public class VoxelGrid implements Explorable<DPos3> {
         for(int x = max(corner1.x, 0); x <= min(corner2.x, size().x-1); x++) {
             for (int y = max(corner1.y, 0); y <= min(corner2.y, size().y-1); y++) {
                 for (int z = max(corner1.z, 0); z <= min(corner2.z, size().z-1); z++) {
-                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.position.x,
-                            y * voxelSize + boundary.position.y,
-                            z * voxelSize + boundary.position.z));
+                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.x,
+                            y * voxelSize + boundary.y,
+                            z * voxelSize + boundary.z));
                     if (get(x, y, z).label == Label.UNKNOWN && distance <= observation_radius) {
                         get(x, y, z).label = Label.OPEN;
                     }

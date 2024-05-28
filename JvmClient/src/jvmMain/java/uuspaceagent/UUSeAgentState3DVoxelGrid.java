@@ -42,7 +42,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
 
     @Override
     public Vec3 getOrigin() {
-        return grid.boundary.position;
+        return grid.boundary.pos();
     }
 
     @Override

@@ -39,7 +39,7 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
 
     @Override
     public Vec3 getOrigin() {
-        return grid.boundary.position;
+        return grid.boundary.pos();
     }
 
     @Override
