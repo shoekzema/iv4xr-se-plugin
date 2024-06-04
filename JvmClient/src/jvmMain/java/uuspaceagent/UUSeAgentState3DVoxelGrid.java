@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
 
-    public VoxelGrid grid = new VoxelGrid(1) ;
+    public VoxelGrid grid = new VoxelGrid(1f) ;
 
     public UUSeAgentState3DVoxelGrid(String agentId) {
         super(agentId);
@@ -110,7 +110,13 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
             for(var id : tobeRemoved) wom.elements.remove(id) ;
 
             for(var cubeGridNew : changes) {
+                if (Objects.equals(cubeGridNew.id, this.agentId)) continue;
+
                 var cubegridOld = cubeGridNew.getPreviousState();
+
+                if (cubegridOld == null) {
+                    continue; // TODO: check if this doesn't mean some blocks will not be added
+                }
 
                 // Then, we remove disappearing blocks (from grids that changed):
                 tobeRemoved.clear();
@@ -126,7 +132,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
                         rebuild = true;
 
                         // Removing a block makes all voxels it overlaps with empty, so go over all blocks to check
-                        // if some voxels overlapped with multiple blocks.
+                        // if some voxels overlapped with multiple blocks. TODO: put this outside the loop
                         for (var block2 : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
                             addToGrid(block2, newWom.position);
                         }
@@ -136,7 +142,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
                     // We add new blocks (from grids that changed):
                     List<String> tobeAdded = cubeGridNew.elements.keySet().stream()
                             .filter(id -> !cubegridOld.elements.containsKey(id))
-                            .collect(Collectors.toList());
+                            .toList();
                     for (var blockId : tobeAdded) {
                         addToGrid(cubeGridNew.elements.get(blockId), newWom.position);
                     }
@@ -215,34 +221,35 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
 
     public void exportGrid() {
 
-        WorldModel wom = env().observe() ;
-
-        Observation rawGridsAndBlocksStates = env().getController().getObserver().observeBlocks() ;
-        WorldModel gridsAndBlocksStates = SeEnvironmentKt.toWorldModel(rawGridsAndBlocksStates) ;
-
-        Vec3 doorpos = new Vec3(0);
-        for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-            grid.addObstacle(block, wom.position, OBSERVATION_RADIUS);
-            if (SEBlockFunctions.getSlideDoorState(block) != null) {
-                doorpos = block.position;
-            }
-        }
+//        WorldModel wom = env().observe() ;
+//
+//        Observation rawGridsAndBlocksStates = env().getController().getObserver().observeBlocks() ;
+//        WorldModel gridsAndBlocksStates = SeEnvironmentKt.toWorldModel(rawGridsAndBlocksStates) ;
+//
+//        Vec3 doorpos = new Vec3(0);
+//        for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
+//            grid.addObstacle(block, wom.position, OBSERVATION_RADIUS);
+//            if (SEBlockFunctions.getSlideDoorState(block) != null) {
+//                doorpos = block.position;
+//            }
+//        }
 
         try {
             System.out.println(System.getProperty("user.dir"));
             FileWriter fileWriter = new FileWriter("3D_Internal_WOM.txt");
             PrintWriter printWriter = new PrintWriter(fileWriter);
             Vec3 player_pos = grid.getCubeCenterLocation(grid.gridProjectedLocation(new Vec3(wom.position.x, wom.position.y + VoxelGrid.AGENT_HEIGHT * 0.5f, wom.position.z)));
-            Vec3 door_pos = grid.getCubeCenterLocation(grid.gridProjectedLocation(doorpos));
+            //Vec3 door_pos = grid.getCubeCenterLocation(grid.gridProjectedLocation(doorpos));
+            Vec3 door_pos = grid.getCubeCenterLocation(grid.gridProjectedLocation(new Vec3(9999,9999,9999)));
             printWriter.printf("player: %f %f %f %n", player_pos.x, player_pos.y, player_pos.z);
             printWriter.printf("door: %f %f %f %n", door_pos.x, door_pos.y, door_pos.z);
             for (int x = 0; x < grid.grid.size(); x++) {
                 for (int y = 0; y < grid.grid.get(x).size(); y++) {
                     for (int z = 0; z < grid.grid.get(x).get(y).size(); z++) {
-                        if (grid.get(x, y, z).label == Label.OPEN) {
+                        //if (grid.get(x, y, z).label == Label.OPEN) {
                             Vec3 block_pos = grid.getCubeCenterLocation(new DPos3(x, y, z));
-                            printWriter.printf("%f %f %f %n", block_pos.x, block_pos.y, block_pos.z);
-                        }
+                            printWriter.printf("%f %f %f %d %n", block_pos.x, block_pos.y, block_pos.z, grid.get(x, y, z).label);
+                        //}
                     }
                 }
             }

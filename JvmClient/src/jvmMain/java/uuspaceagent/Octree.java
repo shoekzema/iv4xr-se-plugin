@@ -2373,8 +2373,10 @@ public class Octree implements Explorable<Octree> {
     }
 
     public void export(PrintWriter printWriter) {
-        if (children == null)
+        if (children == null) {
             printWriter.printf("%f %f %f %f %d %n", boundary.x, boundary.y, boundary.z, boundary.size(), label);
+            return;
+        }
         for (Octree child : children) {
             child.export(printWriter);
         }
