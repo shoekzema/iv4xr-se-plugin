@@ -10,6 +10,7 @@ import uuspaceagent.exploration.Explorable;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class UUSeAgentState2D extends UUSeAgentState<DPos3> {
@@ -134,11 +135,20 @@ public class UUSeAgentState2D extends UUSeAgentState<DPos3> {
             Boolean isOpen = SEBlockFunctions.getSlideDoorState(block) ;
             if (isOpen != null) {
                 navgrid.setObstacleBlockingState(block, !isOpen);
+                if (doors.stream().noneMatch(d -> Objects.equals(d.id, block.id))) {
+                    System.out.println("Found a door: " + block.id);
+                    doors.add(block);
+                }
             }
             // check if it is a button panel, and make it not blocking
             if(block.type.equals("block"))
-                if (block.getStringProperty("blockType").contains("ButtonPanel"))
+                if (block.getStringProperty("blockType").contains("ButtonPanel")) {
                     navgrid.setObstacleBlockingState(block, false);
+                    if (buttons.stream().noneMatch(b -> Objects.equals(b.id, block.id))) {
+                        System.out.println("Found a button-panel: " + block.id);
+                        buttons.add(block);
+                    }
+                }
         }
         // updating dynamic blocking-state: (e.g. handling doors)
         // TODO!
