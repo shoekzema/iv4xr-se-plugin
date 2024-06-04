@@ -9,6 +9,9 @@ import org.junit.jupiter.api.Test;
 import spaceEngineers.controller.useobject.UseObjectExtensions;
 import spaceEngineers.model.Block;
 
+import java.time.Duration;
+import java.time.Instant;
+
 import static nl.uu.cs.aplib.AplibEDSL.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static uuspaceagent.PrintInfos.showWOMAgent;
@@ -16,8 +19,8 @@ import static uuspaceagent.TestUtils.*;
 import static uuspaceagent.UUGoalLib.*;
 
 public class Test_Navigate3D {
-    public Pair<TestAgent, UUSeAgentState3DOctree> deployAgent(String worldname) throws InterruptedException {
-        var agentAndState = loadSE3D(worldname);
+    public Pair<TestAgent, UUSeAgentState> deployAgent(String worldname) throws InterruptedException {
+        var agentAndState = loadSE3D2(worldname);
         TestAgent agent = agentAndState.fst;
         var state = agentAndState.snd;
         Thread.sleep(1000);
@@ -26,17 +29,26 @@ public class Test_Navigate3D {
         return new Pair<>(agent, state);
     }
 
-    public void test_Goal(TestAgent agent, UUSeAgentState3DOctree state, GoalStructure G) throws InterruptedException {
+    public void test_Goal(TestAgent agent, UUSeAgentState state, GoalStructure G) throws InterruptedException {
         agent.setGoal(G);
+        Instant start = Instant.now();
         int turn = 0;
         while (G.getStatus().inProgress()) {
             console(">> [" + turn + "] " + showWOMAgent(state.wom));
             agent.update();
             //Thread.sleep(50);
             turn++;
-            if (turn >= 10000) break;
+            //if (turn >= 10000) break;
         }
-        state.exportGrid();
+        Instant end = Instant.now();
+        long timeElapsed = Duration.between(start, end).toMillis();
+        console("!!! total time elapsed (in milliseconds): " + timeElapsed);
+
+        if (state instanceof UUSeAgentState3DOctree) {
+            ((UUSeAgentState3DOctree) state).exportGrid();
+        } else if (state instanceof UUSeAgentState3DVoxelGrid) {
+            ((UUSeAgentState3DVoxelGrid) state).exportGrid();
+        }
         TestUtils.closeConnectionToSE(state);
     }
 
@@ -142,6 +154,8 @@ public class Test_Navigate3D {
         // agent start location = <0, 0, 0>, forward = <0, 1, 0>, up = <0, 0, 1>
         TestAgent agent = agentAndState.fst;
         // var state = agentAndState.snd;
+        if (agentAndState.snd instanceof UUSeAgentState2D)
+            ((UUSeAgentState2D) agentAndState.snd).navgrid.enableFlying = true ;
 
         GoalStructure G = SEQ(
                 DEPLOYonce(agent, closeToButton(0)),
