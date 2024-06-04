@@ -109,10 +109,13 @@ public class VoxelGrid implements Explorable<DPos3> {
 
 
         // add some padding due to agent's body width/height:
-        //      note: agent height = 1.8, about 0.5 above feet is the rotation point, so to prevent the agent from
-        //            hitting their head, pad with (1.3 - 0.5 * voxelSize)
+        //      note:  agent height = 1.8, about 0.5 above feet is the rotation point
+        //      note2: padding is too much because we only go to voxels center, so remove voxelSize / 2
+        //      note3: gridProjectedLocation() rounds things down. Blocks are size 2.5, so maximum error is 0.5
+        //             for voxelSize 2.5, so we remove BLOCK_SIZE % voxelSize / 2 from padding.
+        //      (max with 0, so no negative padding)
         //Vec3 hpadding = Vec3.mul(new Vec3(AGENT_WIDTH, 0, AGENT_WIDTH), 0.6f) ;
-        Vec3 vpadding = new Vec3((AGENT_HEIGHT - voxelSize) * 0.5f) ;
+        Vec3 vpadding = new Vec3(max(0, (AGENT_HEIGHT - voxelSize - BLOCK_SIZE % voxelSize) * 0.5f)) ;
         //minCorner = Vec3.sub(minCorner, hpadding) ;
         minCorner = Vec3.sub(minCorner, vpadding) ;
         maxCorner = Vec3.add(maxCorner, vpadding) ;
