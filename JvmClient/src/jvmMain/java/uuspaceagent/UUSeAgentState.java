@@ -1,7 +1,5 @@
 package uuspaceagent;
 
-
-//import eu.iv4xr.framework.mainConcepts.W3DAgentState;
 import environments.SeEnvironment;
 import eu.iv4xr.framework.mainConcepts.WorldEntity;
 import eu.iv4xr.framework.mainConcepts.WorldModel;
@@ -20,7 +18,7 @@ import java.util.List;
 import static uuspaceagent.SEBlockFunctions.fromSEVec3;
 
 public abstract class UUSeAgentState<NodeId> extends State {
-    public static float OBSERVATION_RADIUS = 20.0f;
+    public static float OBSERVATION_RADIUS = 17.34f;
 
     public String agentId ;
     public WorldModel wom ;

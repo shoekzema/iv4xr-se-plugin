@@ -14,7 +14,8 @@ public class Octree implements Explorable<Octree> {
     public Octree parent;
     byte label; // empty = 0, full = 1, mixed = 2, mixed-unknown = 3
     byte code; // 0-7, Morton code (Z) order
-    public static float MIN_NODE_SIZE = 2 * 0.624f; // is used a MIN_SUBDIVIDE_SIZE, so we double it here
+    public float smallestLeafNodeSize;
+    public static float MIN_NODE_SIZE = 0.625f; // is used a MIN_SUBDIVIDE_SIZE, so we double it here
     // 0.624 guarantees the center of a block of size 2.5 will be open (2*0.625 = 1.25, which worst case is on the neighbour blocks center, so 0.624)
     public static float AGENT_HEIGHT = 1.8f ;
     public static float AGENT_WIDTH  = 1f ;
@@ -45,9 +46,9 @@ public class Octree implements Explorable<Octree> {
     Boundary2 blockBB(Vec3 pos) {
         // add some padding due to agent's body width/height:
         //      note: agent height = 1.8, about 0.5 above feet is the rotation point, so to prevent the agent from
-        //            hitting their head, pad with (1.3 - 0.5 * MIN_NODE_SIZE)
-        //float hpadding = (AGENT_WIDTH  - MIN_NODE_SIZE) * 0.5f;
-        float vpadding = (AGENT_HEIGHT - MIN_NODE_SIZE) * 0.5f;
+        //            hitting their head, pad with (1.3 - 0.5 * smallestLeafNodeSize)
+        //float hpadding = (AGENT_WIDTH  - smallestLeafNodeSize) * 0.5f;
+        float vpadding = (AGENT_HEIGHT - smallestLeafNodeSize) * 0.5f;
 
         return new Boundary2(Vec3.sub(pos, new Vec3(1.25f + vpadding, 1.25f + vpadding, 1.25f + vpadding)),
                              Vec3.add(pos, new Vec3(1.25f + vpadding, 1.25f + vpadding, 1.25f + vpadding)));
@@ -61,7 +62,7 @@ public class Octree implements Explorable<Octree> {
 //        Vec3 pos = Vec3.mul(Vec3.add((Vec3) block.getProperty("maxPosition"), (Vec3) block.getProperty("minPosition")), 0.5f);
 //        Vec3 extended = Rotation.rotate3d_inverse((Vec3) block.getProperty("orientationForward"), (Vec3) block.getProperty("orientationUp"), Vec3.mul(block.extent, 1.25f));
 //        extended = new Vec3(Math.abs(extended.x), Math.abs(extended.y), Math.abs(extended.z));
-//        float padding = (AGENT_HEIGHT - MIN_NODE_SIZE) * 0.5f;
+//        float padding = (AGENT_HEIGHT - smallestLeafNodeSize) * 0.5f;
 //        //extended = Vec3.add(extended, new Vec3(padding, padding, padding));
 //
 //        return new Boundary2(Vec3.sub(pos, extended), Vec3.add(pos, extended));
@@ -75,6 +76,14 @@ public class Octree implements Explorable<Octree> {
     public void initializeGrid(Vec3 pos, float observation_radius) {
         // Add 1 to the observation radius, so that it doesn't immediately have to expand after the first frame
         boundary = new Boundary(Vec3.sub(pos, new Vec3(observation_radius + 2.5f)), 2 * observation_radius + 5);
+
+        // Calculate the octree biggest leaf-node size possible with the provided observation radius that is smaller
+        // than the maximum value it can be to guarantee doors to have an opening
+        float size = observation_radius + 2.5f;
+        while (size > MIN_NODE_SIZE) {
+            size /= 2;
+        }
+        smallestLeafNodeSize = size;
     }
 
 
@@ -142,7 +151,7 @@ public class Octree implements Explorable<Octree> {
         // Otherwise, if it is partially block/unknown
         if (blockBB.intersects(this.boundary)) {
             // If we cannot subdivide further, force a full label
-            if (boundary.size() < MIN_NODE_SIZE) {
+            if (boundary.size() <= smallestLeafNodeSize) {
                 this.label = Label.BLOCKED;
                 return;
             }
@@ -190,7 +199,7 @@ public class Octree implements Explorable<Octree> {
         // Otherwise, if it is partially inside the removed block
         if (blockBB.intersects(this.boundary)) {
             // If we cannot subdivide further, force an open label
-            if (boundary.size() < MIN_NODE_SIZE) {
+            if (boundary.size() <= smallestLeafNodeSize) {
                 this.label = Label.OPEN;
                 return;
             }
@@ -239,7 +248,7 @@ public class Octree implements Explorable<Octree> {
         // Otherwise, if it is partially inside the removed block
         if (blockBB.intersects(this.boundary)) {
             // If we cannot subdivide further, force an unknown label
-            if (boundary.size() < MIN_NODE_SIZE) {
+            if (boundary.size() <= smallestLeafNodeSize) {
                 this.label = Label.UNKNOWN;
                 return;
             }
@@ -2331,7 +2340,7 @@ public class Octree implements Explorable<Octree> {
         // If partially inside the observation radius
         if (this.boundary.sphereIntersects(pos, observation_radius)) {
             // If we cannot subdivide further, force an open label
-            if (boundary.size() < MIN_NODE_SIZE) {
+            if (boundary.size() <= smallestLeafNodeSize) {
                 this.label = Label.OPEN;
                 return;
             }
