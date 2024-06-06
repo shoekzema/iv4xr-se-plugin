@@ -23,7 +23,7 @@ public class VoxelGrid implements Explorable<DPos3> {
     public static float AGENT_WIDTH  = 1f ;
     public static float BLOCK_SIZE   = 2.5f ;
 
-    public Boundary boundary;
+    public Boundary2 boundary;
     public float voxelSize;
     float squareDiagonalLength;
     float cubeDiagonalLength;
@@ -50,18 +50,19 @@ public class VoxelGrid implements Explorable<DPos3> {
     public void initializeGrid(Vec3 pos, float observation_radius) {
         // radius +10   so that the agent can move a little before having to rebuild the whole grid (expand)
         Vec3 lowerB = Vec3.sub(pos, new Vec3(observation_radius + BLOCK_SIZE));
-        boundary = new Boundary(lowerB, 2 * (observation_radius + BLOCK_SIZE));
+        Vec3 upperB = Vec3.add(pos, new Vec3(observation_radius + BLOCK_SIZE));
+        boundary = new Boundary2(lowerB, upperB);
 
-        int initialSize = (int) ((boundary.upperBounds().x - boundary.x) / voxelSize);
+        int initialSize = (int) ((boundary.upperBounds.x - boundary.lowerBounds.x) / voxelSize);
         grid = new ArrayList<>(initialSize);
         for (int x = 0; x < initialSize; x++) {
             grid.add(x, new ArrayList<>(initialSize));
             for (int y = 0; y < initialSize; y++) {
                 grid.get(x).add(y, new ArrayList<>(initialSize));
                 for (int z = 0; z < initialSize; z++) {
-                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.x,
-                                                             y * voxelSize + boundary.y,
-                                                             z * voxelSize + boundary.z));
+                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.lowerBounds.x,
+                                                             y * voxelSize + boundary.lowerBounds.y,
+                                                             z * voxelSize + boundary.lowerBounds.z));
                     grid.get(x).get(y).add(z, new Voxel(distance <= observation_radius ? Label.OPEN : Label.UNKNOWN));
                 }
             }
@@ -72,7 +73,7 @@ public class VoxelGrid implements Explorable<DPos3> {
      * Calculate the unit-cube that contains a point p.
      */
     public DPos3 gridProjectedLocation(Vec3 p) {
-        p = Vec3.sub(p, boundary.pos()) ;
+        p = Vec3.sub(p, boundary.lowerBounds) ;
         /*
         int x = (int) (Math.floor(p.x / CUBE_SIZE)) ;
         int y = (int) (Math.floor(p.y / CUBE_SIZE)) ;
@@ -90,9 +91,9 @@ public class VoxelGrid implements Explorable<DPos3> {
      * as a 3D position in the space.
      */
     public Vec3 getCubeCenterLocation(DPos3 cube) {
-        float x = (((float) cube.x) + 0.5f) * voxelSize + boundary.x ;
-        float y = (((float) cube.y) + 0.5f) * voxelSize + boundary.y ;
-        float z = (((float) cube.z) + 0.5f) * voxelSize + boundary.z ;
+        float x = (((float) cube.x) + 0.5f) * voxelSize + boundary.lowerBounds.x ;
+        float y = (((float) cube.y) + 0.5f) * voxelSize + boundary.lowerBounds.y ;
+        float z = (((float) cube.z) + 0.5f) * voxelSize + boundary.lowerBounds.z ;
         return new Vec3(x,y,z) ;
     }
 
@@ -136,18 +137,11 @@ public class VoxelGrid implements Explorable<DPos3> {
         return obstructed ;
     }
 
-    public void addObstacle(WorldEntity block, Vec3 pos, float observation_radius) {
+    public void addObstacle(WorldEntity block) {
 
-        var obstructedCubes = getObstructedCubes(block) ;
-        DPos3 min = new DPos3(0, 0, 0);
-
+        var obstructedCubes = getObstructedCubes(block);
         for(var voxel : obstructedCubes) {
-            DPos3 newMin = checkAndExpand(DPos3.add(voxel, min), pos, observation_radius);
-            min.x = Math.max(min.x, newMin.x);
-            min.y = Math.max(min.y, newMin.y);
-            min.z = Math.max(min.z, newMin.z);
-
-            get(DPos3.add(voxel, min)).label = Label.BLOCKED;
+            get(voxel).label = Label.BLOCKED;
         }
     }
 
@@ -176,13 +170,107 @@ public class VoxelGrid implements Explorable<DPos3> {
     }
 
     /**
+     * Check if the VoxelGrid fully contains the viewing range. If not, expand it outwards.
+     */
+    public void checkAndExpand(Boundary range) {
+        // If the VoxelGrid boundary fully contain the viewing range, do nothing
+        if (this.boundary.contains(range))
+            return;
+
+
+        // Otherwise, expand
+        if (range.pos().x < this.boundary.lowerBounds.x) { // expand to the left
+            DPos3 gridSize = size();
+            int diff = (int) Math.ceil(this.boundary.lowerBounds.x - range.pos().x);
+            for (int x = 0; x < diff; x++) {
+//                ArrayList<Voxel> temp = Stream.generate(Voxel::new)
+//                        .limit(diff).collect(Collectors.toCollection(ArrayList::new));
+                ArrayList<ArrayList<Voxel>> newX = Stream.generate(() -> Stream.generate(Voxel::new)
+                                .limit(gridSize.z)
+                                .collect(Collectors.toCollection(ArrayList::new)))
+                        .limit(gridSize.y)
+                        .collect(Collectors.toCollection(ArrayList::new));
+                grid.add(0, newX);
+            }
+            boundary.lowerBounds.x -= voxelSize * diff;
+        }
+        else if (range.upperBounds().x > this.boundary.upperBounds.x) { // expand to the right
+            DPos3 gridSize = size();
+            int diff = (int) Math.ceil(range.upperBounds().x - this.boundary.upperBounds.x);
+            for (int x = 0; x < diff; x++) {
+                ArrayList<ArrayList<Voxel>> newX = Stream.generate(() -> Stream.generate(Voxel::new)
+                                .limit(gridSize.z)
+                                .collect(Collectors.toCollection(ArrayList::new)))
+                        .limit(gridSize.y)
+                        .collect(Collectors.toCollection(ArrayList::new));
+                grid.add(newX);
+            }
+            boundary.upperBounds.x += voxelSize * diff;
+        }
+        if (range.pos().y < this.boundary.lowerBounds.y) { // expand downwards
+            DPos3 gridSize = size();
+            int diff = (int) Math.ceil(this.boundary.lowerBounds.y - range.pos().y);
+            for (int x = 0; x < gridSize.x; x++) {
+                for (int y = 0; y < diff; y++) {
+                    ArrayList<Voxel> newY = Stream.generate(Voxel::new)
+                            .limit(gridSize.z).collect(Collectors.toCollection(ArrayList::new));
+                    grid.get(x).add(0, newY);
+                }
+            }
+            boundary.lowerBounds.y -= voxelSize * diff;
+        }
+        else if (range.upperBounds().y > this.boundary.upperBounds.y) { // expand upwards
+            DPos3 gridSize = size();
+            int diff = (int) Math.ceil(range.upperBounds().y - this.boundary.upperBounds.y);
+            for (int x = 0; x < gridSize.x; x++) {
+                for (int y = 0; y < diff; y++) {
+                    ArrayList<Voxel> newY = Stream.generate(Voxel::new)
+                            .limit(gridSize.z).collect(Collectors.toCollection(ArrayList::new));
+                    grid.get(x).add(newY);
+                }
+            }
+            boundary.upperBounds.y += voxelSize * diff;
+        }
+        if (range.pos().z < this.boundary.lowerBounds.z) { // expand to the front
+            DPos3 gridSize = size();
+            int diff = (int) Math.ceil(this.boundary.lowerBounds.z - range.pos().z);
+            for (int x = 0; x < gridSize.x; x++) {
+                for (int y = 0; y < gridSize.y; y++) {
+                    for (int z = 0; z < diff; z++) {
+//                        float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.position.x,
+//                                y * voxelSize + boundary.position.y,
+//                                boundary.position.z - z * voxelSize));
+                        grid.get(x).get(y).add(0, new Voxel());
+                    }
+                }
+            }
+            boundary.lowerBounds.z -= voxelSize * diff;
+        }
+        else if (range.upperBounds().z > this.boundary.upperBounds.z) { // expand to the back
+            DPos3 gridSize = size();
+            int diff = (int) Math.ceil(range.upperBounds().z - this.boundary.upperBounds.z);
+            for (int x = 0; x < gridSize.x; x++) {
+                for (int y = 0; y < gridSize.y; y++) {
+                    for (int z = 0; z < diff; z++) {
+//                        float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.position.x,
+//                                y * voxelSize + boundary.position.y,
+//                                (gridSize.z - 1 + z) * voxelSize + boundary.position.z));
+                        grid.get(x).get(y).add(new Voxel());
+                    }
+                }
+            }
+            boundary.upperBounds.z += voxelSize * diff;
+        }
+    }
+
+    /**
      * Checks if the voxel is outside the grid and if so, expands the grid to contain the voxel
      * @param voxel: The voxel position that is or is not yet in the grid
      * @param pos: The agent position (unused with current implementation)
      * @param observation_radius: speaks for itself
      * @return X,Y,Z amount it expanded towards minus (used to add to subsequent calls that do not re-evaluate the gridSize)
      */
-    public DPos3 checkAndExpand(DPos3 voxel, Vec3 pos, float observation_radius) {
+    public DPos3 checkAndExpand2(DPos3 voxel, Vec3 pos, float observation_radius) {
         var retVal = new DPos3(0, 0, 0);
         DPos3 gridSize = size();
 
@@ -197,7 +285,7 @@ public class VoxelGrid implements Explorable<DPos3> {
                         .limit(gridSize.y)
                         .collect(Collectors.toCollection(ArrayList::new));
                 grid.add(0, newX);
-                boundary.x -= voxelSize;
+                boundary.lowerBounds.x -= voxelSize;
                 retVal.x += diff;
             }
         }
@@ -221,7 +309,7 @@ public class VoxelGrid implements Explorable<DPos3> {
                     grid.get(x).add(0, newY);
                 }
             }
-            boundary.y -= voxelSize;
+            boundary.lowerBounds.y -= voxelSize;
             retVal.y++;
         }
         else if (voxel.y >= gridSize.y) {
@@ -246,7 +334,7 @@ public class VoxelGrid implements Explorable<DPos3> {
                     }
                 }
             }
-            boundary.z -= voxelSize;
+            boundary.lowerBounds.z -= voxelSize;
             retVal.z++;
         }
         else if (voxel.z >= gridSize.z) {
@@ -362,9 +450,9 @@ public class VoxelGrid implements Explorable<DPos3> {
         for(int x = max(corner1.x, 0); x <= min(corner2.x, size().x-1); x++) {
             for (int y = max(corner1.y, 0); y <= min(corner2.y, size().y-1); y++) {
                 for (int z = max(corner1.z, 0); z <= min(corner2.z, size().z-1); z++) {
-                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.x,
-                            y * voxelSize + boundary.y,
-                            z * voxelSize + boundary.z));
+                    float distance = Vec3.dist(pos, new Vec3(x * voxelSize + boundary.lowerBounds.x,
+                            y * voxelSize + boundary.lowerBounds.y,
+                            z * voxelSize + boundary.lowerBounds.z));
                     if (get(x, y, z).label == Label.UNKNOWN && distance <= observation_radius) {
                         get(x, y, z).label = Label.OPEN;
                     }

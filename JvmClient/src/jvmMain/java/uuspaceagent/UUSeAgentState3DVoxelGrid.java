@@ -42,7 +42,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
 
     @Override
     public Vec3 getOrigin() {
-        return grid.boundary.pos();
+        return grid.boundary.lowerBounds;
     }
 
     @Override
@@ -74,7 +74,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
         // compared to what the agent currently has it its state.wom.
         Observation rawGridsAndBlocksStates = env().getController().getObserver().observeBlocks() ;
         WorldModel gridsAndBlocksStates = SeEnvironmentKt.toWorldModel(rawGridsAndBlocksStates) ;
-        // HACK: make the grids and blocks marked as dynamic elements. SE sends them as non-dymanic
+        // HACK: make the grids and blocks marked as dynamic elements. SE sends them as non-dynamic
         // that will cause them to be ignored by mergeObservation.
         SEBlockFunctions.hackForceDynamicFlag(gridsAndBlocksStates) ;
         // assign a fresh timestamp too:
@@ -92,7 +92,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
             grid.initializeGrid(wom.position, OBSERVATION_RADIUS);
 
             for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-                addToGrid(block, wom.position);
+                addToGrid(block);
             }
         }
         else {
@@ -102,6 +102,10 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
             // is thrown away out of the wom
 
             System.out.println("========================================================");
+
+            // Check if the VoxelGrid needs to be expanded
+            Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS + 2.5f)), 2 * OBSERVATION_RADIUS + 5);
+            grid.checkAndExpand(observation_radius);
 
             // Remove grids that are not in the WOM anymore
             List<String> tobeRemoved = wom.elements.keySet().stream()
@@ -134,7 +138,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
                         // Removing a block makes all voxels it overlaps with empty, so go over all blocks to check
                         // if some voxels overlapped with multiple blocks. TODO: put this outside the loop
                         for (var block2 : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-                            addToGrid(block2, newWom.position);
+                            addToGrid(block2);
                         }
                     }
                 }
@@ -144,7 +148,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
                             .filter(id -> !cubegridOld.elements.containsKey(id))
                             .toList();
                     for (var blockId : tobeAdded) {
-                        addToGrid(cubeGridNew.elements.get(blockId), newWom.position);
+                        addToGrid(cubeGridNew.elements.get(blockId));
                     }
                 }
             }
@@ -167,17 +171,17 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
             Observation rawGridsAndBlocksStates = env().getController().getObserver().observeBlocks();
             WorldModel gridsAndBlocksStates = SeEnvironmentKt.toWorldModel(rawGridsAndBlocksStates);
             for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-                addToGrid(block, wom.position);
+                addToGrid(block);
             }
         }
     }
 
-    public void addToGrid(WorldEntity block, Vec3 pos) {
+    public void addToGrid(WorldEntity block) {
         Boolean isOpen = SEBlockFunctions.getSlideDoorState(block) ;
         // open-doors are more complicated. TODO.
         if (isOpen != null) {
             if (!isOpen)
-                grid.addObstacle(block, pos, OBSERVATION_RADIUS);
+                grid.addObstacle(block);
             if (doors.stream().noneMatch(d -> Objects.equals(d.id, block.id))) {
                 System.out.println("Found a door: " + block.id);
                 doors.add(block);
@@ -190,7 +194,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
             }
         }
         else
-            grid.addObstacle(block, pos, OBSERVATION_RADIUS);
+            grid.addObstacle(block);
     }
 
     public void exportManualProfileShit() {
