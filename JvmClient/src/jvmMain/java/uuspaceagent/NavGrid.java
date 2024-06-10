@@ -393,6 +393,11 @@ public class NavGrid implements Explorable<DPos3> {
     }
 
     @Override
+    public float heuristic(DPos3 from, Vec3 to) {
+        return CUBE_SIZE * (float) (Math.abs(to.x - from.x) + Math.abs(to.y - from.y) + Math.abs(to.z - from.z)) ;
+    }
+
+    @Override
     public float distance(DPos3 from, DPos3 to) {
         if (from.x != to.x && from.y != to.y && from.z != to.z) {
             return cubeDiagonalLength ;

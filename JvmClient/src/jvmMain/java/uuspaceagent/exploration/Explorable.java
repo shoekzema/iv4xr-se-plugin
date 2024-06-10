@@ -29,6 +29,8 @@ public interface Explorable<NodeId> {
      */
     public float heuristic(NodeId from, NodeId to);
 
+    public float heuristic(NodeId from, Vec3 to);
+
     /**
      * The distance between two connected vertices.
      *

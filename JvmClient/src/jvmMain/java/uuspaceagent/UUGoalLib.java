@@ -78,6 +78,31 @@ public class UUGoalLib {
         } ;
     }
 
+    public static Function<UUSeAgentState,GoalStructure> exploreTo(String goalname, Vec3 targetLocation) {
+
+        if(goalname == null) {
+            goalname = "explore to location " + targetLocation ;
+        }
+
+        String goalname_ = goalname ;
+
+        return (UUSeAgentState state) -> {
+            Vec3 targetSquareCenter = targetLocation;
+            GoalStructure G = goal(goalname_)
+                    .toSolve((Pair<Vec3,Vec3> posAndOrientation) -> {
+                        var agentPosition = posAndOrientation.fst ;
+                        return Vec3.sub(targetSquareCenter,agentPosition).lengthSq() <= 6.2f;
+                    })
+                    .withTactic(
+                            FIRSTof(UUTacticLib.exploreTAC(targetLocation),
+                                    UUTacticLib.navigateToTAC(targetLocation),
+                                    ABORT()) )
+                    .lift() ;
+            return G ;
+
+        } ;
+    }
+
     public static Function<UUSeAgentState,GoalStructure> closeToButton(int buttonNr) {
 
         return (UUSeAgentState state) -> {
@@ -213,6 +238,10 @@ public class UUGoalLib {
 
     public static Function<UUSeAgentState,GoalStructure> closeTo(Vec3 targetLocation) {
         return closeTo(null,targetLocation) ;
+    }
+
+    public static Function<UUSeAgentState,GoalStructure> exploreTo(Vec3 targetLocation) {
+        return exploreTo(null,targetLocation) ;
     }
 
     /**

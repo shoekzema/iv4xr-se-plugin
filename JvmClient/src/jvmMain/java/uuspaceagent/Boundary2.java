@@ -31,4 +31,19 @@ public class Boundary2 {
             return false;
         return true;
     }
+
+    public boolean contains(Vec3 point) {
+        return (point.x >= lowerBounds.x && point.x <= upperBounds.x
+                &&
+                point.y >= lowerBounds.y && point.y <= upperBounds.y
+                &&
+                point.z >= lowerBounds.z && point.z <= upperBounds.z);
+    }
+    public boolean contains(DPos3 point) {
+        return (point.x >= lowerBounds.x && point.x <= upperBounds.x
+                &&
+                point.y >= lowerBounds.y && point.y <= upperBounds.y
+                &&
+                point.z >= lowerBounds.z && point.z <= upperBounds.z);
+    }
 }

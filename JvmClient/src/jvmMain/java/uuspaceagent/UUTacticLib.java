@@ -272,11 +272,11 @@ public class UUTacticLib {
         dirToGo   = Vec3.sub(dirToGo,   Vec3.mul(upVec, Vec3.dot(dirToGo,   upVec) / Vec3.dot(upVec, upVec)));
         agentHdir = Vec3.sub(agentHdir, Vec3.mul(upVec, Vec3.dot(agentHdir, upVec) / Vec3.dot(upVec, upVec)));
 
-        if(dirToGo.lengthSq() < 1) {
-            // the destination is too close within the agent's up-cylinder;
-            // don't bother to rotate then
-            return null ;
-        }
+//        if(dirToGo.lengthSq() < 1) {
+//            // the destination is too close within the agent's up-cylinder;
+//            // don't bother to rotate then
+//            return null ;
+//        }
 
         dirToGo = dirToGo.normalized() ;
         agentHdir = agentHdir.normalized() ;
@@ -793,7 +793,7 @@ public class UUTacticLib {
                     else {
                         obs = moveToward(state, nextNodePos, 20);
                     }
-                    return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward()))  ;
+                    return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward()));
                 } )
                 .on((UUSeAgentState state)  -> {
                     if (state.wom==null) return null ;
@@ -1037,7 +1037,7 @@ public class UUTacticLib {
             var gradient_v2v3 = Vec3.sub(v3,v2).normalized() ;
             float cos_alpha = Vec3.dot(gradient_v1v2, gradient_v2v3) ;
 
-            float threshold = 0.9f; // 0.91 == dot when v1 and v3 have around an angle of 25 degrees (for 3D cases)
+            float threshold = 0.95f; // 0.91 == dot when v1 and v3 have around an angle of 25 degrees (for 3D cases)
 //            // If effectively a 2D angle
 //            if ((v1.x == v2.x && v2.x == v3.x) ||
 //                (v1.y == v2.y && v2.y == v3.y) ||
@@ -1250,6 +1250,11 @@ public class UUTacticLib {
                 .on((UUSeAgentState state) -> {
                     if (state.wom==null) return null ;
                     var agentSq = state.getGridPos(state.centerPos());
+                    if (agentSq instanceof Octree)
+                        if (((Octree) agentSq).label == Label.BLOCKED && ((Octree) agentSq).boundary.size > 0.625) {
+                            ((Octree) agentSq).subdivide(((Octree) agentSq).label);
+                            agentSq = state.getGridPos(state.centerPos());
+                        }
 
                     int currentPathLength = state.currentPathToFollow.size() ;
                     if (currentPathLength == 0)
@@ -1283,6 +1288,122 @@ public class UUTacticLib {
                         }
                         else {
                             List<DPos3> path = state.pathfinder.explore(state.getGrid(), agentSq);
+                            if (path == null) {
+                                // the pathfinder cannot find a path. The tactic is then not enabled:
+                                System.out.println("### NO path to an unknown node");
+                                return new Pair<>(null, true);
+                            }
+                            path = smoothenPath(path);
+                            if (state instanceof UUSeAgentState2D) // cursed way to do it
+                                System.out.println("### PATH: " + PrintInfos.showPath((UUSeAgentState2D) state, path));
+                            else if (state instanceof UUSeAgentState3DVoxelGrid)
+                                System.out.println("### PATH: " + PrintInfos.showPath((UUSeAgentState3DVoxelGrid) state, path));
+                            return new Pair<>(path, false);
+                        }
+                    }
+                    else {
+                        return new Pair<>(state.currentPathToFollow,false) ;
+                    }
+                })
+                .lift();
+    }
+
+    public static Tactic exploreTAC(Vec3 destination) {
+        return action("explore")
+                .do2((UUSeAgentState state) -> (Pair<List<DPos3>, Boolean> queryResult) -> {
+                    var path = queryResult.fst;
+                    var arrivedAtDestination = queryResult.snd;
+
+                    if (arrivedAtDestination) {
+                        state.currentPathToFollow.clear();
+                        return true;
+                    }
+
+                    // set currentPathToFollow:
+                    state.currentPathToFollow = path ;
+
+                    var lastNode = state.currentPathToFollow.get(path.size() - 1);
+                    var lastNodePos = state.getBlockCenter(lastNode);
+                    if (Vec3.sub(lastNodePos, state.centerPos()).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
+                        state.getGrid().updateUnknown(state.centerPos(), OBSERVATION_RADIUS);
+
+                        state.currentPathToFollow.clear();
+                        return new Pair<>(state.centerPos(), state.orientationForward());
+                    }
+                    // else we are not at the destination yet...
+
+                    if (state instanceof UUSeAgentState2D) {
+                        // check first if we should turn on/off jetpack:
+                        if (state.wom.position.y - state.getOrigin().y <= NavGrid.AGENT_HEIGHT
+                                && path.get(0).y == 0 && state.jetpackRunning()
+                        ) {
+                            state.env().getController().getCharacter().turnOffJetpack();
+                        } else {
+                            if (path.get(0).y > 0 && !state.jetpackRunning()) {
+                                state.env().getController().getCharacter().turnOnJetpack();
+                                //state.env().getController().getAdmin().getCharacter().use();
+                            }
+                        }
+                    } else if (state instanceof UUSeAgentState3DVoxelGrid || state instanceof UUSeAgentState3DOctree) {
+                        // turn on jetpack if not already on
+                        if (!state.jetpackRunning())
+                            state.env().getController().getCharacter().turnOnJetpack();
+                    }
+
+                    // follow the path, direct the agent to the next node in the path (actually, the first
+                    // node in the path, since we remove a node if it is passed):
+                    var nextNode = state.currentPathToFollow.get(0);
+                    var nextNodePos = state.getBlockCenter(nextNode);
+                    if(Vec3.sub(nextNodePos, state.centerPos()).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
+                        // agent is already in the same square as the next-node destination-square. Mark the node
+                        // as reached (so, we remove it from the plan):
+                        state.currentPathToFollow.remove(0) ;
+                        return new Pair<>(state.centerPos(), state.orientationForward());
+                    }
+
+                    CharacterObservation obs;
+                    // disabling rotation for now
+                    obs = yTurnTowardACT(state, nextNodePos, 0.8f, 10) ;
+                    if (obs != null) {
+                        // we did turning, we won't move.
+                        return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward())) ;
+                    }
+
+                    if (state instanceof UUSeAgentState3DVoxelGrid) {
+                        obs = moveToward((UUSeAgentState3DVoxelGrid) state, nextNodePos, 20);
+                    } else if (state instanceof UUSeAgentState3DOctree) {
+                        obs = moveToward((UUSeAgentState3DOctree) state, nextNodePos, 20);
+                    } else {
+                        obs = moveToward(state, nextNodePos, 20);
+                    }
+                    return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward()));
+                })
+                .on((UUSeAgentState state) -> {
+                    if (state.wom==null) return null ;
+                    var agentSq = state.getGridPos(state.centerPos());
+                    if (agentSq instanceof Octree)
+                        if (((Octree) agentSq).label == Label.BLOCKED && ((Octree) agentSq).boundary.size > 0.625) {
+                            ((Octree) agentSq).subdivide(((Octree) agentSq).label);
+                            agentSq = state.getGridPos(state.centerPos());
+                        }
+
+                    int currentPathLength = state.currentPathToFollow.size() ;
+                    if (currentPathLength == 0)
+                    {  // there is no path planned, or there is an ongoing path, but it goes to a different target
+                        if (state instanceof UUSeAgentState3DOctree) {
+                            List<Octree> path = state.pathfinder.exploreTo(state.getGrid(), agentSq, destination);
+                            if (path == null) {
+                                // the pathfinder cannot find a path. The tactic is then not enabled:
+                                System.out.println("### NO path to an unknown node");
+                                return new Pair<>(null, true);
+                            }
+                            path = smoothenOctreePath(path);
+                            System.out.println("### PATH: " + PrintInfos.showPath((UUSeAgentState3DOctree) state, path));
+                            return new Pair<>(path, false);
+                        }
+                        else {
+                            List<DPos3> path = state.pathfinder.exploreTo(state.getGrid(), agentSq, destination);
+
                             if (path == null) {
                                 // the pathfinder cannot find a path. The tactic is then not enabled:
                                 System.out.println("### NO path to an unknown node");

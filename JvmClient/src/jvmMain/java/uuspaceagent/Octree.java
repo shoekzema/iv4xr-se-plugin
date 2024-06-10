@@ -2283,6 +2283,13 @@ public class Octree implements Explorable<Octree> {
     }
 
     @Override
+    public float heuristic(Octree from, Vec3 to) {
+        return Math.abs(to.x - from.boundary.center().x)
+                + Math.abs(to.y - from.boundary.center().y)
+                + Math.abs(to.z - from.boundary.center().z);
+    }
+
+    @Override
     public float distance(Octree from, Octree to) {
         return Math.abs(to.boundary.center().x - from.boundary.center().x)
                 + Math.abs(to.boundary.center().y - from.boundary.center().y)

@@ -407,6 +407,12 @@ public class VoxelGrid implements Explorable<DPos3> {
     }
 
     @Override
+    public float heuristic(DPos3 fromNode, Vec3 to) {
+        Vec3 from = getCubeCenterLocation(fromNode);
+        return voxelSize * (float) Math.sqrt((to.x - from.x) * (to.x - from.x) + (to.y - from.y) * (to.y - from.y) + (to.z - from.z) * (to.z - from.z)) ;
+    }
+
+    @Override
     public float distance(DPos3 from, DPos3 to) {
         if (from.x != to.x && from.y != to.y && from.z != to.z) {
             return cubeDiagonalLength ;
