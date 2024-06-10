@@ -14,9 +14,9 @@ public class Octree implements Explorable<Octree> {
     public Octree parent;
     byte label; // empty = 0, full = 1, mixed = 2, mixed-unknown = 3
     byte code; // 0-7, Morton code (Z) order
-    public float smallestLeafNodeSize;
-    public static float MIN_NODE_SIZE = 0.625f; // is used a MIN_SUBDIVIDE_SIZE, so we double it here
-    // 0.624 guarantees the center of a block of size 2.5 will be open (2*0.625 = 1.25, which worst case is on the neighbour blocks center, so 0.624)
+    public static float NODE_SIZE = 0.62f;
+    // node size s must be inside one of these ranges:
+    //      0 < s < 5/14 (~0.357), 0.36 < s < 5/12 (~0.417), 0.45 <= s <= 0.5, 0.6 < s <= 0.65
     public static float AGENT_HEIGHT = 1.8f ;
     public static float AGENT_WIDTH  = 1f ;
 
@@ -48,7 +48,7 @@ public class Octree implements Explorable<Octree> {
         //      note: agent height = 1.8, about 0.5 above feet is the rotation point, so to prevent the agent from
         //            hitting their head, pad with (1.3 - 0.5 * smallestLeafNodeSize)
         //float hpadding = (AGENT_WIDTH  - smallestLeafNodeSize) * 0.5f;
-        float vpadding = (AGENT_HEIGHT - smallestLeafNodeSize) * 0.5f;
+        float vpadding = (AGENT_HEIGHT - NODE_SIZE) * 0.5f;
 
         return new Boundary2(Vec3.sub(pos, new Vec3(1.25f + vpadding, 1.25f + vpadding, 1.25f + vpadding)),
                              Vec3.add(pos, new Vec3(1.25f + vpadding, 1.25f + vpadding, 1.25f + vpadding)));
@@ -74,16 +74,12 @@ public class Octree implements Explorable<Octree> {
      *  Call in UUSeAgentstate3D on first observation.
      */
     public void initializeGrid(Vec3 pos, float observation_radius) {
-        // Add 1 to the observation radius, so that it doesn't immediately have to expand after the first frame
-        boundary = new Boundary(Vec3.sub(pos, new Vec3(observation_radius + 2.5f)), 2 * observation_radius + 5);
-
-        // Calculate the octree biggest leaf-node size possible with the provided observation radius that is smaller
-        // than the maximum value it can be to guarantee doors to have an opening
-        float size = observation_radius + 2.5f;
-        while (size > MIN_NODE_SIZE) {
-            size /= 2;
+        // Make sure the root node has size NODE_SIZE * 2^h with height h.
+        float size = NODE_SIZE;
+        while (size < observation_radius + 2.5f) {
+            size *= 2;
         }
-        smallestLeafNodeSize = size;
+        boundary = new Boundary(Vec3.sub(pos, new Vec3(size)), 2 * size);
     }
 
 
@@ -151,7 +147,7 @@ public class Octree implements Explorable<Octree> {
         // Otherwise, if it is partially block/unknown
         if (blockBB.intersects(this.boundary)) {
             // If we cannot subdivide further, force a full label
-            if (boundary.size() <= smallestLeafNodeSize) {
+            if (boundary.size() <= NODE_SIZE) {
                 this.label = Label.BLOCKED;
                 return;
             }
@@ -199,7 +195,7 @@ public class Octree implements Explorable<Octree> {
         // Otherwise, if it is partially inside the removed block
         if (blockBB.intersects(this.boundary)) {
             // If we cannot subdivide further, force an open label
-            if (boundary.size() <= smallestLeafNodeSize) {
+            if (boundary.size() <= NODE_SIZE) {
                 this.label = Label.OPEN;
                 return;
             }
@@ -248,7 +244,7 @@ public class Octree implements Explorable<Octree> {
         // Otherwise, if it is partially inside the removed block
         if (blockBB.intersects(this.boundary)) {
             // If we cannot subdivide further, force an unknown label
-            if (boundary.size() <= smallestLeafNodeSize) {
+            if (boundary.size() <= NODE_SIZE) {
                 this.label = Label.UNKNOWN;
                 return;
             }
@@ -2279,6 +2275,11 @@ public class Octree implements Explorable<Octree> {
         return Math.abs(to.boundary.center().x - from.boundary.center().x)
                 + Math.abs(to.boundary.center().y - from.boundary.center().y)
                 + Math.abs(to.boundary.center().z - from.boundary.center().z);
+
+        // using Euclidean distance...
+//        return (float) Math.sqrt((to.boundary.center().x - from.boundary.center().x) * (to.boundary.center().x - from.boundary.center().x)
+//                + (to.boundary.center().y - from.boundary.center().y) * (to.boundary.center().y - from.boundary.center().y)
+//                + (to.boundary.center().z - from.boundary.center().z) * (to.boundary.center().z - from.boundary.center().z)) ;
     }
 
     @Override
@@ -2340,7 +2341,7 @@ public class Octree implements Explorable<Octree> {
         // If partially inside the observation radius
         if (this.boundary.sphereIntersects(pos, observation_radius)) {
             // If we cannot subdivide further, force an open label
-            if (boundary.size() <= smallestLeafNodeSize) {
+            if (boundary.size() <= NODE_SIZE) {
                 this.label = Label.OPEN;
                 return;
             }

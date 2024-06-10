@@ -110,13 +110,9 @@ public class VoxelGrid implements Explorable<DPos3> {
 
 
         // add some padding due to agent's body width/height:
-        //      note:  agent height = 1.8, about 0.5 above feet is the rotation point
-        //      note2: padding is too much because we only go to voxels center, so remove voxelSize / 2
-        //      note3: gridProjectedLocation() rounds things down. Blocks are size 2.5, so maximum error is 0.5
-        //             for voxelSize 2.5, so we remove BLOCK_SIZE % voxelSize / 2 from padding.
-        //      (max with 0, so no negative padding)
-        //Vec3 hpadding = Vec3.mul(new Vec3(AGENT_WIDTH, 0, AGENT_WIDTH), 0.6f) ;
-        Vec3 vpadding = new Vec3(max(0, (AGENT_HEIGHT - voxelSize - BLOCK_SIZE % voxelSize) * 0.5f)) ;
+        //      note: agent height = 1.8, about 0.5 above feet is the rotation point, so to prevent the agent from
+        //            hitting their head, pad with (1.3 - 0.5 * voxelSize)
+        Vec3 vpadding = new Vec3((AGENT_HEIGHT - voxelSize) * 0.5f) ;
         //minCorner = Vec3.sub(minCorner, hpadding) ;
         minCorner = Vec3.sub(minCorner, vpadding) ;
         maxCorner = Vec3.add(maxCorner, vpadding) ;
@@ -172,11 +168,10 @@ public class VoxelGrid implements Explorable<DPos3> {
     /**
      * Check if the VoxelGrid fully contains the viewing range. If not, expand it outwards.
      */
-    public void checkAndExpand(Boundary range) {
+    public void checkAndExpand(Boundary range, UUSeAgentState3DVoxelGrid state) {
         // If the VoxelGrid boundary fully contain the viewing range, do nothing
         if (this.boundary.contains(range))
             return;
-
 
         // Otherwise, expand
         if (range.pos().x < this.boundary.lowerBounds.x) { // expand to the left
@@ -193,6 +188,7 @@ public class VoxelGrid implements Explorable<DPos3> {
                 grid.add(0, newX);
             }
             boundary.lowerBounds.x -= voxelSize * diff;
+            state.currentPathToFollow.forEach(dPos3 -> dPos3.x += diff);
         }
         else if (range.upperBounds().x > this.boundary.upperBounds.x) { // expand to the right
             DPos3 gridSize = size();
@@ -218,6 +214,7 @@ public class VoxelGrid implements Explorable<DPos3> {
                 }
             }
             boundary.lowerBounds.y -= voxelSize * diff;
+            state.currentPathToFollow.forEach(dPos3 -> dPos3.y += diff);
         }
         else if (range.upperBounds().y > this.boundary.upperBounds.y) { // expand upwards
             DPos3 gridSize = size();
@@ -245,6 +242,7 @@ public class VoxelGrid implements Explorable<DPos3> {
                 }
             }
             boundary.lowerBounds.z -= voxelSize * diff;
+            state.currentPathToFollow.forEach(dPos3 -> dPos3.z += diff);
         }
         else if (range.upperBounds().z > this.boundary.upperBounds.z) { // expand to the back
             DPos3 gridSize = size();

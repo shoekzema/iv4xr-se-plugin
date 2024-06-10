@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
 
-    public VoxelGrid grid = new VoxelGrid(1f) ;
+    public VoxelGrid grid = new VoxelGrid(0.62f) ;
 
     public UUSeAgentState3DVoxelGrid(String agentId) {
         super(agentId);
@@ -104,8 +104,10 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
             System.out.println("========================================================");
 
             // Check if the VoxelGrid needs to be expanded
-            Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS + 2.5f)), 2 * OBSERVATION_RADIUS + 5);
-            grid.checkAndExpand(observation_radius);
+            float size = OBSERVATION_RADIUS + 2.5f + (VoxelGrid.AGENT_HEIGHT - grid.voxelSize) * 0.5f + grid.voxelSize;
+            // Add an extra voxelSize to the left-down-front side of the Boundary because of rounding down to integer shit
+            Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(size)), 2 * size);
+            grid.checkAndExpand(observation_radius, this);
 
             // Remove grids that are not in the WOM anymore
             List<String> tobeRemoved = wom.elements.keySet().stream()
