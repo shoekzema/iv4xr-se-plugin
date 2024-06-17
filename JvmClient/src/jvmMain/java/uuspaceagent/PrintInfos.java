@@ -77,19 +77,19 @@ public class PrintInfos {
     public static String showObstacle(UUSeAgentState2D state, DPos3 cube) {
         StringBuffer z = new StringBuffer() ;
         z.append(">> Obstacles on " + cube + ", center:" + state.navgrid.getSquareCenterLocation(cube)) ;
-        var obstacles = state.navgrid.knownObstacles.get(cube) ;
-        if(obstacles == null || obstacles.isEmpty()) {
+        boolean isBlocking = state.navgrid.knownObstacles.contains(cube) ;
+        if (!isBlocking) {
             z.append(" none") ;
             return z.toString() ;
         }
-        int k = 0 ;
-        for(var o : obstacles) {
-            z.append("") ;
-            WorldEntity e = SEBlockFunctions.findWorldEntity(state.wom,o.obstacle) ;
-            String estr = "\n" + indent("> " + showWorldEntity(e),5) ;
-            z.append(estr) ;
-            k++ ;
-        }
+//        int k = 0 ;
+//        for(var o : obstacles) {
+//            z.append("") ;
+//            WorldEntity e = SEBlockFunctions.findWorldEntity(state.wom,o.obstacle) ;
+//            String estr = "\n" + indent("> " + showWorldEntity(e),5) ;
+//            z.append(estr) ;
+//            k++ ;
+//        }
         return z.toString() ;
     }
 
@@ -107,22 +107,22 @@ public class PrintInfos {
         int k = 0 ;
         for(var cube : path) {
             z.append("\n" + "> Node " + k + ":" + cube + ", center:" + state.navgrid.getSquareCenterLocation(cube));
-            var obstacles = state.navgrid.knownObstacles.get(cube) ;
-            if (obstacles == null || obstacles.isEmpty()) {
+            boolean isBlocking = state.navgrid.knownObstacles.contains(cube) ;
+            if (!isBlocking) {
                 z.append(", no-obstacle") ;
             }
             else {
                 z.append(", obstacles: ") ;
-                int m = 0 ;
-                for (var o : obstacles) {
-                    WorldEntity e = SEBlockFunctions.findWorldEntity(state.wom,o.obstacle) ;
-                    if (m>0) z.append(", ") ;
-                    z.append(o.obstacle + "("
-                            + e.properties.get("blockType")
-                            + ", blocking:" + o.isBlocking
-                            + ")") ;
-                    m++ ;
-                }
+//                int m = 0 ;
+//                for (var o : obstacles) {
+//                    WorldEntity e = SEBlockFunctions.findWorldEntity(state.wom,o.obstacle) ;
+//                    if (m>0) z.append(", ") ;
+//                    z.append(o.obstacle + "("
+//                            + e.properties.get("blockType")
+//                            + ", blocking:" + o.isBlocking
+//                            + ")") ;
+//                    m++ ;
+//                }
             }
             k++ ;
         }

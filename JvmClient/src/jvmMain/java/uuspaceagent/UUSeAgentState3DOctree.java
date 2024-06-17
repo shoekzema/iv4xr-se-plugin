@@ -8,9 +8,11 @@ import spaceEngineers.model.CharacterObservation;
 import spaceEngineers.model.Observation;
 import uuspaceagent.exploration.Explorable;
 
+import java.io.Console;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -49,6 +51,7 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
 
     @Override
     public void updateState(String agentId) {
+        Timer.updateStateStart = Instant.now();
 
         super.updateState(agentId);
 
@@ -86,11 +89,15 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
         if(wom == null) {
             // this is the first observation
             wom = newWom ;
+            Timer.initializeGridStart = Instant.now();
             grid.initializeGrid(wom.position, OBSERVATION_RADIUS);
+            Timer.endInitializeGrid();
 
+            Timer.addToGridStart = Instant.now();
             for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
                 addToOctree(block);
             }
+            Timer.endAddToGrid();
 
             grid.updateUnknown(centerPos(), OBSERVATION_RADIUS);
         }
@@ -102,11 +109,13 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
 
             System.out.println("========================================================");
 
+            Timer.expandStart = Instant.now();
             // Check if the Octree needs to be expanded
             Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS + 2.5f)), 2 * OBSERVATION_RADIUS + 5);
             Octree newRoot = grid.checkAndExpand(observation_radius);
             if (newRoot != null)
                 grid = newRoot;
+            Timer.endExpand();
 
             // Remove grids that are not in the WOM anymore
             List<String> tobeRemoved = wom.elements.keySet().stream()
@@ -133,33 +142,42 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
                 for (var blockId : tobeRemoved) {
                     var block = cubegridOld.elements.get(blockId);
                     if (Vec3.dist(block.position, newWom.position) < OBSERVATION_RADIUS) {
+                        Timer.removeFromGridStart = Instant.now();
                         grid.removeObstacle(block);
+                        Timer.endRemoveFromGrid();
                         rebuild = true;
-
-                        // Removing a block makes all voxels it overlaps with empty, so go over all blocks to check
-                        // if some voxels overlapped with multiple blocks.
-                        for (var block2 : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-                            addToOctree(block2);
-                        }
-                        //grid.updateUnknown(centerPos(), OBSERVATION_RADIUS);
                     }
                 }
-                if (!rebuild) {
+                if (rebuild) {
+                    // Removing a block makes all voxels it overlaps with empty, so go over all blocks to check
+                    // if some voxels overlapped with multiple blocks.
+                    Timer.addToGridStart = Instant.now();
+                    for (var block2 : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
+                        addToOctree(block2);
+                    }
+                    Timer.endAddToGrid();
+                    //grid.updateUnknown(centerPos(), OBSERVATION_RADIUS);
+                }
+                else {
                     // We add new blocks (from grids that changed):
                     List<String> tobeAdded = cubeGridNew.elements.keySet().stream()
                             .filter(id -> !cubegridOld.elements.containsKey(id))
                             .toList();
+                    Timer.addToGridStart = Instant.now();
                     for (var blockId : tobeAdded) {
                         addToOctree(cubeGridNew.elements.get(blockId));
                     }
+                    Timer.endAddToGrid();
                     //grid.updateUnknown(centerPos(), OBSERVATION_RADIUS);
                 }
             }
+            Timer.endUpdateState();
         }
     }
 
     @Override
     public void updateDoors() {
+        Timer.updateDoorsStart = Instant.now();
         Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS + 2.5f)), 2 * OBSERVATION_RADIUS + 5);
         doors.forEach(door -> {
             if (observation_radius.contains(door.position)) {
@@ -177,6 +195,7 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
                 addToOctree(block);
             }
         }
+        Timer.endUpdateDoors();
     }
 
     public void addToOctree(WorldEntity block) {

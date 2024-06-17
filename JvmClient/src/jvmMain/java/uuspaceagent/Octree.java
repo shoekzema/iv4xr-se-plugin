@@ -5,6 +5,7 @@ import eu.iv4xr.framework.spatial.Vec3;
 import uuspaceagent.exploration.Explorable;
 
 import java.io.PrintWriter;
+import java.time.Instant;
 import java.util.*;
 import java.util.List;
 
@@ -130,7 +131,7 @@ public class Octree implements Explorable<Octree> {
 
         Boundary2 blockBB;
 //        if (block.extent.equals(new Vec3(1.0f))) {
-        blockBB = blockBB(block.position);
+        blockBB = blockBB((Vec3) block.getProperty("centerPosition"));
 //        }
 //        else {
 //            blockBB = blockBB(block);
@@ -182,7 +183,7 @@ public class Octree implements Explorable<Octree> {
         if (this.label == Label.OPEN || this.label == Label.UNKNOWN)
             return;
 
-        var blockBB = blockBB(block.position);
+        var blockBB = blockBB((Vec3) block.getProperty("centerPosition"));
 
         // If the node is entirely inside the removed block
         if (blockBB.contains(this.boundary)) {
@@ -231,7 +232,7 @@ public class Octree implements Explorable<Octree> {
         if (this.label == Label.UNKNOWN)
             return;
 
-        var blockBB = blockBB(block.position);
+        var blockBB = blockBB((Vec3) block.getProperty("centerPosition"));
 
         // If the node is entirely inside the removed block
         if (blockBB.contains(this.boundary)) {
@@ -1881,6 +1882,7 @@ public class Octree implements Explorable<Octree> {
 
     @Override
     public Iterable<Octree> neighbours(Octree node) {
+        Timer.getNeighbourStart = Instant.now();
         List<Octree> candidates = new LinkedList<>();
         boolean top, right, left, bottom, front, back,
                 topleft, topright, bottomleft, bottomright,
@@ -2189,6 +2191,7 @@ public class Octree implements Explorable<Octree> {
             else if (!temp.isEmpty()) candidates.addAll(temp);
         }
         codePopOverwrite = 0;
+        Timer.endGetNeighbour();
         return candidates;
     }
 

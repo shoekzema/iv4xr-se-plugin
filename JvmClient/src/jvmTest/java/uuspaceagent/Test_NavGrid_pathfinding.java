@@ -25,41 +25,41 @@ public class Test_NavGrid_pathfinding {
      * Basic test to check that blocks that should be recognized as obstacles are indeed
      * recognized.
      */
-    @Test
-    public void test_obstacles_membership() throws InterruptedException {
-        console("*** start test...") ;
-        var agentAndState = loadSE("myworld-3")  ;
-        TestAgent agent = agentAndState.fst ;
-        UUSeAgentState2D state = agentAndState.snd ;
-        Thread.sleep(1000);
-        // do a single update, and check that we if we have the structures:
-        state.updateState(state.agentId);
-
-        assertTrue(state.navgrid.allObstacleIDs.size() > 0 ) ;
-        console(showWOMElements(state.wom)) ;
-        console("=========\n") ;
-        console("#obstacles:" + state.navgrid.allObstacleIDs.size()) ;
-
-        for(var o : state.navgrid.allObstacleIDs) {
-            WorldEntity we = findWorldEntity(state.wom,o) ;
-            console("  Obs: " + o + " (" + we.properties.get("blockType") + ")");
-            // check is o appears in the map of known obstacles:
-            assertTrue(state.navgrid.knownObstacles.values().stream()
-                    .anyMatch(obstacles ->
-                            obstacles.stream().anyMatch(obs -> obs.obstacle.equals(o)))) ;
-        }
-        assertTrue(state.navgrid.allObstacleIDs.stream()
-                .anyMatch(id -> findWorldEntity(state.wom,id).properties.get("blockType").equals("SurvivalKitLarge"))) ;
-        assertTrue(state.navgrid.allObstacleIDs.stream()
-                .anyMatch(id -> findWorldEntity(state.wom,id).properties.get("blockType").equals("Window1x1FlatInv"))) ;
-        assertTrue(state.navgrid.allObstacleIDs.stream()
-                .anyMatch(id -> findWorldEntity(state.wom,id).properties.get("blockType").equals("LargeBlockSlideDoor"))) ;
-        assertTrue(state.navgrid.allObstacleIDs.stream()
-                .anyMatch(id -> findWorldEntity(state.wom,id).properties.get("blockType").equals("LargeBlockBatteryBlock")));
-
-        //SocketReaderWriterKt.closeIfCloseable(state.env().getController());
-        TestUtils.closeConnectionToSE(state);
-    }
+//    @Test
+//    public void test_obstacles_membership() throws InterruptedException {
+//        console("*** start test...") ;
+//        var agentAndState = loadSE("myworld-3")  ;
+//        TestAgent agent = agentAndState.fst ;
+//        UUSeAgentState2D state = agentAndState.snd ;
+//        Thread.sleep(1000);
+//        // do a single update, and check that we if we have the structures:
+//        state.updateState(state.agentId);
+//
+//        assertTrue(state.navgrid.allObstacleIDs.size() > 0 ) ;
+//        console(showWOMElements(state.wom)) ;
+//        console("=========\n") ;
+//        console("#obstacles:" + state.navgrid.allObstacleIDs.size()) ;
+//
+//        for(var o : state.navgrid.allObstacleIDs) {
+//            WorldEntity we = findWorldEntity(state.wom,o) ;
+//            console("  Obs: " + o + " (" + we.properties.get("blockType") + ")");
+//            // check is o appears in the map of known obstacles:
+//            assertTrue(state.navgrid.knownObstacles.values().stream()
+//                    .anyMatch(obstacles ->
+//                            obstacles.stream().anyMatch(obs -> obs.obstacle.equals(o)))) ;
+//        }
+//        assertTrue(state.navgrid.allObstacleIDs.stream()
+//                .anyMatch(id -> findWorldEntity(state.wom,id).properties.get("blockType").equals("SurvivalKitLarge"))) ;
+//        assertTrue(state.navgrid.allObstacleIDs.stream()
+//                .anyMatch(id -> findWorldEntity(state.wom,id).properties.get("blockType").equals("Window1x1FlatInv"))) ;
+//        assertTrue(state.navgrid.allObstacleIDs.stream()
+//                .anyMatch(id -> findWorldEntity(state.wom,id).properties.get("blockType").equals("LargeBlockSlideDoor"))) ;
+//        assertTrue(state.navgrid.allObstacleIDs.stream()
+//                .anyMatch(id -> findWorldEntity(state.wom,id).properties.get("blockType").equals("LargeBlockBatteryBlock")));
+//
+//        //SocketReaderWriterKt.closeIfCloseable(state.env().getController());
+//        TestUtils.closeConnectionToSE(state);
+//    }
 
     /**
      * Return the agent state and a path to the given destination, null if there is none.

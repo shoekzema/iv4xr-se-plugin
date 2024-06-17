@@ -11,6 +11,7 @@ import uuspaceagent.exploration.Explorable;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +53,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
 
     @Override
     public void updateState(String agentId) {
+        Timer.updateStateStart = Instant.now();
 
         super.updateState(agentId);
 
@@ -89,11 +91,17 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
         if(wom == null) {
             // this is the first observation
             wom = newWom ;
+            Timer.initializeGridStart = Instant.now();
             grid.initializeGrid(wom.position, OBSERVATION_RADIUS);
+            Timer.endInitializeGrid();
 
+            Timer.addToGridStart = Instant.now();
             for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
                 addToGrid(block);
             }
+            Timer.endAddToGrid();
+
+            grid.updateUnknown(wom.position, OBSERVATION_RADIUS);
         }
         else {
             // MERGING the two woms:
@@ -104,8 +112,9 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
             System.out.println("========================================================");
 
             // Check if the VoxelGrid needs to be expanded
-            float size = OBSERVATION_RADIUS + 2.5f + (VoxelGrid.AGENT_HEIGHT - grid.voxelSize) * 0.5f + grid.voxelSize;
-            // Add an extra voxelSize to the left-down-front side of the Boundary because of rounding down to integer shit
+            float size = OBSERVATION_RADIUS + VoxelGrid.BLOCK_SIZE + VoxelGrid.AGENT_HEIGHT + grid.voxelSize;
+            // Exact size should be OBSERVATION_RADIUS + VoxelGrid.BLOCK_SIZE + (VoxelGrid.AGENT_HEIGHT - grid.voxelSize) * 0.5f + grid.voxelSize;
+            // But we make it a little bigger (prevents out-of-bounds errors because of rounding)
             Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(size)), 2 * size);
             grid.checkAndExpand(observation_radius, this);
 
@@ -121,7 +130,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
                 var cubegridOld = cubeGridNew.getPreviousState();
 
                 if (cubegridOld == null) {
-                    continue; // TODO: check if this doesn't mean some blocks will not be added
+                    continue;
                 }
 
                 // Then, we remove disappearing blocks (from grids that changed):
@@ -134,31 +143,40 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
                 for (var blockId : tobeRemoved) {
                     var block = cubegridOld.elements.get(blockId);
                     if (Vec3.dist(block.position, newWom.position) < OBSERVATION_RADIUS) {
+                        Timer.removeFromGridStart = Instant.now();
                         grid.removeObstacle(block);
+                        Timer.endRemoveFromGrid();
                         rebuild = true;
-
-                        // Removing a block makes all voxels it overlaps with empty, so go over all blocks to check
-                        // if some voxels overlapped with multiple blocks. TODO: put this outside the loop
-                        for (var block2 : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-                            addToGrid(block2);
-                        }
                     }
                 }
-                if (!rebuild) {
+                if (rebuild) {
+                    // Removing a block makes all voxels it overlaps with empty, so go over all blocks to check
+                    // if some voxels overlapped with multiple blocks.
+                    Timer.addToGridStart = Instant.now();
+                    for (var block2 : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
+                        addToGrid(block2);
+                    }
+                    Timer.endAddToGrid();
+                }
+                else {
                     // We add new blocks (from grids that changed):
                     List<String> tobeAdded = cubeGridNew.elements.keySet().stream()
                             .filter(id -> !cubegridOld.elements.containsKey(id))
                             .toList();
+                    Timer.addToGridStart = Instant.now();
                     for (var blockId : tobeAdded) {
                         addToGrid(cubeGridNew.elements.get(blockId));
                     }
+                    Timer.endAddToGrid();
                 }
             }
         }
+        Timer.endUpdateState();
     }
 
     @Override
     public void updateDoors() {
+        Timer.updateDoorsStart = Instant.now();
         Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS + 2.5f)), 2 * OBSERVATION_RADIUS + 5);
         doors.forEach(door -> {
             if (observation_radius.contains(door.position)) {
@@ -176,6 +194,7 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
                 addToGrid(block);
             }
         }
+        Timer.endUpdateDoors();
     }
 
     public void addToGrid(WorldEntity block) {

@@ -8,8 +8,6 @@ import nl.uu.cs.aplib.utils.Pair;
 import org.junit.jupiter.api.Test;
 import spaceEngineers.controller.useobject.UseObjectExtensions;
 import spaceEngineers.model.Block;
-
-import java.time.Duration;
 import java.time.Instant;
 
 import static nl.uu.cs.aplib.AplibEDSL.*;
@@ -20,7 +18,7 @@ import static uuspaceagent.UUGoalLib.*;
 
 public class Test_Navigate3D {
     public Pair<TestAgent, UUSeAgentState> deployAgent(String worldname) throws InterruptedException {
-        var agentAndState = loadSE3D2(worldname);
+        var agentAndState = loadSE(worldname);
         TestAgent agent = agentAndState.fst;
         var state = agentAndState.snd;
         Thread.sleep(1000);
@@ -31,7 +29,7 @@ public class Test_Navigate3D {
 
     public void test_Goal(TestAgent agent, UUSeAgentState state, GoalStructure G) throws InterruptedException {
         agent.setGoal(G);
-        Instant start = Instant.now();
+        Timer.testStart = Instant.now();
         int turn = 0;
         while (G.getStatus().inProgress()) {
             console(">> [" + turn + "] " + showWOMAgent(state.wom));
@@ -39,15 +37,17 @@ public class Test_Navigate3D {
             //Thread.sleep(50);
             turn++;
             //if (turn >= 10000) break;
+            if (turn >= 3) break;
         }
-        Instant end = Instant.now();
-        long timeElapsed = Duration.between(start, end).toMillis();
-        console("!!! total time elapsed (in milliseconds): " + timeElapsed);
+        Timer.endTest();
+        Timer.print();
 
         if (state instanceof UUSeAgentState3DOctree) {
             ((UUSeAgentState3DOctree) state).exportGrid();
         } else if (state instanceof UUSeAgentState3DVoxelGrid) {
             ((UUSeAgentState3DVoxelGrid) state).exportGrid();
+        } else if (state instanceof UUSeAgentState2D) {
+            ((UUSeAgentState2D) state).exportGrid();
         }
         TestUtils.closeConnectionToSE(state);
     }
@@ -100,6 +100,8 @@ public class Test_Navigate3D {
         // agent start location = <9, -5, 55>
         TestAgent agent = agentAndState.fst;
         // var state = agentAndState.snd;
+        if (agentAndState.snd instanceof UUSeAgentState2D)
+            ((UUSeAgentState2D) agentAndState.snd).navgrid.enableFlying = true ;
 
         GoalStructure G = DEPLOYonce(agent, UUGoalLib.close3DTo(agent,
                 "LargeBlockSlideDoor",
@@ -118,6 +120,8 @@ public class Test_Navigate3D {
         // agent start location = <9, -5, 55>
         TestAgent agent = agentAndState.fst;
         // var state = agentAndState.snd;
+        if (agentAndState.snd instanceof UUSeAgentState2D)
+            ((UUSeAgentState2D) agentAndState.snd).navgrid.enableFlying = true ;
 
         GoalStructure G = DEPLOYonce(agent, UUGoalLib.smartClose3DTo(
                 agent,
@@ -125,6 +129,7 @@ public class Test_Navigate3D {
                 SEBlockFunctions.BlockSides.FRONT,
                 20f,
                 0.5f));
+//        GoalStructure G = SUCCESS();
         test_Goal(agent, agentAndState.snd, G);
         G.printGoalStructureStatus();
         assertTrue(G.getStatus().success());
@@ -133,8 +138,10 @@ public class Test_Navigate3D {
     @Test
     public void test_open_area() throws InterruptedException {
         console("*** start test...");
-        var agentAndState = deployAgent("Glass box");
+        var agentAndState = deployAgent("Glass box maze");
         TestAgent agent = agentAndState.fst;
+        if (agentAndState.snd instanceof UUSeAgentState2D)
+            ((UUSeAgentState2D) agentAndState.snd).navgrid.enableFlying = true ;
 
         GoalStructure G = DEPLOYonce(agent, UUGoalLib.smartClose3DTo(
                 agent,
@@ -142,6 +149,44 @@ public class Test_Navigate3D {
                 SEBlockFunctions.BlockSides.BACK,
                 20f,
                 0.5f));
+//        GoalStructure G = SUCCESS();
+        test_Goal(agent, agentAndState.snd, G);
+        G.printGoalStructureStatus();
+        assertTrue(G.getStatus().success());
+    }
+
+    @Test
+    public void test_explore_open_area() throws InterruptedException {
+        console("*** start test...");
+        var agentAndState = deployAgent("Glass box center");
+        TestAgent agent = agentAndState.fst;
+        if (agentAndState.snd instanceof UUSeAgentState2D)
+            ((UUSeAgentState2D) agentAndState.snd).navgrid.enableFlying = true ;
+
+        GoalStructure G = FIRSTof(
+                DEPLOYonce(agent, UUGoalLib.explore()),
+                DEPLOYonce(agent, UUGoalLib.explore()),
+                DEPLOYonce(agent, UUGoalLib.explore()),
+                DEPLOYonce(agent, UUGoalLib.explore()),
+                DEPLOYonce(agent, UUGoalLib.explore()));
+//        GoalStructure G = SUCCESS();
+        test_Goal(agent, agentAndState.snd, G);
+        G.printGoalStructureStatus();
+        assertTrue(G.getStatus().success());
+    }
+
+    @Test
+    public void test_open_area_memory() throws InterruptedException {
+        console("*** start test...");
+        var agentAndState = deployAgent("Glass box maze");
+        TestAgent agent = agentAndState.fst;
+        if (agentAndState.snd instanceof UUSeAgentState2D)
+            ((UUSeAgentState2D) agentAndState.snd).navgrid.enableFlying = true ;
+
+        GoalStructure G = SEQ(
+                DEPLOYonce(agent, UUGoalLib.exploreTo(new Vec3(-12,-48,-23))),
+                DEPLOYonce(agent, UUGoalLib.exploreTo(new Vec3(97,76,63)))
+                );
         test_Goal(agent, agentAndState.snd, G);
         G.printGoalStructureStatus();
         assertTrue(G.getStatus().success());
@@ -188,7 +233,7 @@ public class Test_Navigate3D {
                     S.updateDoors();
                     return true;
                 }),
-                DEPLOYonce(agent, closeTo(
+                DEPLOYonce(agent, close3DTo(
                         agent,
                         "TargetDummy",
                         (UUSeAgentState state) -> (WorldEntity e)
@@ -199,6 +244,7 @@ public class Test_Navigate3D {
                         0.5f
                 ))
         );
+//        GoalStructure G = SUCCESS();
         test_Goal(agent, agentAndState.snd, G);
         G.printGoalStructureStatus();
         assertTrue(G.getStatus().success());

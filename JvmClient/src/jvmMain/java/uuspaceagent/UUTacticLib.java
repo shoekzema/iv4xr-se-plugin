@@ -8,6 +8,7 @@ import nl.uu.cs.aplib.utils.Pair;
 import spaceEngineers.model.CharacterObservation;
 import spaceEngineers.model.Vec2F;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -46,7 +47,7 @@ public class UUTacticLib {
      * The flying speed. This is set the same as walking for now, but it can reach a whole
      * 110 m/s, which is somewhere around 4.4 to 5.5.
      */
-    public static float FLY_SPEED = 0.2f ;
+    public static float FLY_SPEED = 0.3f ;
 
     /**
      * If the angle between the agent's current direction and the direction-to-go is less
@@ -221,7 +222,7 @@ public class UUTacticLib {
 
         // adjust the forward vector to make it angled towards the destination
         Vec3 forwardFly     = Rotation.rotate3d(agentState.orientationForward(), agentState.orientationUp(), destinationRelativeLocation);
-        Vec3 forwardFlySlow = Vec3.mul(forwardFly.normalized(), FLY_SPEED * 0.5f);
+        Vec3 forwardFlySlow = Vec3.mul(forwardFly.normalized(), FLY_SPEED * 0.75f);
         forwardFly = Vec3.mul(forwardFly.normalized(), FLY_SPEED);
 
         System.out.println(">>> forwardFly: " + forwardFly);
@@ -272,11 +273,11 @@ public class UUTacticLib {
         dirToGo   = Vec3.sub(dirToGo,   Vec3.mul(upVec, Vec3.dot(dirToGo,   upVec) / Vec3.dot(upVec, upVec)));
         agentHdir = Vec3.sub(agentHdir, Vec3.mul(upVec, Vec3.dot(agentHdir, upVec) / Vec3.dot(upVec, upVec)));
 
-//        if(dirToGo.lengthSq() < 1) {
-//            // the destination is too close within the agent's up-cylinder;
-//            // don't bother to rotate then
-//            return null ;
-//        }
+        if(dirToGo.lengthSq() < 1) {
+            // the destination is too close within the agent's up-cylinder;
+            // don't bother to rotate then
+            return null ;
+        }
 
         dirToGo = dirToGo.normalized() ;
         agentHdir = agentHdir.normalized() ;
@@ -338,6 +339,76 @@ public class UUTacticLib {
             if(cos_alpha > cosAlphaThreshold) {
                 // the angle is already quite aligned to the direction of where we have to go, no turning.
                break ;
+            }
+        }
+
+        return obs ;
+    }
+
+    public static CharacterObservation yTurnTowardACT2(UUSeAgentState agentState, Vec3 destination, float cosAlphaThreshold, Integer duration) {
+        // direction vector to the next node:
+        Vec3 dirToGo = Vec3.sub(destination, agentState.wom.position) ;
+        Vec3 agentHdir = agentState.orientationForward() ;
+
+        // for calculating 2D rotation we ignore the up-vector:
+        Vec3 upVec = agentState.orientationUp();
+        // project the two vectors to the plane perpendicular to the up-vector
+        dirToGo   = Vec3.sub(dirToGo,   Vec3.mul(upVec, Vec3.dot(dirToGo,   upVec) / Vec3.dot(upVec, upVec)));
+        agentHdir = Vec3.sub(agentHdir, Vec3.mul(upVec, Vec3.dot(agentHdir, upVec) / Vec3.dot(upVec, upVec)));
+
+        dirToGo = dirToGo.normalized() ;
+        agentHdir = agentHdir.normalized() ;
+        // angle between the dir-to-go and the agent's own direction (expressed as cos(angle)):
+        var cos_alpha = Vec3.dot(agentHdir, dirToGo) ;
+        if(cos_alpha > cosAlphaThreshold) {
+            // the angle is already quite aligned to the direction of where we have to go, no turning.
+            return null ;
+        }
+
+        float turningSpeed = TURNING_SPEED ;
+        boolean fastturning = true ;
+
+        Vec3 normalVector = Vec3.cross(agentHdir,dirToGo);
+
+        if(cos_alpha >= cosAlphaThreshold * THRESHOLD_ANGLE_TO_SLOW_TURNING) {
+            // the angle between the agent's own direction and target direction is less than 10-degree
+            // we reduce the turning-speed:
+            turningSpeed = TURNING_SPEED * 0.25f ;
+            fastturning = false ;
+        }
+        if (Vec3.dot(normalVector, upVec) > 0) {
+            // The agent should then turn clock-wise; for SE this means giving
+            // a negative turning speed. Else positive turning speed.
+            turningSpeed = -turningSpeed ;
+        }
+        if(!fastturning || duration == null) {
+            duration = 1 ;
+        }
+        Vec2F turningVector = new Vec2F(0, turningSpeed) ;
+
+        // now send the turning commands:
+        CharacterObservation obs = null ;
+        for (int k=0; k<duration; k++) {
+            obs = agentState.env().getController().getCharacter().moveAndRotate(
+                    SEBlockFunctions.toSEVec3(ZEROV3),
+                    turningVector,
+                    0, 1) ; // "roll" and "tick" ... using default values;
+            dirToGo = Vec3.sub(destination,SEBlockFunctions.fromSEVec3(obs.getPosition())) ;
+            agentHdir = SEBlockFunctions.fromSEVec3(obs.getOrientationForward()) ;
+            // for calculating 2D rotation we ignore the up-vector:
+            upVec = SEBlockFunctions.fromSEVec3(obs.getOrientationUp());
+            // project the two vectors to the plane perpendicular to the up-vector
+            dirToGo   = Vec3.sub(dirToGo,   Vec3.mul(upVec, Vec3.dot(dirToGo,   upVec) / Vec3.dot(upVec, upVec)));
+            agentHdir = Vec3.sub(agentHdir, Vec3.mul(upVec, Vec3.dot(agentHdir, upVec) / Vec3.dot(upVec, upVec)));
+
+            dirToGo = dirToGo.normalized() ;
+            agentHdir = agentHdir.normalized() ;
+            // angle between the dir-to-go and the agent's own direction (expressed as cos(angle)):
+            cos_alpha = Vec3.dot(agentHdir,dirToGo) ;
+            //if(1 - cos_alpha < 0.01) {
+            if(cos_alpha > cosAlphaThreshold) {
+                // the angle is already quite aligned to the direction of where we have to go, no turning.
+                break ;
             }
         }
 
@@ -579,9 +650,8 @@ public class UUTacticLib {
                     if(cos_alpha >= cosAlphaThreshold) { // the angle is quite aligned, the action is disabled
                         return cos_alpha ;
                     }
-                    // TODO: make alternative yTurnTowardsACT because this one will not rotate if the goal is too close (or move the goal further away)
-                    // note: sometimes happens at facing towards a button panel
-                    CharacterObservation obs = yTurnTowardACT(state, destination, cosAlphaThreshold_, 10) ;
+                    // yTurnTowardACT2 will always rotate regardless of closeness to the target
+                    CharacterObservation obs = yTurnTowardACT2(state, destination, cosAlphaThreshold_, 10) ;
                     if(obs == null) {
                         return cos_alpha ;
                     }
@@ -728,6 +798,8 @@ public class UUTacticLib {
                     var path = queryResult.fst ;
                     var arrivedAtDestination = queryResult.snd ;
 
+                    Timer.moveStart = Instant.now();
+
                     if (state instanceof UUSeAgentState2D) {
                         // check first if we should turn on/off jetpack:
                         if (state.wom.position.y - state.getOrigin().y <= NavGrid.AGENT_HEIGHT
@@ -748,6 +820,7 @@ public class UUTacticLib {
 
                     if (arrivedAtDestination) {
                         state.currentPathToFollow.clear();
+                        Timer.endMove();
                         if (state instanceof UUSeAgentState3DVoxelGrid || state instanceof UUSeAgentState3DOctree) {
                             return new Pair<>(state.centerPos(), state.orientationForward());
                         }
@@ -770,6 +843,7 @@ public class UUTacticLib {
                         // agent is already in the same square as the next-node destination-square. Mark the node
                         // as reached (so, we remove it from the plan):
                         state.currentPathToFollow.remove(0) ;
+                        Timer.endMove();
                         return new Pair<>(state.centerPos(), state.orientationForward()) ;
                     }
                     CharacterObservation obs = null ;
@@ -777,6 +851,7 @@ public class UUTacticLib {
                     obs = yTurnTowardACT(state, nextNodePos, 0.9f, 10) ;
                     if (obs != null) {
                         // we did turning, we won't move.
+                        Timer.endMove();
                         return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward())) ;
                     }
 //                    obs = zTurnTowardACT(state, nextNodePos, 0.8f,5) ;
@@ -793,6 +868,7 @@ public class UUTacticLib {
                     else {
                         obs = moveToward(state, nextNodePos, 20);
                     }
+                    Timer.endMove();
                     return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward()));
                 } )
                 .on((UUSeAgentState state)  -> {
@@ -873,6 +949,8 @@ public class UUTacticLib {
                     var path = queryResult.fst ;
                     var arrivedAtDestination = queryResult.snd ;
 
+                    Timer.moveStart = Instant.now();
+
                     if (state instanceof UUSeAgentState2D) {
                         // check first if we should turn on/off jetpack:
                         if (state.wom.position.y - state.getOrigin().y <= NavGrid.AGENT_HEIGHT
@@ -893,6 +971,7 @@ public class UUTacticLib {
 
                     if (arrivedAtDestination) {
                         state.currentPathToFollow.clear();
+                        Timer.endMove();
                         if (state instanceof UUSeAgentState3DVoxelGrid || state instanceof UUSeAgentState3DOctree) {
                             return new Pair<>(state.centerPos(), state.orientationForward());
                         }
@@ -915,6 +994,7 @@ public class UUTacticLib {
                         // agent is already in the same square as the next-node destination-square. Mark the node
                         // as reached (so, we remove it from the plan):
                         state.currentPathToFollow.remove(0) ;
+                        Timer.endMove();
                         return new Pair<>(state.centerPos(), state.orientationForward()) ;
                     }
                     CharacterObservation obs;
@@ -922,6 +1002,7 @@ public class UUTacticLib {
                     obs = yTurnTowardACT(state, nextNodePos, 0.8f, 10) ;
                     if (obs != null) {
                         // we did turning, we won't move.
+                        Timer.endMove();
                         return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward())) ;
                     }
 //                    obs = zTurnTowardACT(state, nextNodePos, 0.8f,5) ;
@@ -938,6 +1019,7 @@ public class UUTacticLib {
                     else {
                         obs = moveToward(state, nextNodePos, 20);
                     }
+                    Timer.endMove();
                     return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward()))  ;
                 } )
                 .on((UUSeAgentState state)  -> {
@@ -1075,14 +1157,17 @@ public class UUTacticLib {
                     var path = queryResult.fst;
                     var arrivedAtDestination = queryResult.snd;
 
+                    Timer.moveStart = Instant.now();
+
                     var agentSq = state.getGridPos(state.centerPos());
                     for (var next : state.getGrid().neighbours_explore(agentSq)) {
                          if (state.getGrid().isUnknown(next)) {
                              state.getGrid().updateUnknown(state.centerPos(), OBSERVATION_RADIUS);
 
                              state.currentPathToFollow.clear();
-                             return new Pair<>(state.centerPos(), state.orientationForward());
-                             //return new Pair<>(true, true);
+                             Timer.endMove();
+                             //return new Pair<>(state.centerPos(), state.orientationForward());
+                             return false;
                          }
                     }
                     // else we are not at the destination yet...
@@ -1114,7 +1199,9 @@ public class UUTacticLib {
                         // agent is already in the same square as the next-node destination-square. Mark the node
                         // as reached (so, we remove it from the plan):
                         state.currentPathToFollow.remove(0) ;
-                        return new Pair<>(state.centerPos(), state.orientationForward()) ;
+                        Timer.endMove();
+                        //return new Pair<>(state.centerPos(), state.orientationForward()) ;
+                        return false;
                     }
 
                     CharacterObservation obs;
@@ -1122,7 +1209,9 @@ public class UUTacticLib {
                     obs = yTurnTowardACT(state, nextNodePos, 0.8f, 10) ;
                     if (obs != null) {
                         // we did turning, we won't move.
-                        return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward())) ;
+                        Timer.endMove();
+                        //return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward())) ;
+                        return false;
                     }
 
                     if (state instanceof UUSeAgentState3DVoxelGrid) {
@@ -1133,7 +1222,9 @@ public class UUTacticLib {
                         obs = moveToward(state, nextNodePos, 20);
                     }
 
-                    return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward()));
+                    Timer.endMove();
+                    //return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward()));
+                    return false;
                 })
                 .on((UUSeAgentState state) -> {
                     if (state.wom==null) return null ;
@@ -1183,8 +1274,11 @@ public class UUTacticLib {
                     var path = queryResult.fst;
                     var arrivedAtDestination = queryResult.snd;
 
+                    Timer.moveStart = Instant.now();
+
                     if (arrivedAtDestination) {
                         state.currentPathToFollow.clear();
+                        Timer.endMove();
                         return true;
                     }
 
@@ -1197,6 +1291,7 @@ public class UUTacticLib {
                         state.getGrid().updateUnknown(state.centerPos(), OBSERVATION_RADIUS);
 
                         state.currentPathToFollow.clear();
+                        Timer.endMove();
                         return false;
                     }
                     // else we are not at the destination yet...
@@ -1227,6 +1322,7 @@ public class UUTacticLib {
                         // agent is already in the same square as the next-node destination-square. Mark the node
                         // as reached (so, we remove it from the plan):
                         state.currentPathToFollow.remove(0) ;
+                        Timer.endMove();
                         return false;
                     }
 
@@ -1235,6 +1331,7 @@ public class UUTacticLib {
                     obs = yTurnTowardACT(state, nextNodePos, 0.8f, 10) ;
                     if (obs != null) {
                         // we did turning, we won't move.
+                        Timer.endMove();
                         return false;
                     }
 
@@ -1245,6 +1342,7 @@ public class UUTacticLib {
                     } else {
                         moveToward(state, nextNodePos, 20);
                     }
+                    Timer.endMove();
                     return false;
                 })
                 .on((UUSeAgentState state) -> {
@@ -1314,8 +1412,11 @@ public class UUTacticLib {
                     var path = queryResult.fst;
                     var arrivedAtDestination = queryResult.snd;
 
+                    Timer.moveStart = Instant.now();
+
                     if (arrivedAtDestination) {
                         state.currentPathToFollow.clear();
+                        Timer.endMove();
                         return true;
                     }
 
@@ -1328,6 +1429,7 @@ public class UUTacticLib {
                         state.getGrid().updateUnknown(state.centerPos(), OBSERVATION_RADIUS);
 
                         state.currentPathToFollow.clear();
+                        Timer.endMove();
                         return new Pair<>(state.centerPos(), state.orientationForward());
                     }
                     // else we are not at the destination yet...
@@ -1358,6 +1460,7 @@ public class UUTacticLib {
                         // agent is already in the same square as the next-node destination-square. Mark the node
                         // as reached (so, we remove it from the plan):
                         state.currentPathToFollow.remove(0) ;
+                        Timer.endMove();
                         return new Pair<>(state.centerPos(), state.orientationForward());
                     }
 
@@ -1366,6 +1469,7 @@ public class UUTacticLib {
                     obs = yTurnTowardACT(state, nextNodePos, 0.8f, 10) ;
                     if (obs != null) {
                         // we did turning, we won't move.
+                        Timer.endMove();
                         return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward())) ;
                     }
 
@@ -1376,6 +1480,7 @@ public class UUTacticLib {
                     } else {
                         obs = moveToward(state, nextNodePos, 20);
                     }
+                    Timer.endMove();
                     return new Pair<>(SEBlockFunctions.fromSEVec3(obs.getPosition()), SEBlockFunctions.fromSEVec3(obs.getOrientationForward()));
                 })
                 .on((UUSeAgentState state) -> {

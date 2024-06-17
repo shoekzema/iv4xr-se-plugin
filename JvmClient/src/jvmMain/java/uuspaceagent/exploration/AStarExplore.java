@@ -2,8 +2,9 @@ package uuspaceagent.exploration;
 
 import eu.iv4xr.framework.extensions.pathfinding.*;
 import eu.iv4xr.framework.spatial.Vec3;
-import uuspaceagent.Octree;
+import uuspaceagent.Timer;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -15,7 +16,7 @@ public class AStarExplore<NodeId> implements PathExplorer<NodeId> {
 
     public enum SearchMode { GREEDY, DIJKSTRA, HEURISTIC } ;
 
-    public AStar.SearchMode searchMode = AStar.SearchMode.GREEDY ;
+    public AStar.SearchMode searchMode = AStar.SearchMode.HEURISTIC ;
 
     /**
      * When this is set, this function will be use to calculate the heuristic distance between
@@ -36,7 +37,7 @@ public class AStarExplore<NodeId> implements PathExplorer<NodeId> {
 
     @Override
     public ArrayList<NodeId> findPath(Explorable<NodeId> graph, NodeId start, NodeId goal) {
-
+        Timer.pathfindingStart = Instant.now();
         PriorityQueue<Priotisable<NodeId>> open = new PriorityQueue<>(10, new PriotisableComperator<>());
 
         // Closed nodes with their associated measured distance
@@ -67,6 +68,7 @@ public class AStarExplore<NodeId> implements PathExplorer<NodeId> {
                 }
                 // Reverse path to get correct direction
                 Collections.reverse(path);
+                Timer.endPathfinding();
                 return path;
             }
 
@@ -122,11 +124,13 @@ public class AStarExplore<NodeId> implements PathExplorer<NodeId> {
             }
         }
 
+        Timer.endPathfinding();
         return null;
     }
 
     @Override
     public ArrayList<NodeId> explore(Explorable<NodeId> graph, NodeId start) {
+        Timer.exploreStart = Instant.now();
 
         PriorityQueue<Priotisable<NodeId>> open = new PriorityQueue<>(10, new PriotisableComperator<>());
         // Closed nodes with their associated measured distance
@@ -162,6 +166,7 @@ public class AStarExplore<NodeId> implements PathExplorer<NodeId> {
                     }
                     // Reverse path to get correct direction
                     Collections.reverse(path);
+                    Timer.endExplore();
                     return path;
                 }
 
@@ -208,6 +213,7 @@ public class AStarExplore<NodeId> implements PathExplorer<NodeId> {
             }
         }
 
+        Timer.endExplore();
         return null;
     }
 

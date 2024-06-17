@@ -1,13 +1,16 @@
 package uuspaceagent;
 
 import environments.SeEnvironmentKt;
-import eu.iv4xr.framework.extensions.pathfinding.Navigatable;
 import eu.iv4xr.framework.mainConcepts.WorldModel;
 import eu.iv4xr.framework.spatial.Vec3;
 import spaceEngineers.model.CharacterObservation;
 import spaceEngineers.model.Observation;
+import uuspaceagent.AplibCopy.NavGridCopy;
 import uuspaceagent.exploration.Explorable;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -15,7 +18,7 @@ import java.util.stream.Collectors;
 
 public class UUSeAgentState2D extends UUSeAgentState<DPos3> {
 
-    public NavGrid navgrid = new NavGrid() ;
+    public NavGridCopy navgrid = new NavGridCopy() ;
 
     public UUSeAgentState2D(String agentId) {
         super(agentId);
@@ -115,15 +118,15 @@ public class UUSeAgentState2D extends UUSeAgentState<DPos3> {
                 for(var blockId : tobeRemoved) cubegridOld.elements.remove(blockId) ;
             }
 
-            // updating the "navigational-2DGrid:
-            var blocksInWom =  SEBlockFunctions.getAllBlockIDs(wom) ;
-            List<String> toBeRemoved = navgrid.allObstacleIDs.stream()
-                    .filter(id -> !blocksInWom.contains(id))
-                    .toList();
-            // first, removing obstacles that no longer exist:
-            for(var id : toBeRemoved) {
-                navgrid.removeObstacle(id);
-            }
+//            // updating the "navigational-2DGrid:
+//            var blocksInWom =  SEBlockFunctions.getAllBlockIDs(wom) ;
+//            List<String> toBeRemoved = navgrid.allObstacleIDs.stream()
+//                    .filter(id -> !blocksInWom.contains(id))
+//                    .toList();
+//            // first, removing obstacles that no longer exist:
+//            for(var id : toBeRemoved) {
+//                navgrid.removeObstacle(id);
+//            }
         }
 
         // then, there may also be new blocks ... we add them to the nav-grid:
@@ -157,5 +160,19 @@ public class UUSeAgentState2D extends UUSeAgentState<DPos3> {
     @Override
     public void updateDoors() {
 
+    }
+
+    public void exportGrid() {
+        try {
+            System.out.println(System.getProperty("user.dir"));
+            FileWriter fileWriter = new FileWriter("NavGrid_HashMap.txt");
+            PrintWriter printWriter = new PrintWriter(fileWriter);
+            navgrid.knownObstacles.forEach(k -> {
+                printWriter.printf("%d %d %d %n", k.x, k.y, k.z);
+            });
+            printWriter.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

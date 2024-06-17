@@ -4,6 +4,7 @@ import eu.iv4xr.framework.mainConcepts.WorldEntity;
 import eu.iv4xr.framework.spatial.Vec3;
 import uuspaceagent.exploration.Explorable;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -49,8 +50,9 @@ public class VoxelGrid implements Explorable<DPos3> {
      */
     public void initializeGrid(Vec3 pos, float observation_radius) {
         // radius +10   so that the agent can move a little before having to rebuild the whole grid (expand)
-        Vec3 lowerB = Vec3.sub(pos, new Vec3(observation_radius + BLOCK_SIZE));
-        Vec3 upperB = Vec3.add(pos, new Vec3(observation_radius + BLOCK_SIZE));
+        float size = observation_radius + 2.5f + (AGENT_HEIGHT - voxelSize) * 0.5f + voxelSize;
+        Vec3 lowerB = Vec3.sub(pos, new Vec3(size));
+        Vec3 upperB = Vec3.add(pos, new Vec3(size));
         boundary = new Boundary2(lowerB, upperB);
 
         int initialSize = (int) ((boundary.upperBounds.x - boundary.lowerBounds.x) / voxelSize);
@@ -173,6 +175,7 @@ public class VoxelGrid implements Explorable<DPos3> {
         if (this.boundary.contains(range))
             return;
 
+        Timer.expandStart = Instant.now();
         // Otherwise, expand
         if (range.pos().x < this.boundary.lowerBounds.x) { // expand to the left
             DPos3 gridSize = size();
@@ -259,6 +262,7 @@ public class VoxelGrid implements Explorable<DPos3> {
             }
             boundary.upperBounds.z += voxelSize * diff;
         }
+        Timer.endExpand();
     }
 
     /**
@@ -353,6 +357,7 @@ public class VoxelGrid implements Explorable<DPos3> {
 
     @Override
     public Iterable<DPos3> neighbours(DPos3 p) {
+        Timer.getNeighbourStart = Instant.now();
         List<DPos3> candidates = new LinkedList<>() ;
 
         for (int x = max(p.x-1, 0); x <= min(p.x+1, size().x-1); x++) {
@@ -368,11 +373,13 @@ public class VoxelGrid implements Explorable<DPos3> {
             }
         }
 
+        Timer.endGetNeighbour();
         return candidates ;
     }
 
     @Override
     public Iterable<DPos3> neighbours_explore(DPos3 p) {
+        Timer.getNeighbourStart = Instant.now();
         List<DPos3> candidates = new LinkedList<>() ;
 
         for (int x = max(p.x-1, 0); x <= min(p.x+1, size().x-1); x++) {
@@ -394,6 +401,7 @@ public class VoxelGrid implements Explorable<DPos3> {
             }
         }
 
+        Timer.endGetNeighbour();
         return candidates ;
     }
 

@@ -224,15 +224,21 @@ public class UUGoalLib {
      */
     public static Function<UUSeAgentState,GoalStructure> explore() {
         return (UUSeAgentState state) -> {
-            return (GoalStructure) goal("exploring the world")
-                    .toSolve((Pair<Vec3,Vec3> posAndOrientation) -> {
-                        var agentSq = state.getGridPos(state.centerPos());
-                        List<DPos3> path = state.pathfinder.explore(state.getGrid(), agentSq);
-                        // the pathfinder cannot find a path to an unknown node, meaning the world is explored
-                        return path == null;
-                    })
-                    .withTactic(UUTacticLib.exploreTAC())
-                    .lift();
+//            return (GoalStructure) goal("exploring the world")
+//                    .toSolve((Pair<Vec3,Vec3> posAndOrientation) -> {
+//                        var agentSq = state.getGridPos(state.centerPos());
+//                        List<DPos3> path = state.pathfinder.explore(state.getGrid(), agentSq);
+//                        // the pathfinder cannot find a path to an unknown node, meaning the world is explored
+//                        return path == null;
+//                    })
+//                    .withTactic(UUTacticLib.exploreTAC(), SUCCESS())
+//                    .lift();
+            return lift((UUSeAgentState state2) -> {
+                var agentSq = state.getGridPos(state.centerPos());
+                List<DPos3> path = state.pathfinder.explore(state.getGrid(), agentSq);
+                // the pathfinder cannot find a path to an unknown node, meaning the world is explored
+                return path == null;
+            });
         };
     }
 
