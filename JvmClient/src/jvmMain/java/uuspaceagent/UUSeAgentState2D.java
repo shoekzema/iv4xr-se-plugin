@@ -181,6 +181,8 @@ public class UUSeAgentState2D extends UUSeAgentState<DPos3> {
         doors.forEach(door -> {
             if (Boolean.FALSE.equals(SEBlockFunctions.getSlideDoorState(door)))
                 navgrid.setOpen(door);
+            else
+                navgrid.addObstacle(door);
         });
 
         // if any door is inside the viewing range, re-add all blocks

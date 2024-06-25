@@ -357,6 +357,22 @@ public class VoxelGrid implements Explorable<DPos3> {
     public Iterable<DPos3> neighbours(DPos3 p) {
         Timer.getNeighbourStart = Instant.now();
         List<DPos3> candidates = new LinkedList<>();
+
+        if (get(p).label == Label.BLOCKED) {
+            for (int x = max(p.x-1, 0); x <= min(p.x+1, size().x-1); x++) {
+                for (int y = max(p.y-1, 0); y <= min(p.y+1, size().y-1); y++) {
+                    for (int z = max(p.z-1, 0); z <= min(p.z+1, size().z-1); z++) {
+                        if(x==p.x && y==p.y && z==p.z) continue;
+                        var neighbourCube = new DPos3(x,y,z) ; // a neighbouring cube
+                        if(get(x,y,z).label == Label.OPEN)
+                            candidates.add(neighbourCube) ;
+                    }
+                }
+            }
+            Timer.endGetNeighbour();
+            return candidates ;
+        }
+
         boolean top, right, left, bottom, front, back,
                 topleft, topright, bottomleft, bottomright,
                 leftfront, rightfront, leftback, rightback,
@@ -372,19 +388,6 @@ public class VoxelGrid implements Explorable<DPos3> {
         int minX = max(p.x-1, 0);
         int minY = max(p.y-1, 0);
         int minZ = max(p.z-1, 0);
-
-//        for (int x = max(p.x-1, 0); x <= min(p.x+1, size().x-1); x++) {
-//            for (int y = max(p.y-1, 0); y <= min(p.y+1, size().y-1); y++) {
-//                for (int z = max(p.z-1, 0); z <= min(p.z+1, size().z-1); z++) {
-//
-//                    if(x==p.x && y==p.y && z==p.z) continue;
-//                    var neighbourCube = new DPos3(x,y,z) ; // a neighbouring cube
-//
-//                    if(get(x,y,z).label == Label.OPEN)
-//                        candidates.add(neighbourCube) ;
-//                }
-//            }
-//        }
 
         // Directional
         x = p.x; y = maxY; z = p.z;
@@ -505,6 +508,22 @@ public class VoxelGrid implements Explorable<DPos3> {
     public Iterable<DPos3> neighbours_explore(DPos3 p) {
         Timer.getNeighbourStart = Instant.now();
         List<DPos3> candidates = new LinkedList<>();
+
+        if (get(p).label == Label.BLOCKED) {
+            for (int x = max(p.x-1, 0); x <= min(p.x+1, size().x-1); x++) {
+                for (int y = max(p.y-1, 0); y <= min(p.y+1, size().y-1); y++) {
+                    for (int z = max(p.z-1, 0); z <= min(p.z+1, size().z-1); z++) {
+                        if(x==p.x && y==p.y && z==p.z) continue;
+                        var neighbourCube = new DPos3(x,y,z) ; // a neighbouring cube
+                        if(get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN)
+                            candidates.add(neighbourCube) ;
+                    }
+                }
+            }
+            Timer.endGetNeighbour();
+            return candidates ;
+        }
+
         boolean top, right, left, bottom, front, back,
                 topleft, topright, bottomleft, bottomright,
                 leftfront, rightfront, leftback, rightback,

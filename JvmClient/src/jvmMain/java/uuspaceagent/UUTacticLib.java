@@ -123,28 +123,18 @@ public class UUTacticLib {
         Vec3 forwardWalk = Vec3.mul(forwardRun.normalized(), FLY_SPEED * 0.75f);
         forwardRun = Vec3.mul(forwardRun.normalized(), FLY_SPEED);
 
-        System.out.println(">>> forwardFly: " + forwardRun);
-
         // adjust the forward vector to make it angles towards the destination
-        if(! agentState.jetpackRunning()) {
+        if(!agentState.jetpackRunning()) {
             // 2D movement on surface:
+            forwardRun  = Vec3.mul(FORWARDV3, RUN_SPEED);
+            forwardWalk = Vec3.mul(FORWARDV3, WALK_SPEED);
             Matrix3D rotation = Rotation.getYRotation(agentState.orientationForward(),destinationRelativeLocation) ;
             forwardRun  = rotation.apply(forwardRun) ;
             forwardWalk = rotation.apply(forwardWalk) ;
             System.out.println(">>> no-fly forwardRun: " + forwardRun);
         }
         else {
-            forwardRun = Rotation.rotate(forwardRun, agentState.orientationForward(), destinationRelativeLocation) ;
-            forwardWalk = Rotation.rotate(forwardWalk, agentState.orientationForward(), destinationRelativeLocation) ;
-            // apply correction on the y-component, taking advantage that we know
-            // the agent's forward orientation has its y-component 0.
-            forwardRun.y = Math.abs(forwardRun.y) ;
-            forwardWalk.y = Math.abs(forwardWalk.y) ;
-            if (destinationRelativeLocation.y < 0) {
-                forwardRun.y = - forwardRun.y ;
-                forwardWalk.y = - forwardWalk.y ;
-            }
-            System.out.println(">>> FLY forwardRun: " + forwardRun);
+            System.out.println(">>> forwardFly: " + forwardRun);
         }
 
         // now move... sustain it for the given duration:
@@ -155,7 +145,7 @@ public class UUTacticLib {
                     SEBlockFunctions.toSEVec3(running ? seFixPolarityMoveVector(forwardRun) : seFixPolarityMoveVector(forwardWalk))
                     , ZEROV2,
                     0, 1) ; // "roll" and "tick" ... using default values;
-            sqDistance = Vec3.sub(SEBlockFunctions.fromSEVec3(obs.getPosition()),destination).lengthSq() ;
+            sqDistance = Vec3.sub(SEBlockFunctions.fromSEVec3(obs.getPosition()), destination).lengthSq() ;
             if(sqDistance <= threshold) {
                 break ;
             }
@@ -890,6 +880,11 @@ public class UUTacticLib {
                         destination = SEBlockFunctions.getSideCenterPoint(block, side, delta + 1.5f);
 
                     var agentSq = state.getGridPos(state.centerPos()) ;
+                    if (agentSq instanceof Octree)
+                        if (((Octree) agentSq).label == Label.BLOCKED && ((Octree) agentSq).boundary.size > 0.625) {
+                            ((Octree) agentSq).subdivide(((Octree) agentSq).label);
+                            agentSq = state.getGridPos(state.centerPos());
+                        }
                     var destinationSq = state.getGridPos(destination) ;
                     var destinationSqCenterPos = state.getBlockCenter(destinationSq) ;
                     //if (state.grid2D.squareDistanceToSquare(agentPos,destinationSq) <= SQEPSILON_TO_NODE_IN_2D_PATH_NAVIGATION) {
@@ -1034,6 +1029,11 @@ public class UUTacticLib {
                     if (state.wom==null) return null ;
                     //var agentPos = state.wom.position ;
                     var agentSq = state.getGridPos(state.centerPos()) ;
+                    if (agentSq instanceof Octree)
+                        if (((Octree) agentSq).label == Label.BLOCKED && ((Octree) agentSq).boundary.size > 0.625) {
+                            ((Octree) agentSq).subdivide(((Octree) agentSq).label);
+                            agentSq = state.getGridPos(state.centerPos());
+                        }
                     var destinationSq = state.getGridPos(destination) ;
                     var destinationSqCenterPos = state.getBlockCenter(destinationSq) ;
                     //if (state.grid2D.squareDistanceToSquare(agentPos,destinationSq) <= SQEPSILON_TO_NODE_IN_2D_PATH_NAVIGATION) {

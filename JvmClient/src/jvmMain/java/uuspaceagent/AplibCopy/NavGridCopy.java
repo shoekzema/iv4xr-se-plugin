@@ -70,7 +70,7 @@ public class NavGridCopy implements Explorable<DPos3> {
      * The assumed height of the player characters. It is 1.8, we conservatively
      * assume it is 2f.
      */
-    public static float AGENT_HEIGHT = 2f ;
+    public static float AGENT_HEIGHT = 1.8f ;
     public static float AGENT_WIDTH  = 1f ;
     public static float CUBE_SIZE = 0.62f ;
 
@@ -220,7 +220,10 @@ public class NavGridCopy implements Explorable<DPos3> {
 
     public void setOpen(WorldEntity block) {
         var obstructedCubes = getObstructedCubes(block) ;
-        obstructedCubes.forEach(knownObstacles::remove);
+        //obstructedCubes.forEach(knownObstacles::remove);
+        for (var cube : obstructedCubes) {
+            knownObstacles.remove(cube);
+        }
     }
 
     /**
@@ -334,6 +337,28 @@ public class NavGridCopy implements Explorable<DPos3> {
     public Iterable<DPos3> neighbours(DPos3 p) {
         uuspaceagent.Timer.getNeighbourStart = Instant.now();
         List<DPos3> candidates = new LinkedList<>();
+
+        if (knownObstacles.contains(p)) {
+            for (int x = p.x-1; x <= p.x+1; x++) {
+                int ymin = 0 ;
+                int ymax = 0 ;
+                if (enableFlying) {
+                    ymin = p.y-1 ;
+                    ymax = p.y+1 ;
+                }
+                for (int y = ymin ; y <= ymax ; y++) {
+                    for (int z = p.z-1; z <= p.z+1; z++) {
+                        if(x==p.x && y==p.y && z==p.z) continue;
+                        var neighbourCube = new DPos3(x,y,z) ; // a neighbouring cube
+                        if (!knownObstacles.contains(neighbourCube))
+                            candidates.add(neighbourCube) ;
+                    }
+                }
+            }
+            Timer.endGetNeighbour();
+            return candidates ;
+        }
+
         boolean top, right, left, bottom, front, back,
                 topleft, topright, bottomleft, bottomright,
                 leftfront, rightfront, leftback, rightback,
@@ -349,24 +374,6 @@ public class NavGridCopy implements Explorable<DPos3> {
         int minX = p.x-1;
         int minY = enableFlying ? p.y-1 : p.y;
         int minZ = p.z-1;
-
-//        for (int x = p.x-1 ; x <= p.x+1 ; x++) {
-//            int ymin = 0 ;
-//            int ymax = 0 ;
-//            if (enableFlying) {
-//                ymin = p.y-1 ;
-//                ymax = p.y+1 ;
-//            }
-//            for (int y = ymin ; y <= ymax ; y++) {
-//                for (int z = p.z-1; z <= p.z+1 ; z++) {
-//                    if(x==p.x && y==p.y && z==p.z) continue;
-//                    var neighbourCube = new DPos3(x,y,z) ; // a neighbouring cube
-//                    boolean isBlocking = knownObstacles.contains(neighbourCube) ;
-//                    if (isBlocking) continue;
-//                    candidates.add(neighbourCube) ;
-//                }
-//            }
-//        }
 
         // Directional
         x = p.x; y = maxY; z = p.z;
