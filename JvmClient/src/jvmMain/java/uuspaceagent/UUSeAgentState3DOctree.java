@@ -181,7 +181,10 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
         Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS + 2.5f)), 2 * OBSERVATION_RADIUS + 5);
         doors.forEach(door -> {
             if (observation_radius.contains(door.position)) {
-                grid.setOpen(door);
+                if (Boolean.FALSE.equals(SEBlockFunctions.getSlideDoorState(door)))
+                    grid.setOpen(door);
+                else
+                    grid.addObstacle(door);
             } else {
                 grid.setUnknown(door);
             }
