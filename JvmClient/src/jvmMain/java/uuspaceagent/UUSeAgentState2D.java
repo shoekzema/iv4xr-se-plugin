@@ -1,6 +1,7 @@
 package uuspaceagent;
 
 import environments.SeEnvironmentKt;
+import eu.iv4xr.framework.mainConcepts.WorldEntity;
 import eu.iv4xr.framework.mainConcepts.WorldModel;
 import eu.iv4xr.framework.spatial.Vec3;
 import spaceEngineers.model.CharacterObservation;
@@ -11,6 +12,7 @@ import uuspaceagent.exploration.Explorable;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -51,6 +53,7 @@ public class UUSeAgentState2D extends UUSeAgentState<DPos3> {
 
     @Override
     public void updateState(String agentId) {
+        Timer.updateStateStart = Instant.now();
 
         super.updateState(agentId);
 
@@ -91,23 +94,27 @@ public class UUSeAgentState2D extends UUSeAgentState<DPos3> {
         if(wom == null) {
             // this is the first observation
             wom = newWom ;
+
+            Timer.addToGridStart = Instant.now();
+            for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
+                addToGrid(block);
+            }
+            Timer.endAddToGrid();
         }
         else {
             // MERGING the two woms:
-            wom.mergeNewObservation(newWom) ;
+            var changes = wom.mergeNewObservation(newWom) ;
             // merges the woms, but cannot easily be used for exploration because everything outside the viewing distance
             // is thrown away out of the wom
 
             System.out.println("========================================================");
 
-            // HOWEVER, some blocks and grids-of-blocks may have been destroyed, hence
-            // do not exist anymore. We need to remove them from state.wom. This is handled
-            // below.
-            // First, remove disappearing "cube-grids" (composition of blocks)
+            // Remove grids that are not in the WOM anymore
             List<String> tobeRemoved = wom.elements.keySet().stream()
-                    .filter(id -> ! newWom.elements.keySet().contains(id))
+                    .filter(id -> ! newWom.elements.containsKey(id))
                     .collect(Collectors.toList());
             for(var id : tobeRemoved) wom.elements.remove(id) ;
+
             // Then, we remove disappearing blocks (from grids that remain):
             for(var cubegridOld : wom.elements.values()) {
                 var cubeGridNew = newWom.elements.get(cubegridOld.id) ;
@@ -117,49 +124,96 @@ public class UUSeAgentState2D extends UUSeAgentState<DPos3> {
                         .collect(Collectors.toList());
                 for(var blockId : tobeRemoved) cubegridOld.elements.remove(blockId) ;
             }
+            for(var cubeGridNew : changes) {
+                if (Objects.equals(cubeGridNew.id, this.agentId)) continue;
 
-//            // updating the "navigational-2DGrid:
-//            var blocksInWom =  SEBlockFunctions.getAllBlockIDs(wom) ;
-//            List<String> toBeRemoved = navgrid.allObstacleIDs.stream()
-//                    .filter(id -> !blocksInWom.contains(id))
-//                    .toList();
-//            // first, removing obstacles that no longer exist:
-//            for(var id : toBeRemoved) {
-//                navgrid.removeObstacle(id);
-//            }
-        }
+                var cubegridOld = cubeGridNew.getPreviousState();
 
-        // then, there may also be new blocks ... we add them to the nav-grid:
-        // TODO: this assumes doors are initially closed. Calculating blocked squares
-        // for open-doors is more complicated. TODO.
-        for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-            navgrid.addObstacle(block);
-            // check if it is a door, and get its open/close state:
-            Boolean isOpen = SEBlockFunctions.getSlideDoorState(block) ;
-            if (isOpen != null) {
-                navgrid.setObstacleBlockingState(block, !isOpen);
-                if (doors.stream().noneMatch(d -> Objects.equals(d.id, block.id))) {
-                    System.out.println("Found a door: " + block.id);
-                    doors.add(block);
+                if (cubegridOld == null) {
+                    continue;
                 }
-            }
-            // check if it is a button panel, and make it not blocking
-            if(block.type.equals("block"))
-                if (block.getStringProperty("blockType").contains("ButtonPanel")) {
-                    navgrid.setObstacleBlockingState(block, false);
-                    if (buttons.stream().noneMatch(b -> Objects.equals(b.id, block.id))) {
-                        System.out.println("Found a button-panel: " + block.id);
-                        buttons.add(block);
+
+                // Then, we remove disappearing blocks (from grids that changed):
+                tobeRemoved.clear();
+                tobeRemoved = cubegridOld.elements.keySet().stream()
+                        .filter(blockId -> !cubeGridNew.elements.containsKey(blockId))
+                        .collect(Collectors.toList());
+
+                boolean rebuild = false;
+                for (var blockId : tobeRemoved) {
+                    var block = cubegridOld.elements.get(blockId);
+                    if (Vec3.dist(block.position, newWom.position) < OBSERVATION_RADIUS) {
+                        Timer.removeFromGridStart = Instant.now();
+                        navgrid.setOpen(block);
+                        Timer.endRemoveFromGrid();
+                        rebuild = true;
                     }
                 }
+                if (rebuild) {
+                    // Removing a block makes all voxels it overlaps with empty, so go over all blocks to check
+                    // if some voxels overlapped with multiple blocks.
+                    Timer.addToGridStart = Instant.now();
+                    for (var block2 : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
+                        addToGrid(block2);
+                    }
+                    Timer.endAddToGrid();
+                }
+                else {
+                    // We add new blocks (from grids that changed):
+                    List<String> tobeAdded = cubeGridNew.elements.keySet().stream()
+                            .filter(id -> !cubegridOld.elements.containsKey(id))
+                            .toList();
+                    Timer.addToGridStart = Instant.now();
+                    for (var blockId : tobeAdded) {
+                        addToGrid(cubeGridNew.elements.get(blockId));
+                    }
+                    Timer.endAddToGrid();
+                }
+            }
         }
-        // updating dynamic blocking-state: (e.g. handling doors)
-        // TODO!
+        Timer.endUpdateState();
     }
 
     @Override
     public void updateDoors() {
+        Timer.updateDoorsStart = Instant.now();
+        //Boundary observation_radius = new Boundary(Vec3.sub(wom.position, new Vec3(OBSERVATION_RADIUS + 2.5f)), 2 * OBSERVATION_RADIUS + 5);
+        doors.forEach(door -> {
+            if (Boolean.FALSE.equals(SEBlockFunctions.getSlideDoorState(door)))
+                navgrid.setOpen(door);
+        });
 
+        // if any door is inside the viewing range, re-add all blocks
+        //if (doors.stream().anyMatch(door -> observation_radius.contains(door.position))) {
+        Observation rawGridsAndBlocksStates = env().getController().getObserver().observeBlocks();
+        WorldModel gridsAndBlocksStates = SeEnvironmentKt.toWorldModel(rawGridsAndBlocksStates);
+        for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
+            addToGrid(block);
+        }
+        //}
+        Timer.endUpdateDoors();
+    }
+
+    public void addToGrid(WorldEntity block) {
+        // check if it is a door, and get its open/close state:
+        Boolean isOpen = SEBlockFunctions.getSlideDoorState(block) ;
+        if (isOpen != null) {
+            if (!isOpen)
+                navgrid.addObstacle(block);
+            if (doors.stream().noneMatch(d -> Objects.equals(d.id, block.id))) {
+                System.out.println("Found a door: " + block.id);
+                doors.add(block);
+            }
+        }
+        // check if it is a button panel, and make it not blocking
+        else if (block.getStringProperty("blockType").contains("ButtonPanel")) {
+            if (buttons.stream().noneMatch(b -> Objects.equals(b.id, block.id))) {
+                System.out.println("Found a button-panel: " + block.id);
+                buttons.add(block);
+            }
+        }
+        else
+            navgrid.addObstacle(block);
     }
 
     public void exportGrid() {

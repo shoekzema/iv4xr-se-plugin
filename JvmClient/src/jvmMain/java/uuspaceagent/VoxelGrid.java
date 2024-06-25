@@ -123,9 +123,7 @@ public class VoxelGrid implements Explorable<DPos3> {
         var corner2 = gridProjectedLocation(maxCorner) ;
         // all squares between these two corners are blocked:
         for(int x = corner1.x; x<=corner2.x; x++) {
-            for (int y = Math.max(0, corner1.y); y <= corner2.y; y++) {
-                // PS: cubes below y=0 are below the ground surface and hence won't obstruct
-                // navigation on and above the surface.
+            for (int y = corner1.y; y <= corner2.y; y++) {
                 for (int z = corner1.z; z<=corner2.z; z++) {
                     var cube = new DPos3(x,y,z) ;
                     obstructed.add(cube) ;
@@ -358,20 +356,146 @@ public class VoxelGrid implements Explorable<DPos3> {
     @Override
     public Iterable<DPos3> neighbours(DPos3 p) {
         Timer.getNeighbourStart = Instant.now();
-        List<DPos3> candidates = new LinkedList<>() ;
+        List<DPos3> candidates = new LinkedList<>();
+        boolean top, right, left, bottom, front, back,
+                topleft, topright, bottomleft, bottomright,
+                leftfront, rightfront, leftback, rightback,
+                topfront, bottomfront, topback, bottomback;
+        top = right = left = bottom = front = back =
+                topleft = topright = bottomleft = bottomright =
+                leftfront = rightfront = leftback = rightback =
+                topfront = bottomfront = topback = bottomback = false;
+        int x, y, z;
+        int maxX = min(p.x+1, size().x-1);
+        int maxY = min(p.y+1, size().y-1);
+        int maxZ = min(p.z+1, size().z-1);
+        int minX = max(p.x-1, 0);
+        int minY = max(p.y-1, 0);
+        int minZ = max(p.z-1, 0);
 
-        for (int x = max(p.x-1, 0); x <= min(p.x+1, size().x-1); x++) {
-            for (int y = max(p.y-1, 0); y <= min(p.y+1, size().y-1); y++) {
-                for (int z = max(p.z-1, 0); z <= min(p.z+1, size().z-1); z++) {
+//        for (int x = max(p.x-1, 0); x <= min(p.x+1, size().x-1); x++) {
+//            for (int y = max(p.y-1, 0); y <= min(p.y+1, size().y-1); y++) {
+//                for (int z = max(p.z-1, 0); z <= min(p.z+1, size().z-1); z++) {
+//
+//                    if(x==p.x && y==p.y && z==p.z) continue;
+//                    var neighbourCube = new DPos3(x,y,z) ; // a neighbouring cube
+//
+//                    if(get(x,y,z).label == Label.OPEN)
+//                        candidates.add(neighbourCube) ;
+//                }
+//            }
+//        }
 
-                    if(x==p.x && y==p.y && z==p.z) continue;
-                    var neighbourCube = new DPos3(x,y,z) ; // a neighbouring cube
-
-                    if(get(x,y,z).label == Label.OPEN)
-                        candidates.add(neighbourCube) ;
-                }
-            }
+        // Directional
+        x = p.x; y = maxY; z = p.z;
+        if (get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            top = true;
         }
+        y = minY;
+        if (get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            bottom = true;
+        }
+        y = p.y; x = maxX;
+        if (get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            right = true;
+        }
+        x = minX;
+        if (get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            left = true;
+        }
+        x = p.x; z = maxZ;
+        if (get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            back = true;
+        }
+        z = minZ;
+        if (get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            front = true;
+        }
+
+        // Diagonal
+        z = p.z; x = minX; y = maxY;
+        if (top && left && get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            topleft = true;
+        }
+        x = maxX;
+        if (top && right && get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            topright = true;
+        }
+        y = minY;
+        if (bottom && right && get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            bottomright = true;
+        }
+        x = minX;
+        if (bottom && left && get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            bottomleft = true;
+        }
+        x = p.x; z = minZ;
+        if (bottom && front && get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            bottomfront = true;
+        }
+        z = maxZ;
+        if (bottom && back && get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            bottomback = true;
+        }
+        y = maxY;
+        if (top && back && get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            topback = true;
+        }
+        z = minZ;
+        if (top && front && get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            topfront = true;
+        }
+        y = p.y; x = minX;
+        if (left && front && get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            leftfront = true;
+        }
+        x = maxX;
+        if (right && front && get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            rightfront = true;
+        }
+        z = maxZ;
+        if (right && back && get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            rightback = true;
+        }
+        x = minX;
+        if (left && back && get(x,y,z).label == Label.OPEN) {
+            candidates.add(new DPos3(x,y,z));
+            leftback = true;
+        }
+
+        y = maxY;
+        if (topleft && topback && leftback && get(x,y,z).label == Label.OPEN) { candidates.add(new DPos3(x,y,z)); }
+        z = minZ;
+        if (topleft && topfront && leftfront && get(x,y,z).label == Label.OPEN) { candidates.add(new DPos3(x,y,z)); }
+        x = maxX;
+        if (topright && topfront && rightfront && get(x,y,z).label == Label.OPEN) { candidates.add(new DPos3(x,y,z)); }
+        z = maxZ;
+        if (topright && topback && rightback && get(x,y,z).label == Label.OPEN) { candidates.add(new DPos3(x,y,z)); }
+        y = minY;
+        if (bottomright && bottomback && rightback && get(x,y,z).label == Label.OPEN) { candidates.add(new DPos3(x,y,z)); }
+        z = minZ;
+        if (bottomright && bottomfront && rightfront && get(x,y,z).label == Label.OPEN) { candidates.add(new DPos3(x,y,z)); }
+        x = minX;
+        if (bottomleft && bottomfront && leftfront && get(x,y,z).label == Label.OPEN) { candidates.add(new DPos3(x,y,z)); }
+        z = maxZ;
+        if (bottomleft && bottomback && leftback && get(x,y,z).label == Label.OPEN) { candidates.add(new DPos3(x,y,z)); }
 
         Timer.endGetNeighbour();
         return candidates ;
@@ -380,26 +504,161 @@ public class VoxelGrid implements Explorable<DPos3> {
     @Override
     public Iterable<DPos3> neighbours_explore(DPos3 p) {
         Timer.getNeighbourStart = Instant.now();
-        List<DPos3> candidates = new LinkedList<>() ;
+        List<DPos3> candidates = new LinkedList<>();
+        boolean top, right, left, bottom, front, back,
+                topleft, topright, bottomleft, bottomright,
+                leftfront, rightfront, leftback, rightback,
+                topfront, bottomfront, topback, bottomback;
+        top = right = left = bottom = front = back =
+                topleft = topright = bottomleft = bottomright =
+                leftfront = rightfront = leftback = rightback =
+                topfront = bottomfront = topback = bottomback = false;
+        int x, y, z;
+        int maxX = min(p.x+1, size().x-1);
+        int maxY = min(p.y+1, size().y-1);
+        int maxZ = min(p.z+1, size().z-1);
+        int minX = max(p.x-1, 0);
+        int minY = max(p.y-1, 0);
+        int minZ = max(p.z-1, 0);
 
-        for (int x = max(p.x-1, 0); x <= min(p.x+1, size().x-1); x++) {
-            for (int y = max(p.y-1, 0); y <= min(p.y+1, size().y-1); y++) {
-                for (int z = max(p.z-1, 0); z <= min(p.z+1, size().z-1); z++) {
-                    // If the neighbour is outside the grid, add it to the neighbours
-                    // Note: do NOT use outside of explore()
-                    if (x < 0 || y < 0 || z < 0 || x >= size().x || y >= size().y || z >= size().z) {
-                        candidates.add(new DPos3(x,y,z));
-                        continue;
-                    }
+//        for (int x = max(p.x-1, 0); x <= min(p.x+1, size().x-1); x++) {
+//            for (int y = max(p.y-1, 0); y <= min(p.y+1, size().y-1); y++) {
+//                for (int z = max(p.z-1, 0); z <= min(p.z+1, size().z-1); z++) {
+//                    // If the neighbour is outside the grid, add it to the neighbours
+//                    // Note: do NOT use outside of explore()
+//                    if (x < 0 || y < 0 || z < 0 || x >= size().x || y >= size().y || z >= size().z) {
+//                        candidates.add(new DPos3(x,y,z));
+//                        continue;
+//                    }
+//
+//                    if(x==p.x && y==p.y && z==p.z) continue;
+//                    var neighbourCube = new DPos3(x,y,z) ; // a neighbouring cube
+//
+//                    if(get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN)
+//                        candidates.add(neighbourCube) ;
+//                }
+//            }
+//        }
 
-                    if(x==p.x && y==p.y && z==p.z) continue;
-                    var neighbourCube = new DPos3(x,y,z) ; // a neighbouring cube
 
-                    if(get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN)
-                        candidates.add(neighbourCube) ;
-                }
-            }
+        // Directional
+        x = p.x; y = maxY; z = p.z;
+        if (get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            top = true;
         }
+        y = minY;
+        if (get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            bottom = true;
+        }
+        y = p.y; x = maxX;
+        if (get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            right = true;
+        }
+        x = minX;
+        if (get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            left = true;
+        }
+        x = p.x; z = maxZ;
+        if (get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            back = true;
+        }
+        z = minZ;
+        if (get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            front = true;
+        }
+
+        // Diagonal
+        z = p.z; x = minX; y = maxY;
+        if (top && left && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            topleft = true;
+        }
+        x = maxX;
+        if (top && right && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            topright = true;
+        }
+        y = minY;
+        if (bottom && right && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            bottomright = true;
+        }
+        x = minX;
+        if (bottom && left && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            bottomleft = true;
+        }
+        x = p.x; z = minZ;
+        if (bottom && front && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            bottomfront = true;
+        }
+        z = maxZ;
+        if (bottom && back && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            bottomback = true;
+        }
+        y = maxY;
+        if (top && back && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            topback = true;
+        }
+        z = minZ;
+        if (top && front && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            topfront = true;
+        }
+        y = p.y; x = minX;
+        if (left && front && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            leftfront = true;
+        }
+        x = maxX;
+        if (right && front && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            rightfront = true;
+        }
+        z = maxZ;
+        if (right && back && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            rightback = true;
+        }
+        x = minX;
+        if (left && back && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z));
+            leftback = true;
+        }
+
+        y = maxY;
+        if (topleft && topback && leftback && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z)); }
+        z = minZ;
+        if (topleft && topfront && leftfront && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z)); }
+        x = maxX;
+        if (topright && topfront && rightfront && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z)); }
+        z = maxZ;
+        if (topright && topback && rightback && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z)); }
+        y = minY;
+        if (bottomright && bottomback && rightback && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z)); }
+        z = minZ;
+        if (bottomright && bottomfront && rightfront && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z)); }
+        x = minX;
+        if (bottomleft && bottomfront && leftfront && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z)); }
+        z = maxZ;
+        if (bottomleft && bottomback && leftback && get(x,y,z).label == Label.OPEN || get(x,y,z).label == Label.UNKNOWN) {
+            candidates.add(new DPos3(x,y,z)); }
 
         Timer.endGetNeighbour();
         return candidates ;

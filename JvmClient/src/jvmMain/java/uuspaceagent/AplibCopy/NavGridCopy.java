@@ -3,10 +3,16 @@ package uuspaceagent.AplibCopy;
 import eu.iv4xr.framework.mainConcepts.WorldEntity;
 import eu.iv4xr.framework.spatial.Vec3;
 import uuspaceagent.DPos3;
+import uuspaceagent.Label;
 import uuspaceagent.SEBlockFunctions;
+import uuspaceagent.Timer;
 import uuspaceagent.exploration.Explorable;
 
+import java.time.Instant;
 import java.util.*;
+
+import static java.lang.Math.max;
+import static java.lang.Math.min;
 
 /**
  * Implements a 3D-grid-based navigation graph. The space is thought to be discretely
@@ -174,33 +180,17 @@ public class NavGridCopy implements Explorable<DPos3> {
         Vec3 maxCorner = SEBlockFunctions.getBaseMaxCorner(block) ; // should add rotation if it is not a cube. TODO.
         Vec3 minCorner = SEBlockFunctions.getBaseMinCorner(block) ; // should add rotation if it is not a cube. TODO.
 
-        // Check if the block is below the ground surface. It if is, it can obstruct movement on or above
-        // the surface.
-
-        // Adding 0.1 offset for some bit of seemingly inaccuracy in the sampling of the agent's
-        // ground position, which is used as the base of the origin position of this grid.
-        // Without this offset, blocks that are just below the grid surface, and touching it to form
-        // the grid's solid floor will appear as obstructing.
-        float correction_offset = 0.1f ;
-        if(maxCorner.y <= origin.y + correction_offset) {
-            // the block is UNDER the ground-surface. So, it won't obstruct either.
-            return obstructed ;
-        }
-
-        // TODO: a more general approach.
         // add some padding due to agent's body width:
-        Vec3 hpadding = Vec3.mul(new Vec3(AGENT_WIDTH,0,AGENT_WIDTH), 0.6f) ;
-        Vec3 vpadding = new Vec3(0, AGENT_HEIGHT, 0) ;
-        minCorner = Vec3.sub(minCorner,hpadding) ;
+        Vec3 vpadding = new Vec3((AGENT_HEIGHT - CUBE_SIZE) * 0.5f) ;
+        //minCorner = Vec3.sub(minCorner, hpadding) ;
         minCorner = Vec3.sub(minCorner, vpadding) ;
-        maxCorner = Vec3.add(maxCorner,hpadding) ;
+        maxCorner = Vec3.add(maxCorner, vpadding) ;
+
         var corner1 = gridProjectedLocation(minCorner) ;
         var corner2 = gridProjectedLocation(maxCorner) ;
         // all squares between these two corners are blocked:
         for(int x = corner1.x; x<=corner2.x; x++) {
-            for (int y = Math.max(0, corner1.y); y <= corner2.y; y++) {
-                // PS: cubes below y=0 are below the ground surface and hence won't obstruct
-                // navigation on and above the surface.
+            for (int y = corner1.y; y <= corner2.y; y++) {
                 for (int z = corner1.z; z<=corner2.z; z++) {
                     var cube = new DPos3(x,y,z) ;
                     obstructed.add(cube) ;
@@ -220,26 +210,18 @@ public class NavGridCopy implements Explorable<DPos3> {
      *    (3) the block is a cube.
      */
     public void addObstacle(WorldEntity block) {
-
-//        // check if the block is already added. If so we don't do anything.
-//        if(allObstacleIDs.contains(block.id)) {
-//            return ;
-//        }
-
         var obstructedCubes = getObstructedCubes(block) ;
-        var obstacle = new ObstacleCopy<>(block.id) ;
-        obstacle.isBlocking = true ;
-        for(var cube : obstructedCubes) {
-            boolean isBlocking = knownObstacles.contains(cube) ;
-            if (!isBlocking) {
-                knownObstacles.add(cube) ;
-            }
-        }
+        knownObstacles.addAll(obstructedCubes);
     }
 
     //public void addObstacle(Collection<Block> blocks) {
     //    for(var b : blocks) addObstacle(b);
     //}
+
+    public void setOpen(WorldEntity block) {
+        var obstructedCubes = getObstructedCubes(block) ;
+        obstructedCubes.forEach(knownObstacles::remove);
+    }
 
     /**
      * Use this to update the cubes  blocked by the block, in case its has changes position or has
@@ -350,24 +332,154 @@ public class NavGridCopy implements Explorable<DPos3> {
 
     @Override
     public Iterable<DPos3> neighbours(DPos3 p) {
-        List<DPos3> candidates = new LinkedList<>() ;
-        for (int x = p.x-1 ; x <= p.x+1 ; x++) {
-            int ymin = 0 ;
-            int ymax = 0 ;
-            if (enableFlying) {
-                ymin = Math.max(0,p.y-1) ;
-                ymax = p.y+1 ;
-            }
-            for (int y = ymin ; y <= ymax ; y++) {
-                for (int z = p.z-1; z <= p.z+1 ; z++) {
-                    if(x==p.x && y==p.y && z==p.z) continue;
-                    var neighbourCube = new DPos3(x,y,z) ; // a neighbouring cube
-                    boolean isBlocking = knownObstacles.contains(neighbourCube) ;
-                    if (isBlocking) continue;
-                    candidates.add(neighbourCube) ;
-                }
-            }
+        uuspaceagent.Timer.getNeighbourStart = Instant.now();
+        List<DPos3> candidates = new LinkedList<>();
+        boolean top, right, left, bottom, front, back,
+                topleft, topright, bottomleft, bottomright,
+                leftfront, rightfront, leftback, rightback,
+                topfront, bottomfront, topback, bottomback;
+        top = right = left = bottom = front = back =
+                topleft = topright = bottomleft = bottomright =
+                leftfront = rightfront = leftback = rightback =
+                topfront = bottomfront = topback = bottomback = false;
+        int x, y, z;
+        int maxX = p.x+1;
+        int maxY = enableFlying ? p.y+1 : p.y;
+        int maxZ = p.z+1;
+        int minX = p.x-1;
+        int minY = enableFlying ? p.y-1 : p.y;
+        int minZ = p.z-1;
+
+//        for (int x = p.x-1 ; x <= p.x+1 ; x++) {
+//            int ymin = 0 ;
+//            int ymax = 0 ;
+//            if (enableFlying) {
+//                ymin = p.y-1 ;
+//                ymax = p.y+1 ;
+//            }
+//            for (int y = ymin ; y <= ymax ; y++) {
+//                for (int z = p.z-1; z <= p.z+1 ; z++) {
+//                    if(x==p.x && y==p.y && z==p.z) continue;
+//                    var neighbourCube = new DPos3(x,y,z) ; // a neighbouring cube
+//                    boolean isBlocking = knownObstacles.contains(neighbourCube) ;
+//                    if (isBlocking) continue;
+//                    candidates.add(neighbourCube) ;
+//                }
+//            }
+//        }
+
+        // Directional
+        x = p.x; y = maxY; z = p.z;
+        if (!knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            top = true;
         }
+        y = minY;
+        if (!knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            bottom = true;
+        }
+        y = p.y; x = maxX;
+        if (!knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            right = true;
+        }
+        x = minX;
+        if (!knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            left = true;
+        }
+        x = p.x; z = maxZ;
+        if (!knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            back = true;
+        }
+        z = minZ;
+        if (!knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            front = true;
+        }
+
+        // Diagonal
+        z = p.z; x = minX; y = maxY;
+        if (top && left && !knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            topleft = true;
+        }
+        x = maxX;
+        if (top && right && !knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            topright = true;
+        }
+        y = minY;
+        if (bottom && right && !knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            bottomright = true;
+        }
+        x = minX;
+        if (bottom && left && !knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            bottomleft = true;
+        }
+        x = p.x; z = minZ;
+        if (bottom && front && !knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            bottomfront = true;
+        }
+        z = maxZ;
+        if (bottom && back && !knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            bottomback = true;
+        }
+        y = maxY;
+        if (top && back && !knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            topback = true;
+        }
+        z = minZ;
+        if (top && front && !knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            topfront = true;
+        }
+        y = p.y; x = minX;
+        if (left && front && !knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            leftfront = true;
+        }
+        x = maxX;
+        if (right && front && !knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            rightfront = true;
+        }
+        z = maxZ;
+        if (right && back && !knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            rightback = true;
+        }
+        x = minX;
+        if (left && back && !knownObstacles.contains(new DPos3(x,y,z))) {
+            candidates.add(new DPos3(x,y,z));
+            leftback = true;
+        }
+
+        y = maxY;
+        if (topleft && topback && leftback && !knownObstacles.contains(new DPos3(x,y,z))) { candidates.add(new DPos3(x,y,z)); }
+        z = minZ;
+        if (topleft && topfront && leftfront && !knownObstacles.contains(new DPos3(x,y,z))) { candidates.add(new DPos3(x,y,z)); }
+        x = maxX;
+        if (topright && topfront && rightfront && !knownObstacles.contains(new DPos3(x,y,z))) { candidates.add(new DPos3(x,y,z)); }
+        z = maxZ;
+        if (topright && topback && rightback && !knownObstacles.contains(new DPos3(x,y,z))) { candidates.add(new DPos3(x,y,z)); }
+        y = minY;
+        if (bottomright && bottomback && rightback && !knownObstacles.contains(new DPos3(x,y,z))) { candidates.add(new DPos3(x,y,z)); }
+        z = minZ;
+        if (bottomright && bottomfront && rightfront && !knownObstacles.contains(new DPos3(x,y,z))) { candidates.add(new DPos3(x,y,z)); }
+        x = minX;
+        if (bottomleft && bottomfront && leftfront && !knownObstacles.contains(new DPos3(x,y,z))) { candidates.add(new DPos3(x,y,z)); }
+        z = maxZ;
+        if (bottomleft && bottomback && leftback && !knownObstacles.contains(new DPos3(x,y,z))) { candidates.add(new DPos3(x,y,z)); }
+
+        Timer.endGetNeighbour();
         return candidates ;
     }
 
@@ -379,15 +491,16 @@ public class NavGridCopy implements Explorable<DPos3> {
     @Override
     public float heuristic(DPos3 from, DPos3 to) {
         // using Manhattan distance...
-        return CUBE_SIZE * (float) (Math.abs(to.x - from.x) + Math.abs(to.y - from.y) + Math.abs(to.z - from.z)) ;
+        //return CUBE_SIZE * (float) (Math.abs(to.x - from.x) + Math.abs(to.y - from.y) + Math.abs(to.z - from.z)) ;
 
         // using Euclidean distance...
-        // return CUBE_SIZE * (float) Math.sqrt((to.x - from.x) * (to.x - from.x) + (to.y - from.y) * (to.y - from.y) + (to.z - from.z) * (to.z - from.z)) ;
+        return CUBE_SIZE * (float) Math.sqrt((to.x - from.x) * (to.x - from.x) + (to.y - from.y) * (to.y - from.y) + (to.z - from.z) * (to.z - from.z)) ;
     }
 
     @Override
     public float heuristic(DPos3 from, Vec3 to) {
-        return CUBE_SIZE * (float) (Math.abs(to.x - from.x) + Math.abs(to.y - from.y) + Math.abs(to.z - from.z)) ;
+        //return CUBE_SIZE * (float) (Math.abs(to.x - from.x) + Math.abs(to.y - from.y) + Math.abs(to.z - from.z)) ;
+        return CUBE_SIZE * (float) Math.sqrt((to.x - from.x) * (to.x - from.x) + (to.y - from.y) * (to.y - from.y) + (to.z - from.z) * (to.z - from.z)) ;
     }
 
     @Override

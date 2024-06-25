@@ -59,12 +59,13 @@ public class Timer {
     }
     public static void endUpdateDoors() {
         Instant end = Instant.now();
-        updateDoorsTime += Duration.between(updateStateStart, end).toNanos();
+        updateDoorsTime += Duration.between(updateDoorsStart, end).toNanos();
         updateDoors++;
     }
     public static void endExpand() {
         Instant end = Instant.now();
         long time = Duration.between(expandStart, end).toNanos();
+        if (time <= 0) return;
         expandTimes.add(time);
         expandTime += time;
         expand++;

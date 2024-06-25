@@ -102,7 +102,9 @@ public class UUTacticLib {
      * return null.
      */
     public static CharacterObservation moveToward(UUSeAgentState agentState, Vec3 destination, int duration) {
-        Vec3 destinationRelativeLocation = Vec3.sub(destination,agentState.wom.position) ;
+        Vec3 playerPos = agentState.wom.position;
+        if (agentState.jetpackRunning()) playerPos = agentState.centerPos();
+        Vec3 destinationRelativeLocation = Vec3.sub(destination, playerPos) ;
         float sqDistance = destinationRelativeLocation.lengthSq() ;
         if (sqDistance <= 0.01) {
             // already very close to the destination
@@ -111,11 +113,18 @@ public class UUTacticLib {
         System.out.println(">>> agent @ " + agentState.wom.position + ", dest: " + destination
            + ", rel-direction: " + destinationRelativeLocation);
         System.out.println("    forward-vector: " + agentState.orientationForward());
-        // else, decide if we should run or walk:
+
+        // Decide if we should move slow or fast:
         boolean running = true ;
-        Vec3 forwardRun  = Vec3.mul(FORWARDV3, RUN_SPEED) ;
-        Vec3 forwardWalk = Vec3.mul(FORWARDV3, WALK_SPEED) ;
-        if( sqDistance <= 1) running = false ;
+        if (sqDistance <= 1) running = false ;
+
+        // adjust the forward vector to make it angled towards the destination
+        Vec3 forwardRun  = Rotation.rotate3d(agentState.orientationForward(), agentState.orientationUp(), destinationRelativeLocation);
+        Vec3 forwardWalk = Vec3.mul(forwardRun.normalized(), FLY_SPEED * 0.75f);
+        forwardRun = Vec3.mul(forwardRun.normalized(), FLY_SPEED);
+
+        System.out.println(">>> forwardFly: " + forwardRun);
+
         // adjust the forward vector to make it angles towards the destination
         if(! agentState.jetpackRunning()) {
             // 2D movement on surface:
@@ -138,9 +147,6 @@ public class UUTacticLib {
             System.out.println(">>> FLY forwardRun: " + forwardRun);
         }
 
-        //if (!running || duration==null) {
-        //    duration = 1 ;  // for walking, we will only maintain the move for one update
-        //}
         // now move... sustain it for the given duration:
         CharacterObservation obs = null ;
         float threshold = THRESHOLD_SQUARED_DISTANCE_TO_POINT - 0.15f ;
@@ -972,7 +978,9 @@ public class UUTacticLib {
                     if (arrivedAtDestination) {
                         state.currentPathToFollow.clear();
                         Timer.endMove();
-                        if (state instanceof UUSeAgentState3DVoxelGrid || state instanceof UUSeAgentState3DOctree) {
+                        if (state instanceof UUSeAgentState3DVoxelGrid
+                            || state instanceof UUSeAgentState3DOctree
+                            || state.jetpackRunning()) {
                             return new Pair<>(state.centerPos(), state.orientationForward());
                         }
                         else {
