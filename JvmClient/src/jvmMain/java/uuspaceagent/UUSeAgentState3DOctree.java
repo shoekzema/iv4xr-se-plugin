@@ -156,7 +156,6 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
                         addToOctree(block2);
                     }
                     Timer.endAddToGrid();
-                    //grid.updateUnknown(centerPos(), OBSERVATION_RADIUS);
                 }
                 else {
                     // We add new blocks (from grids that changed):
@@ -168,7 +167,6 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
                         addToOctree(cubeGridNew.elements.get(blockId));
                     }
                     Timer.endAddToGrid();
-                    //grid.updateUnknown(centerPos(), OBSERVATION_RADIUS);
                 }
             }
             Timer.endUpdateState();
@@ -202,8 +200,7 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
     }
 
     public void addToOctree(WorldEntity block) {
-        Boolean isOpen = SEBlockFunctions.getSlideDoorState(block) ;
-        // open-doors are more complicated. TODO.
+        Boolean isOpen = SEBlockFunctions.getSlideDoorState(block);
         if (isOpen != null) {
             if (!isOpen)
                 grid.addObstacle(block);
@@ -222,57 +219,12 @@ public class UUSeAgentState3DOctree extends UUSeAgentState<Octree> {
             grid.addObstacle(block);
     }
 
-    public void exportManualProfileShit() { // TODO: check
-
-        int number = grid.countNodes();
-        int gridMemSize = number * (2 + (6*4) + (8*4) + 4); // == 62 bytes
-
-        int womMemSize = 0;
-        for (Map.Entry<String, WorldEntity> entry : wom.elements.entrySet()) {
-            womMemSize += entry.getValue().elements.size() * 325; // 325 is a calculated estimation of amount of bytes used per SE block
-        }
-
-        System.out.println("Memory Usage:");
-        if (gridMemSize > 1000000)
-            System.out.printf("Grid: %f MB %n", (float)gridMemSize / 1000000);
-        else if (gridMemSize > 1000)
-            System.out.printf("Grid: %f kB %n", (float)gridMemSize / 1000);
-        else
-            System.out.printf("Grid: %d B %n", gridMemSize);
-
-        if (womMemSize > 1000000)
-            System.out.printf("WOM: %f GB %n", (float)womMemSize / 1000000);
-        else if (womMemSize > 1000)
-            System.out.printf("WOM: %f MB %n", (float)womMemSize / 1000);
-        else
-            System.out.printf("WOM: %d B %n", womMemSize);
-    }
-
     public void exportGrid() {
-
-//        Observation rawGridsAndBlocksStates = env().getController().getObserver().observeBlocks() ;
-//        WorldModel gridsAndBlocksStates = SeEnvironmentKt.toWorldModel(rawGridsAndBlocksStates) ;
-//
-////        Vec3 doorpos = new Vec3(0);
-////        for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-////            if (SEBlockFunctions.geSlideDoorState(block) != null) {
-////                doorpos = block.position;
-////            }
-////        }
-//        for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-//            addToOctree(block);
-//        }
-
         try {
             System.out.println(System.getProperty("user.dir"));
             FileWriter fileWriter = new FileWriter("Octree_visualization.txt");
             PrintWriter printWriter = new PrintWriter(fileWriter);
-//            Vec3 player_pos = grid.getCubeCenterLocation(grid.gridProjectedLocation(new Vec3(wom.position.x, wom.position.y + grid.AGENT_HEIGHT * 0.5f, wom.position.z)));
-//            Vec3 door_pos = grid.getCubeCenterLocation(grid.gridProjectedLocation(doorpos));
-//            printWriter.printf("player: %f %f %f %n", player_pos.x, player_pos.y, player_pos.z);
-//            printWriter.printf("door: %f %f %f %n", door_pos.x, door_pos.y, door_pos.z);
             grid.export(printWriter);
-
             printWriter.close();
         } catch (IOException e) {
             throw new RuntimeException(e);

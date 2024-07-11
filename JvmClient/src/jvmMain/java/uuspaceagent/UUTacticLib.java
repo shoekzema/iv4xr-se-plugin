@@ -9,7 +9,6 @@ import spaceEngineers.model.CharacterObservation;
 import spaceEngineers.model.Vec2F;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -200,6 +199,19 @@ public class UUTacticLib {
         }
         return obs ;
     }
+    /**
+     * A more intelligent and performant primitive "move" (than the primitive "moveAndRotate"). This
+     * method sends a burst of successive move commands to SE with little computation in between.
+     * This results in fast(er) move. The number
+     * of commands sent is specified by the parameter "duration", though the burst is stopped once
+     * the agent is very close to the destination (some threshold).
+     * <p>
+     * Note: (1) the method will not turn the direction the agent is facing,
+     * and (2) that during the burst we will be blind to changes from SE.
+     * <p>
+     * The method returns an observation if it did at least one move. If at the beginning the agent
+     * is already (very close to) at the destination the method will not do any move and return null.
+     */
     public static CharacterObservation moveToward(UUSeAgentState3DOctree agentState, Vec3 destination, int duration) {
         Vec3 playerPos3D = agentState.centerPos();
         Vec3 destinationRelativeLocation = Vec3.sub(destination, playerPos3D) ;
@@ -341,6 +353,9 @@ public class UUTacticLib {
         return obs ;
     }
 
+    /**
+     * Just like yTurnTowardACT, but it will rotate regardless of closeness to the target
+     */
     public static CharacterObservation yTurnTowardACT2(UUSeAgentState agentState, Vec3 destination, float cosAlphaThreshold, Integer duration) {
         // direction vector to the next node:
         Vec3 dirToGo = Vec3.sub(destination, agentState.wom.position) ;
@@ -516,81 +531,6 @@ public class UUTacticLib {
         return obs ;
     }
 
-    public static CharacterObservation jetpackRoll(UUSeAgentState agentState, Vec3 destination, float cosAlphaThreshold, Integer duration) {
-        // direction vector to the next node:
-        Vec3 dirToGo = destination ;
-        Vec3 agentVdir = agentState.orientationUp() ;
-        // for rolling in 3D rotation we ignore the x-value:
-        dirToGo.z = 0 ;
-        agentVdir.z = 0 ;
-
-        if(dirToGo.lengthSq() < 1) {
-            // the destination is too close within the agent's y-cylinder;
-            // don't bother to rotate then
-            return  null ;
-        }
-
-        dirToGo = dirToGo.normalized() ;
-        agentVdir = agentVdir.normalized() ;
-        // angle between the dir-to-go and the agent's own direction (expressed as cos(angle)):
-        var cos_alpha = Vec3.dot(agentVdir, dirToGo) ;
-        //if(1 - cos_alpha < 0.01) {
-        if(cos_alpha > cosAlphaThreshold) {
-            // the angle is already quite aligned to the direction of where we have to go, no turning.
-            return null ;
-        }
-
-        float rollSpeed = ROLL_SPEED * 100 ;
-        boolean fastrolling = true ;
-
-        Vec3 normalVector = Vec3.cross(agentVdir, dirToGo) ;
-
-        if(cos_alpha >= THRESHOLD_ANGLE_TO_SLOW_TURNING) {
-            // the angle between the agent's own direction and target direction is less than 10-degree
-            // we reduce the turning-speed:
-            rollSpeed = TURNING_SPEED * 0.25f ;
-            fastrolling = false ;
-        }
-        // check if we have to turn clockwise or counter-clockwise
-        if (normalVector.z > 0) {
-            // The agent should then turn clock-wise; for SE this means giving
-            // a negative turning speed. Else positive turning speed.
-            rollSpeed = -rollSpeed ;
-        }
-        if(!fastrolling || duration == null) {
-            duration = 1 ;
-        }
-
-        // now send the turning commands:
-        CharacterObservation obs = null ;
-        for (int k=0; k<duration; k++) {
-            obs = agentState.env().getController().getCharacter().moveAndRotate(
-                    SEBlockFunctions.toSEVec3(ZEROV3),
-                    ZEROV2,
-                    1, 1) ; // "roll" and "tick" ... using default values;
-            agentVdir = SEBlockFunctions.fromSEVec3(obs.getOrientationUp()) ;
-            // for calculating 3D roll rotation we ignore the z-value:
-            agentVdir.z = 0 ;
-
-            if(dirToGo.lengthSq() < 1) {
-                // the destination is too close within the agent's z-cylinder;
-                // don't bother to rotate then
-                break ;
-            }
-
-            agentVdir = agentVdir.normalized() ;
-            // angle between the dir-to-go and the agent's own direction (expressed as cos(angle)):
-            cos_alpha = Vec3.dot(agentVdir, dirToGo) ;
-            //if(1 - cos_alpha < 0.01) {
-            if(cos_alpha > cosAlphaThreshold) {
-                // the angle is already quite aligned to the direction of where we have to go, no turning.
-                break ;
-            }
-        }
-
-        return obs ;
-    }
-
     /**
      * Fix the polarity of move-vector to be given to the SE's method moveAndRotate(). It
      * requires us to reverse the polarity of the values for x and z-axis, but not the y-axis.
@@ -682,13 +622,10 @@ public class UUTacticLib {
 
         return action("turning towards " + destination)
                 .on((UUSeAgentState state) -> {
-                    //Vec3 dirToGo = Vec3.sub(destination,
-                    //        SEBlockFunctions.fromSEVec3(state.env().getController().getObserver().observe().getCamera().getPosition())) ;
                     Vec3 pos = state.wom.position;
-//                    pos.y += DISTANCE_CENTER_CAMERA;
                     Vec3 upOrientation = SEBlockFunctions.fromSEVec3(
                             state.env().getController().getObserver().observe().getCamera().getOrientationUp()) ;
-                    pos = Vec3.add(pos, Vec3.mul(upOrientation, DISTANCE_CENTER_CAMERA)); // TODO: this works only for first person
+                    pos = Vec3.add(pos, Vec3.mul(upOrientation, DISTANCE_CENTER_CAMERA)); // TODO: check if this works for first and third person
                     Vec3 dirToGo = Vec3.sub(destination, pos) ;
                     Vec3 forwardOrientation = SEBlockFunctions.fromSEVec3(
                             state.env().getController().getObserver().observe().getCamera().getOrientationForward()) ;
@@ -719,40 +656,6 @@ public class UUTacticLib {
                     dirToGo = dirToGo.normalized() ;
                     forwardOrientation = forwardOrientation.normalized() ;
                     cos_alpha = Vec3.dot(forwardOrientation, dirToGo) ;
-                    return cos_alpha ;
-                }) ;
-    }
-
-    public static Action jetpackRoll(Vec3 rot) {
-        float cosAlphaThreshold  = 0.99f ;
-        float cosAlphaThreshold_ = 0.99f ;
-
-        return action("rolling " + rot)
-                .on((UUSeAgentState state) -> {
-                    Vec3 dirToGo = rot ;
-                    Vec3 upOrientation = state.orientationUp() ;
-                    dirToGo.z = 0 ;
-                    upOrientation.z = 0 ;
-                    dirToGo = dirToGo.normalized() ;
-                    upOrientation = upOrientation.normalized() ;
-                    var cos_alpha = Vec3.dot(upOrientation, dirToGo) ;
-                    if(cos_alpha >= cosAlphaThreshold) { // the angle is quite aligned, the action is disabled
-                        return null ;
-                    }
-                    return cos_alpha ;
-                })
-                .do2((UUSeAgentState state) -> (Float cos_alpha) -> {
-                    CharacterObservation obs = jetpackRoll(state, rot, cosAlphaThreshold_, 10) ;
-                    if(obs == null) {
-                        return cos_alpha ;
-                    }
-                    Vec3 dirToGo = rot ;
-                    Vec3 upOrientation = SEBlockFunctions.fromSEVec3(obs.getOrientationUp()) ;
-                    dirToGo.z = 0 ;
-                    upOrientation.z = 0 ;
-                    dirToGo = dirToGo.normalized() ;
-                    upOrientation = upOrientation.normalized() ;
-                    cos_alpha = Vec3.dot(upOrientation, dirToGo) ;
                     return cos_alpha ;
                 }) ;
     }
@@ -805,7 +708,6 @@ public class UUTacticLib {
                         } else {
                             if (path.get(0).y > 0 && !state.jetpackRunning()) {
                                 state.env().getController().getCharacter().turnOnJetpack();
-                                //state.env().getController().getAdmin().getCharacter().use();
                             }
                         }
                     } else if (state instanceof UUSeAgentState3DVoxelGrid || state instanceof UUSeAgentState3DOctree) {
@@ -833,8 +735,6 @@ public class UUTacticLib {
                     // node in the path, since we remove a node if it is passed):
                     var nextNode = state.currentPathToFollow.get(0) ;
                     var nextNodePos = state.getBlockCenter(nextNode) ;
-                    //var agentSq = state.navgrid.gridProjectedLocation(state.wom.position) ;
-                    //if(agentSq.equals(nextNode)) {
                     if(Vec3.sub(nextNodePos, state.centerPos()).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
                         // agent is already in the same square as the next-node destination-square. Mark the node
                         // as reached (so, we remove it from the plan):
@@ -887,8 +787,6 @@ public class UUTacticLib {
                         }
                     var destinationSq = state.getGridPos(destination) ;
                     var destinationSqCenterPos = state.getBlockCenter(destinationSq) ;
-                    //if (state.grid2D.squareDistanceToSquare(agentPos,destinationSq) <= SQEPSILON_TO_NODE_IN_2D_PATH_NAVIGATION) {
-                    //if(agentSq.equals(destinationSq)) {
                     if(Vec3.sub(destinationSqCenterPos, state.centerPos()).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
 
                         // the agent is already at the destination. Just return the path, and indicate that
@@ -991,8 +889,6 @@ public class UUTacticLib {
                     // node in the path, since we remove a node if it is passed):
                     var nextNode = state.currentPathToFollow.get(0) ;
                     var nextNodePos = state.getBlockCenter(nextNode) ;
-                    //var agentSq = state.navgrid.gridProjectedLocation(state.wom.position) ;
-                    //if(agentSq.equals(nextNode)) {
                     if(Vec3.sub(nextNodePos, state.centerPos()).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
                         // agent is already in the same square as the next-node destination-square. Mark the node
                         // as reached (so, we remove it from the plan):
@@ -1027,7 +923,6 @@ public class UUTacticLib {
                 } )
                 .on((UUSeAgentState state)  -> {
                     if (state.wom==null) return null ;
-                    //var agentPos = state.wom.position ;
                     var agentSq = state.getGridPos(state.centerPos()) ;
                     if (agentSq instanceof Octree)
                         if (((Octree) agentSq).label == Label.BLOCKED && ((Octree) agentSq).boundary.size > 0.625) {
@@ -1036,11 +931,8 @@ public class UUTacticLib {
                         }
                     var destinationSq = state.getGridPos(destination) ;
                     var destinationSqCenterPos = state.getBlockCenter(destinationSq) ;
-                    //if (state.grid2D.squareDistanceToSquare(agentPos,destinationSq) <= SQEPSILON_TO_NODE_IN_2D_PATH_NAVIGATION) {
-                    //if(agentSq.equals(destinationSq)) {
                     if(Vec3.sub(destinationSqCenterPos, state.centerPos()).lengthSq() <= THRESHOLD_SQUARED_DISTANCE_TO_SQUARE) {
-
-                            // the agent is already at the destination. Just return the path, and indicate that
+                        // the agent is already at the destination. Just return the path, and indicate that
                         // we have arrived at the destination:
                         return new Pair<>(state.currentPathToFollow, true) ;
                     }
@@ -1127,13 +1019,7 @@ public class UUTacticLib {
             var gradient_v2v3 = Vec3.sub(v3,v2).normalized() ;
             float cos_alpha = Vec3.dot(gradient_v1v2, gradient_v2v3) ;
 
-            float threshold = 0.95f; // 0.91 == dot when v1 and v3 have around an angle of 25 degrees (for 3D cases)
-//            // If effectively a 2D angle
-//            if ((v1.x == v2.x && v2.x == v3.x) ||
-//                (v1.y == v2.y && v2.y == v3.y) ||
-//                (v1.z == v2.z && v2.z == v3.z)) {
-//                threshold = 0.7f; // 0.71 == dot when v1 and v3 have around an angle of 45 degrees (for 2D cases)
-//            }
+            float threshold = 0.95f;
 
             if (cos_alpha >= threshold) {
                 // the gradients v1-->v2 and v2-->v3 are the same or almost the same,

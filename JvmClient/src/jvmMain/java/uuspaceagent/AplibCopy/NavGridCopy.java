@@ -3,7 +3,6 @@ package uuspaceagent.AplibCopy;
 import eu.iv4xr.framework.mainConcepts.WorldEntity;
 import eu.iv4xr.framework.spatial.Vec3;
 import uuspaceagent.DPos3;
-import uuspaceagent.Label;
 import uuspaceagent.SEBlockFunctions;
 import uuspaceagent.Timer;
 import uuspaceagent.exploration.Explorable;
@@ -11,10 +10,10 @@ import uuspaceagent.exploration.Explorable;
 import java.time.Instant;
 import java.util.*;
 
-import static java.lang.Math.max;
-import static java.lang.Math.min;
-
 /**
+ * NOTE: this is an altered copy of the code in ablib.
+ * It is changed to work for 3D and it uses a HashSet instead of a HashMap.
+ *
  * Implements a 3D-grid-based navigation graph. The space is thought to be discretely
  * divided into small unit cubes (of size 1x1x1 unit). The orientation of these cubes
  * are aligned to the x/y/z axes of the space.

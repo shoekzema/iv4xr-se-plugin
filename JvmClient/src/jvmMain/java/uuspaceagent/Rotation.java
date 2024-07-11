@@ -118,10 +118,6 @@ public class Rotation {
         Vec3 gRight   = Vec3.cross(gUp, gForward) ;
 
         /* source: https://en.wikipedia.org/wiki/Rotation_matrix
-         *  [ cos(a)cos(b), cos(a)sin(b)sin(g) - sin(a)cos(g), cos(a)sin(b)cos(g) + sin(a)sin(g) ]
-         *  [ sin(a)cos(b), sin(a)sin(b)sin(g) + cos(a)cos(g), sin(a)sin(b)cos(g) - cos(a)sin(g) ]
-         *  [   -sin(b)   ,              cos(b)sin(g)        ,            cos(b)cos(g)           ]
-         * -->
          * source dot-product version: https://phys.libretexts.org/Bookshelves/Classical_Mechanics/Variational_Principles_in_Classical_Mechanics_(Cline)/19%3A_Mathematical_Methods_for_Classical_Mechanics/19.05%3A_Appendix_-_Coordinate_transformations
          */
         Matrix3D R = new Matrix3D(

@@ -18,7 +18,8 @@ import java.util.List;
 import static uuspaceagent.SEBlockFunctions.fromSEVec3;
 
 public abstract class UUSeAgentState<NodeId> extends State {
-    public static float OBSERVATION_RADIUS = 20.0f;
+    // Make sure this is always the same value as in C/Users/<NAME>/AppData/Roaming/SpaceEngineers/iv4xr-plugin.config
+    public static float OBSERVATION_RADIUS = 50.0f;
 
     public String agentId ;
     public WorldModel wom ;

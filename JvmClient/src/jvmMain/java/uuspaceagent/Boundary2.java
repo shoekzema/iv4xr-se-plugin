@@ -2,6 +2,9 @@ package uuspaceagent;
 
 import eu.iv4xr.framework.spatial.Vec3;
 
+/**
+ * Cuboid boundary class. Can be used to check if it contains or intersects with other boundaries, points or spheres.
+ */
 public class Boundary2 {
     Vec3 lowerBounds, upperBounds;
 

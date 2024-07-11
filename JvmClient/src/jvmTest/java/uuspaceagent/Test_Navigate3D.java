@@ -6,8 +6,6 @@ import eu.iv4xr.framework.spatial.Vec3;
 import nl.uu.cs.aplib.mainConcepts.GoalStructure;
 import nl.uu.cs.aplib.utils.Pair;
 import org.junit.jupiter.api.Test;
-import spaceEngineers.controller.useobject.UseObjectExtensions;
-import spaceEngineers.model.Block;
 import java.time.Instant;
 
 import static nl.uu.cs.aplib.AplibEDSL.*;
@@ -18,7 +16,8 @@ import static uuspaceagent.UUGoalLib.*;
 
 public class Test_Navigate3D {
     public Pair<TestAgent, UUSeAgentState> deployAgent(String worldname) throws InterruptedException {
-        var agentAndState = loadSE(worldname);
+        // loadSE for NavGrid, loadSE3D for Octree, loadSE3D2 for VoxelGrid
+        var agentAndState = loadSE3D(worldname);
         TestAgent agent = agentAndState.fst;
         var state = agentAndState.snd;
         Thread.sleep(1000);
@@ -36,8 +35,6 @@ public class Test_Navigate3D {
             agent.update();
             //Thread.sleep(50);
             turn++;
-            //if (turn >= 10000) break;
-            if (turn >= 3) break;
         }
         Timer.endTest();
         Timer.print();
@@ -52,54 +49,11 @@ public class Test_Navigate3D {
         TestUtils.closeConnectionToSE(state);
     }
 
-//    @Test
-//    public void test_navigate3DTo() throws InterruptedException {
-//        console("*** start test...");
-//        var agentAndState = deployAgent("myworld-3 3D-nav");
-//        // agent start location = <9, -5, 55>
-//        TestAgent agent = agentAndState.fst;
-//        var state = agentAndState.snd;
-//        state.navgrid.enableFlying = true;
-//
-//        // agent halfway goal location = <34, 17.5f, 75>
-//        // agent end goal location =     <51, 17.5f, 75>
-//        // faraway asteroid location =   <-2133, 1773, -170>
-//        // below platform =              <9, -15, 55>
-//        // behind wall =                 <9, -5, 45>
-//        Vec3 dest = new Vec3(58,17.5f,75);
-//        GoalStructure G = DEPLOYonce(agent, UUGoalLib.closeTo(dest));
-//        test_Goal(agentAndState.fst, agentAndState.snd, G);
-//        G.printGoalStructureStatus();
-//        assertTrue(G.getStatus().success());
-//    }
-//
-//    @Test
-//    public void test_navigate3DMaze() throws InterruptedException {
-//        console("*** start test...");
-//        var agentAndState = deployAgent("3D maze -glass");
-//        // agent start location = <9, -5, 55>
-//        //Thread.sleep(5000);
-//        TestAgent agent = agentAndState.fst;
-//        var state = agentAndState.snd;
-//        state.navgrid.enableFlying = true;
-//
-//        // maze center location =       <80, 80, 80>
-//        // button in maze location =    <19, 70, 23>, look towards ~(0.4, -0.1, -1), up = (-1, 0, 0)
-//        // door location =              <-10, -1.3, 5>, look towards (-1, 0, 0), up = (0, -1, 0)
-//        Vec3 dest = new Vec3(80,80,80);
-//        GoalStructure G = DEPLOYonce(agent, UUGoalLib.closeTo(dest));
-//        test_Goal(agentAndState.fst, agentAndState.snd, G);
-//        G.printGoalStructureStatus();
-//        assertTrue(G.getStatus().success());
-//    }
-
     @Test
     public void test_navigate3DToDoor() throws InterruptedException {
         console("*** start test...");
-        var agentAndState = deployAgent("myworld-3 with open door"); //myworld-3 3D-nav //Almost Empty v2 //myworld-3 with open door
-        // agent start location = <9, -5, 55>
+        var agentAndState = deployAgent("myworld-3 with open door");
         TestAgent agent = agentAndState.fst;
-        // var state = agentAndState.snd;
         if (agentAndState.snd instanceof UUSeAgentState2D)
             ((UUSeAgentState2D) agentAndState.snd).navgrid.enableFlying = true ;
 
@@ -116,10 +70,8 @@ public class Test_Navigate3D {
     @Test
     public void test_navigate3DToBattery() throws InterruptedException {
         console("*** start test...");
-        var agentAndState = deployAgent("myworld-3 Indoors"); //myworld-3 3D-nav //Almost Empty v2 //myworld-3 with open door
-        // agent start location = <9, -5, 55>
+        var agentAndState = deployAgent("myworld-3 Indoors");
         TestAgent agent = agentAndState.fst;
-        // var state = agentAndState.snd;
         if (agentAndState.snd instanceof UUSeAgentState2D)
             ((UUSeAgentState2D) agentAndState.snd).navgrid.enableFlying = true ;
 
@@ -129,7 +81,39 @@ public class Test_Navigate3D {
                 SEBlockFunctions.BlockSides.FRONT,
                 20f,
                 0.5f));
-//        GoalStructure G = SUCCESS();
+        test_Goal(agent, agentAndState.snd, G);
+        G.printGoalStructureStatus();
+        assertTrue(G.getStatus().success());
+    }
+
+    @Test
+    public void test_navigate3DToBatteryAlt() throws InterruptedException {
+        console("*** start test...");
+        var agentAndState = deployAgent("myworld-3 Indoors");
+        TestAgent agent = agentAndState.fst;
+
+        GoalStructure G;
+        if (agentAndState.snd instanceof UUSeAgentState2D) {
+            ((UUSeAgentState2D) agentAndState.snd).navgrid.enableFlying = true;
+            G = SEQ(DEPLOYonce(agent, UUGoalLib.closeTo(new Vec3(16.77483f, -1.7425041f, 72.62046f))),
+                    DEPLOYonce(agent, closeToButton(0)),
+                    pressButton(0, 0),
+                    DEPLOYonce(agent, UUGoalLib.close3DTo(
+                            agent,
+                            "LargeBlockBatteryBlock",
+                            SEBlockFunctions.BlockSides.FRONT,
+                            20f,
+                            0.5f))
+            );
+        } else {
+            G = DEPLOYonce(agent, UUGoalLib.smartClose3DTo(
+                    agent,
+                    "TargetDummy",
+                    SEBlockFunctions.BlockSides.BACK,
+                    20f,
+                    0.5f));
+        }
+
         test_Goal(agent, agentAndState.snd, G);
         G.printGoalStructureStatus();
         assertTrue(G.getStatus().success());
@@ -138,18 +122,30 @@ public class Test_Navigate3D {
     @Test
     public void test_open_area() throws InterruptedException {
         console("*** start test...");
-        var agentAndState = deployAgent("Glass box maze");
+        var agentAndState = deployAgent("Glass box"); // Glass box (maze)
         TestAgent agent = agentAndState.fst;
-        if (agentAndState.snd instanceof UUSeAgentState2D)
-            ((UUSeAgentState2D) agentAndState.snd).navgrid.enableFlying = true ;
-
-        GoalStructure G = DEPLOYonce(agent, UUGoalLib.smartClose3DTo(
-                agent,
-                "TargetDummy",
-                SEBlockFunctions.BlockSides.BACK,
-                20f,
-                0.5f));
-//        GoalStructure G = SUCCESS();
+        GoalStructure G;
+        if (agentAndState.snd instanceof UUSeAgentState2D) {
+            ((UUSeAgentState2D) agentAndState.snd).navgrid.enableFlying = true;
+            G = SEQ(DEPLOYonce(agent, closeToButton(0)),
+                    UUGoalLib.pressButton(0, 0),
+                    DEPLOYonce(agent, close3DTo(
+                            agent,
+                            "TargetDummy",
+                            (UUSeAgentState state) -> (WorldEntity e)
+                                    ->
+                                    "TargetDummy".equals(e.getStringProperty("blockType")),
+                            SEBlockFunctions.BlockSides.BACK,
+                            0.5f))
+            );
+        } else {
+            G = DEPLOYonce(agent, UUGoalLib.smartClose3DTo(
+                    agent,
+                    "TargetDummy",
+                    SEBlockFunctions.BlockSides.BACK,
+                    20f,
+                    0.5f));
+        }
         test_Goal(agent, agentAndState.snd, G);
         G.printGoalStructureStatus();
         assertTrue(G.getStatus().success());
@@ -158,18 +154,13 @@ public class Test_Navigate3D {
     @Test
     public void test_explore_open_area() throws InterruptedException {
         console("*** start test...");
-        var agentAndState = deployAgent("Glass box center");
+        var agentAndState = deployAgent("Glass box center"); // Glass box (maze) center
         TestAgent agent = agentAndState.fst;
         if (agentAndState.snd instanceof UUSeAgentState2D)
             ((UUSeAgentState2D) agentAndState.snd).navgrid.enableFlying = true ;
 
-        GoalStructure G = FIRSTof(
-                DEPLOYonce(agent, UUGoalLib.explore()),
-                DEPLOYonce(agent, UUGoalLib.explore()),
-                DEPLOYonce(agent, UUGoalLib.explore()),
-                DEPLOYonce(agent, UUGoalLib.explore()),
-                DEPLOYonce(agent, UUGoalLib.explore()));
-//        GoalStructure G = SUCCESS();
+        GoalStructure G = DEPLOYonce(agent, UUGoalLib.explore());
+
         test_Goal(agent, agentAndState.snd, G);
         G.printGoalStructureStatus();
         assertTrue(G.getStatus().success());
@@ -178,11 +169,12 @@ public class Test_Navigate3D {
     @Test
     public void test_open_area_memory() throws InterruptedException {
         console("*** start test...");
-        var agentAndState = deployAgent("Glass box maze");
+        var agentAndState = deployAgent("Glass box"); // Glass box (maze)
         TestAgent agent = agentAndState.fst;
         if (agentAndState.snd instanceof UUSeAgentState2D)
             ((UUSeAgentState2D) agentAndState.snd).navgrid.enableFlying = true ;
 
+        // Coordinates are the outermost corners
         GoalStructure G = SEQ(
                 DEPLOYonce(agent, UUGoalLib.exploreTo(new Vec3(-12,-48,-23))),
                 DEPLOYonce(agent, UUGoalLib.exploreTo(new Vec3(97,76,63)))
@@ -196,43 +188,21 @@ public class Test_Navigate3D {
     public void test_labrecruits_level() throws InterruptedException {
         console("*** start test...");
         var agentAndState = deployAgent("CR3_3_3_M");
-        // agent start location = <0, 0, 0>, forward = <0, 1, 0>, up = <0, 0, 1>
         TestAgent agent = agentAndState.fst;
-        // var state = agentAndState.snd;
         if (agentAndState.snd instanceof UUSeAgentState2D)
             ((UUSeAgentState2D) agentAndState.snd).navgrid.enableFlying = true ;
 
+        // viewing range needs to be 20 or higher to ensure the button ids are correct (this is because they are assigned an id in the order they were observed)
         GoalStructure G = SEQ(
                 DEPLOYonce(agent, closeToButton(0)),
-                lift((UUSeAgentState S) -> {
-                    UseObjectExtensions useUtil = new UseObjectExtensions(S.env().getController().getSpaceEngineers());
-                    WorldEntity button = (WorldEntity) S.buttons.get(0);
-                    if (button == null) return false;
-                    Block targetBlock = S.env().getBlock(button.id); //S.env().getController().getObserver().observe().getTargetBlock();
-                    useUtil.pressButton(targetBlock, 0);
-                    S.updateDoors();
-                    return true;
-                }),
+                UUGoalLib.pressButton(0, 0),
+
                 DEPLOYonce(agent, closeToButton(1)),
-                lift((UUSeAgentState S) -> {
-                    UseObjectExtensions useUtil = new UseObjectExtensions(S.env().getController().getSpaceEngineers());
-                    WorldEntity button = (WorldEntity) S.buttons.get(1);
-                    if (button == null) return false;
-                    Block targetBlock = S.env().getBlock(button.id); //S.env().getController().getObserver().observe().getTargetBlock();
-                    useUtil.pressButton(targetBlock, 2);
-                    S.updateDoors();
-                    return true;
-                }),
+                UUGoalLib.pressButton(1, 2),
+
                 DEPLOYonce(agent, closeToButton(3)),
-                lift((UUSeAgentState S) -> {
-                    UseObjectExtensions useUtil = new UseObjectExtensions(S.env().getController().getSpaceEngineers());
-                    WorldEntity button = (WorldEntity) S.buttons.get(3);
-                    if (button == null) return false;
-                    Block targetBlock = S.env().getBlock(button.id); //S.env().getController().getObserver().observe().getTargetBlock();
-                    useUtil.pressButton(targetBlock, 3);
-                    S.updateDoors();
-                    return true;
-                }),
+                UUGoalLib.pressButton(3, 3),
+
                 DEPLOYonce(agent, close3DTo(
                         agent,
                         "TargetDummy",
@@ -244,7 +214,6 @@ public class Test_Navigate3D {
                         0.5f
                 ))
         );
-//        GoalStructure G = SUCCESS();
         test_Goal(agent, agentAndState.snd, G);
         G.printGoalStructureStatus();
         assertTrue(G.getStatus().success());

@@ -202,7 +202,6 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
 
     public void addToGrid(WorldEntity block) {
         Boolean isOpen = SEBlockFunctions.getSlideDoorState(block) ;
-        // open-doors are more complicated. TODO.
         if (isOpen != null) {
             if (!isOpen)
                 grid.addObstacle(block);
@@ -221,53 +220,12 @@ public class UUSeAgentState3DVoxelGrid extends UUSeAgentState<DPos3> {
             grid.addObstacle(block);
     }
 
-    public void exportManualProfileShit() {
-
-        DPos3 size = grid.size();
-        int gridMemSize = size.x * size.y * size.z; // in bytes
-
-        int womMemSize = 0;
-        for (Map.Entry<String, WorldEntity> entry : wom.elements.entrySet()) {
-            womMemSize += entry.getValue().elements.size() * 325; // 325 is a calculated estimation of amount of bytes used per SE block
-        }
-
-        System.out.println("Memory Usage:");
-        if (gridMemSize > 1000000)
-            System.out.printf("Grid: %f MB %n", (float)gridMemSize / 1000000);
-        else if (gridMemSize > 1000)
-            System.out.printf("Grid: %f kB %n", (float)gridMemSize / 1000);
-        else
-            System.out.printf("Grid: %d B %n", gridMemSize);
-
-        if (womMemSize > 1000000)
-            System.out.printf("WOM: %f MB %n", (float)womMemSize / 1000000);
-        else if (womMemSize > 1000)
-            System.out.printf("WOM: %f kB %n", (float)womMemSize / 1000);
-        else
-            System.out.printf("WOM: %d B %n", (womMemSize));
-    }
-
     public void exportGrid() {
-
-//        WorldModel wom = env().observe() ;
-//
-//        Observation rawGridsAndBlocksStates = env().getController().getObserver().observeBlocks() ;
-//        WorldModel gridsAndBlocksStates = SeEnvironmentKt.toWorldModel(rawGridsAndBlocksStates) ;
-//
-//        Vec3 doorpos = new Vec3(0);
-//        for(var block : SEBlockFunctions.getAllBlocks(gridsAndBlocksStates)) {
-//            grid.addObstacle(block, wom.position, OBSERVATION_RADIUS);
-//            if (SEBlockFunctions.getSlideDoorState(block) != null) {
-//                doorpos = block.position;
-//            }
-//        }
-
         try {
             System.out.println(System.getProperty("user.dir"));
             FileWriter fileWriter = new FileWriter("3D_Internal_WOM.txt");
             PrintWriter printWriter = new PrintWriter(fileWriter);
             Vec3 player_pos = grid.getCubeCenterLocation(grid.gridProjectedLocation(new Vec3(wom.position.x, wom.position.y + VoxelGrid.AGENT_HEIGHT * 0.5f, wom.position.z)));
-            //Vec3 door_pos = grid.getCubeCenterLocation(grid.gridProjectedLocation(doorpos));
             Vec3 door_pos = grid.getCubeCenterLocation(grid.gridProjectedLocation(new Vec3(9999,9999,9999)));
             printWriter.printf("player: %f %f %f %n", player_pos.x, player_pos.y, player_pos.z);
             printWriter.printf("door: %f %f %f %n", door_pos.x, door_pos.y, door_pos.z);

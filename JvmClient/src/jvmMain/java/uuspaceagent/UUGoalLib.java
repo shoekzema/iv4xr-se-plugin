@@ -125,6 +125,23 @@ public class UUGoalLib {
         };
     }
 
+    /**
+     * Create a pressButton goal that presses the buttonNR button on the buttonID button-panel.
+     * @param buttonID The index of the button in the state's buttons list
+     * @param buttonNR The button to press on the button-panel [1,2,3,4]
+     */
+    public static GoalStructure pressButton(int buttonID, int buttonNR) {
+        return lift((UUSeAgentState S) -> {
+            UseObjectExtensions useUtil = new UseObjectExtensions(S.env().getController().getSpaceEngineers());
+            WorldEntity button = (WorldEntity) S.buttons.get(buttonID);
+            if (button == null) return false;
+            Block targetBlock = S.env().getBlock(button.id); //S.env().getController().getObserver().observe().getTargetBlock();
+            useUtil.pressButton(targetBlock, buttonNR);
+            S.updateDoors();
+            return true;
+        });
+    }
+
     public static Function<UUSeAgentState,GoalStructure> faceTowardBlock(String goalname,
                                                                          Function<UUSeAgentState, Predicate<WorldEntity>> selector) {
          return (UUSeAgentState state) -> {
