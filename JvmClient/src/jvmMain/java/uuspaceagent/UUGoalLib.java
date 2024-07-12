@@ -196,17 +196,8 @@ public class UUGoalLib {
                         DEPLOYonce(agent, faceTowardBlock(goalname2_, selector))
                     ),
                     SEQ( // if still not possible, go to a button and press it
-                        //closeToBlock("ButtonPanelLarge", buttonSelector, SEBlockFunctions.BlockSides.FRONT, 0).apply(state),
                         DEPLOYonce(agent, closeToButton(0)),
-                        lift((UUSeAgentState S) -> {
-                            UseObjectExtensions useUtil = new UseObjectExtensions(S.env().getController().getSpaceEngineers());
-                            WorldEntity button = (WorldEntity) S.buttons.get(0);
-                            if (button == null) return false;
-                            Block targetBlock = S.env().getBlock(button.id); //S.env().getController().getObserver().observe().getTargetBlock();
-                            useUtil.pressButton(targetBlock, 0);
-                            S.updateDoors();
-                            return true;
-                        }), // pressing a button will set the label of the nodes of all known doors to unknown
+                        pressButton(0, 0), // pressing a button will set the label of the nodes of all known doors to unknown
                         explore(targetBlockName, selector, side, delta).apply(state), // now explore new possible locations (if any doors were reachable)
                         G.apply(null), // final check if we can go to the goal
                         DEPLOYonce(agent, faceTowardBlock(goalname2_, selector))
