@@ -646,14 +646,4 @@ public class UUGoalLib {
                 .withTactic(FIRSTof(UUTacticLib.yTurnTowardACT(p).lift() , ABORT()))
                 .lift() ;
     }
-
-    public static GoalStructure jetpackRoll(String goalname, Vec3 r) {
-        if (goalname == null) {
-            goalname = "roll " + r ;
-        }
-        return goal(goalname)
-                .toSolve((Float cos_alpha) -> 1 - cos_alpha <= 0.01)
-                .withTactic(FIRSTof(UUTacticLib.jetpackRoll(r).lift(), ABORT()))
-                .lift() ;
-    }
 }
